@@ -14,6 +14,7 @@ import { loadLearnerSessionContext } from "./learner-summary";
 import { loadLearnerAttendance } from "./learner-attendance";
 import { evaluateLearnerCheckIns } from "./learner-check-ins";
 import { aggregateLearnerAttendance } from "./learner-attendance-aggregates";
+import { aggregateLearnerMilestones } from "./learner-milestone-aggregates";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -111,5 +112,6 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const directory = await loadLearnerProgress(page.directory, programs);
   const summary = { ...(filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary), needsCheckIn };
   const attendanceBySession = aggregateLearnerAttendance(filtered);
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession };
+  const weeklyMilestones = aggregateLearnerMilestones(filtered);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession, weeklyMilestones };
 }

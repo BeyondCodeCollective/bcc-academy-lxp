@@ -1,5 +1,29 @@
 # Learner record relationships
 
+## Weekly milestone aggregates (November 5, 2026)
+
+The authorized loader's `weeklyMilestones` aggregate uses the entire matching
+population after all applied filters, including Status, and before pagination.
+Rows are grouped by program, course, and **course week**, not calendar week.
+`submissions`, `reflections`, and `markedWatched` count distinct learners with a
+recorded timestamp for that activity. Repeated actions/enrollments do not inflate
+counts. Marked-watched records are learner actions, not proof of viewing.
+`total` counts all matching learners enrolled in that offering, including those
+without activity; it does not assert assignment eligibility or completion.
+
+Only weeks represented in the loaded milestone evidence appear. No schedule or
+zero-activity weeks are invented. A known missing activity in a represented week
+counts as zero; unavailable evidence or an unmapped historical week makes the
+whole aggregate `unavailable`. No rows returns `empty`.
+
+The existing milestone privacy guard suppresses the entire dataset when either
+an activity count or its complementary non-participant count is nonzero and below
+five. No learner IDs, timestamps, submission content, reflections, or file links
+are returned. This does not protect against differencing across repeated queries.
+The aggregate reuses already-loaded evidence without additional database reads.
+It inherits the activity loader's learner/course attribution (not historical
+enrollment-attempt attribution). Chart UI/action wiring remains a separate step.
+
 ## Attendance-by-session aggregates (November 5, 2026)
 
 The authorized loader returns `attendanceBySession` for the complete matching

@@ -90,6 +90,24 @@ describe("Learners loader access boundary", () => {
     }
     expect(Number.isFinite(Date.parse(first.summary.asOf))).toBe(true);
   });
+  it("aggregates weekly activity over all matching learners independently of paging and sorting", async () => {
+    seedSummary();
+    tables.submissions = Array.from({ length: 26 }, (_, i) => ({ id: `submission-${String(i).padStart(2, "0")}`,
+      student_id: `s${String(i).padStart(2, "0")}`, track_slug: "a", week_number: 1, submitted_at: "2000-01-02T12:00:00Z" }));
+    tables.reflections = tables.submissions.slice(0, 13).map(row => ({ ...row, id: `reflection-${row.id}` }));
+    const first = await getMvpLearnersData({ pageSize: "10" });
+    requests = [];
+    const last = await getMvpLearnersData({ page: "3", pageSize: "10", sortOrder: "desc" });
+    expect(first.weeklyMilestones).toEqual({ state: "ready", rows: [{ programId: "p1", courseSlug: "a", weekNumber: 1,
+      total: 26, submissions: 26, reflections: 13, markedWatched: 0 }] });
+    expect(last.weeklyMilestones).toEqual(first.weeklyMilestones);
+    requests = [];
+    expect((await getMvpLearnersData({ search: "Learner00" })).weeklyMilestones).toEqual({ state: "suppressed" });
+    requests = [];
+    expect((await getMvpLearnersData({ programId: "p1", courseSlug: "b" })).weeklyMilestones).toEqual({ state: "empty" });
+    requests = [];
+    expect((await getMvpLearnersData({ search: "No match" })).weeklyMilestones).toEqual({ state: "empty" });
+  });
   const seedAttendance = () => {
     seedSummary();
     tables.mvp_attendance_reviews = ["a", "b"].flatMap(track_slug => [1, 2, 3, 4].map(week_number => ({
