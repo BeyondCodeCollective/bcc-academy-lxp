@@ -1,5 +1,83 @@
 # Learner record relationships
 
+## Chart cell and tooltip suppression
+
+All chart guards use the shared minimum-five policy. A positive count below five,
+or a positive complement (`population - count`) below five, withholds the whole
+chart dataset. Related rows, labels, totals, and scales are removed rather than
+releasing enough cells to reconstruct a hidden value. Zero and exactly five
+remain valid when all other cells and complements are safe. Attendance applies
+this to all six states; milestones check each overlapping activity separately.
+
+The chart renderer defensively revalidates ready datasets before building any
+bars, SVG titles, native tooltips, accessible tables/labels, or selection targets.
+Changed or suppressed datasets invalidate the displayed selection. Server-side
+guards remain mandatory before serialization; hiding in the browser is not a
+privacy boundary. Legacy chart guards explicitly project approved fields rather
+than copying arbitrary source metadata. Repeated-query differencing protection
+and chart data wiring remain separate work.
+
+## Weekly milestone aggregates (November 5, 2026)
+
+The authorized loader's `weeklyMilestones` aggregate uses the entire matching
+population after all applied filters, including Status, and before pagination.
+Rows are grouped by program, course, and **course week**, not calendar week.
+`submissions`, `reflections`, and `markedWatched` count distinct learners with a
+recorded timestamp for that activity. Repeated actions/enrollments do not inflate
+counts. Marked-watched records are learner actions, not proof of viewing.
+`total` counts all matching learners enrolled in that offering, including those
+without activity; it does not assert assignment eligibility or completion.
+
+Only weeks represented in the loaded milestone evidence appear. No schedule or
+zero-activity weeks are invented. A known missing activity in a represented week
+counts as zero; unavailable evidence or an unmapped historical week makes the
+whole aggregate `unavailable`. No rows returns `empty`.
+
+The existing milestone privacy guard suppresses the entire dataset when either
+an activity count or its complementary non-participant count is nonzero and below
+five. No learner IDs, timestamps, submission content, reflections, or file links
+are returned. This does not protect against differencing across repeated queries.
+The aggregate reuses already-loaded evidence without additional database reads.
+It inherits the activity loader's learner/course attribution (not historical
+enrollment-attempt attribution). Chart UI/action wiring remains a separate step.
+
+## Attendance-by-session aggregates (November 5, 2026)
+
+The authorized loader returns `attendanceBySession` for the complete matching
+population, including applied Status, before directory pagination. Each row is
+one program/course/week/session, counting each learner once. Only verified held
+required sessions from the attendance loader participate; future and optional
+sessions are excluded upstream. Counts distinguish `verified_present`,
+`verified_absent`, `excused`, `unrecorded`, `unresolved`, and `not_eligible`.
+`total` includes all six categories and is NOT an attendance-rate denominator.
+
+Missing schedules, incomplete session coverage, or conflicting duplicate evidence
+return `unavailable`; a known empty schedule/population returns `empty`. Any
+nonzero cell below five suppresses the entire dataset, including session labels
+and totals, preventing complementary-cell reconstruction within that dataset.
+This does not guarantee protection against differencing across repeated filters.
+Raw learner IDs and review details never appear in the aggregate rows.
+
+This is a server-side data contract only; chart/action wiring is not enabled by
+this step. The PR #1295 program-scoped attendance and delivery fixes have been
+ported to this branch. No additional database reads are introduced here.
+
+## Connected Needs Check-In count (November 5, 2026)
+
+`summary.needsCheckIn` counts distinct learner IDs with at least one matching
+enrollment carrying a supported check-in flag. Search, Program, Course, Current
+Cohort, and applied Status filters all apply. Multiple flags or enrollments do
+not multiply the count; page size, page number, and sorting do not change it.
+Not evaluated is not a flag; zero means no supported flags in the matching set,
+not that every learner is On Track.
+
+Activity and attendance batch loaders now evaluate the complete matching roster
+for every directory request, including Status All, before pagination. Only the
+requested directory page and scalar summary counts are sent to the frontend.
+Read failures reject the request rather than publishing partial counts. Loading
+and errors clear old card totals; Retry uses the same filters. This requires more
+evidence reads than the earlier page-only path and is not a database aggregate.
+
 Code/schema audit, updated October 24, 2026. This describes repository contracts, not
 verified production data coverage. The Learners view is currently an authorized
 workspace shell: it does not query records or offer exports.
@@ -248,6 +326,40 @@ do not alter them under this documentation task.
   historical membership/attempts or identity reconciliation are required, discuss
   those shared-LXP changes with Fonz first.
 
+## Learners summary calculations
+
+`getMvpLearnersData` returns `summary.totalEnrolled`, `sessionsHeld`,
+`sessionsHeldUnavailableReason`, and a UTC `asOf` timestamp. These describe the
+complete authorized, filtered roster before sorting or pagination, not the
+visible page. Total Enrolled counts distinct learner IDs, never enrollment rows.
+An empty matching roster returns zero for both counts without delivery reads.
+
+Sessions Held counts required sessions once per matching program/course pair,
+not once per learner. It uses the existing canonical course owner and override
+precedence, plus `calculateMvpSessionsRemaining().delivered`: only explicitly
+completed, already-arrived required sessions count. Future flags and labeled
+extras do not count; matching duplicate delivery rows do not inflate counts.
+Missing/conflicting delivery, incomplete schedules, or self-paced courses make
+the entire Sessions Held total unavailable with a reason, never a partial total
+or an invented zero. Verified upcoming/in-progress sessions contribute zero.
+
+Search and current-cohort filters select learners and their matching offerings;
+they do not establish historical cohort-specific schedules. Shared course
+delivery is scoped to the resolved owner program and course slug; counting the same delivered course under two
+matching programs represents two offering opportunities, not two distinct live
+meetings. This is not yet an individual attendance denominator or a Needs
+Check-In calculation. The UI remains unwired.
+
+Only schedule and delivery metadata are read, sequentially per distinct offering
+with delivery cached by owner program/course and cursor-paginated until empty. A
+local override fallback uses that local program's delivery. Status-filtered
+summaries reuse this request's resolved offering context rather than reading it
+again, counting only offerings left in the filtered roster. Read errors,
+duplicate schedule overrides, and stalled cursors fail the request. Synthetic
+integration tests cover filtering, deduplication, pagination independence,
+canonical ownership, known zero, unavailable evidence, and later-page failures;
+they do not validate live database permissions or production data quality.
+
 ## Code references
 
 ### Learner directory progress integration
@@ -265,6 +377,176 @@ out-of-scope progress records fail the request rather than inventing a result.
 This reuse reads the configured course's roster internally; it is not a new
 database-level page-only evidence query. UI wiring remains a separate task.
 Tests use synthetic records, not live learner data.
+
+### Connected name/email search and status filters
+
+Learners now calls `searchMvpLearners` through a server action. Direct calls require
+the same super-admin role as the page; the existing loader rechecks preview mode,
+authorized programs/courses, and filter values on every request. Responses project
+directory fields only, without the full flag/evidence payload. Errors are generic.
+
+Name/email search is debounced by 300 ms. Apply Filters submits the remaining
+selections, including status, and Clear resets Learners only. Filter changes reset
+the requested page. Server totals and pagination are used without filtering or
+paginating the returned page again. Request-key checks and effect cleanup prevent
+late responses from replacing newer results; loading/error transitions unmount
+old rows and drawer selections. Retry repeats the current scope. No URL, browser
+storage, Overview, or Programs filters are modified.
+
+Summary cards, charts, and authorized drawer evidence are still separate frontend
+integration tasks. Tests cover action access/projection, rendered states, backend
+search/status matching, and server pagination; live browser interaction remains
+part of the end-to-end review.
+
+### Connected filter options
+
+The Learners page now calls the server-only `getMvpLearnerFilterOptions` entry
+point and passes only authorized Program, Course, and linked Current Cohort
+metadata into the filter bar. It shares the directory loader's role, program,
+course-grant, and student-preview checks without reading learner roster/activity
+records. The page's existing super-admin-only restriction remains unchanged.
+
+Courses narrow to the selected program; cohorts narrow to the selected program
+and course. Changing a parent clears dependent selections. Hidden courses and
+unlinked cohorts are excluded by the existing options loader. Empty authorized
+options and load failures have separate UI messages; failures do not expose raw
+database errors. Overview/Programs URL filters are not inherited, and no location,
+ZIP, or state controls are introduced. Search/results now use the separate
+authorized search action described above.
+### Course-specific verified attendance
+
+Each returned enrollment now has `attendance: { present, eligibleHeld } | null`
+and `attendanceUnavailableReason`. The loader shares the summary's resolved
+schedule and delivery snapshot, then reads reviews and check-ins only for the
+authorized directory page in batches of 100 IDs, paging until empty. No combined
+cross-course attendance percentage is produced.
+
+The denominator includes only required sessions verified as delivered by the
+request's `asOf` time, using existing Eastern-time schedule rules. Future,
+upcoming, and optional sessions are excluded. A known schedule with no held
+required sessions returns 0/0 (not a percentage); unavailable schedules return
+null. The existing `verifyMvpMissedSessions` verifier requires finalized historical
+eligibility and outcome evidence for every included session. Current enrollment
+or cohort membership alone does not establish historical eligibility.
+
+Missing, unresolved, duplicate-latest, or conflicting reviews return null, never
+guessed absences or zero attendance. The current shared verifier also withholds
+the ratio for excused or explicitly ineligible sessions until a denominator
+policy is configured; exclusion/credit rules remain a policy dependency, not an
+implemented guess. Latest revisions apply only as of the request snapshot.
+
+Reviews and check-ins are program/course/learner-scoped. Check-ins
+are used to detect conflicting absence evidence, not infer activity
+or historical program membership. Only the ratio, safe session states described
+below, and a generic unavailable reason leave this layer: no staff identities,
+eligibility basis, or review notes.
+Read failures reject the request rather than returning partial attendance. The
+frontend connection and detailed attendance-state display remain separate tasks.
+
+Only verified present/absent states make attendance observations complete for
+check-in evaluation. Excused/ineligible states remain unevaluated pending a
+denominator policy; two independently verified absences can still trigger a flag.
+
+### Distinct attendance session states
+
+Each authorized enrollment returns `attendanceSessions`, sorted by week/session,
+with only `weekNumber`, `sessionNumber`, and `state`. States are:
+
+- `verified_present`: finalized eligible present review.
+- `verified_absent`: finalized eligible absence with no conflicting check-in.
+- `excused`: finalized eligible excused review; never counted as absence.
+- `unrecorded`: no review or check-in available as of the request snapshot.
+- `unresolved`: incomplete, invalid, or conflicting review evidence, including a
+  check-in without a finalized review. This is not a verified absence.
+- `not_eligible`: finalized ineligibility with unknown outcome.
+
+Only verified held required sessions are listed. Unknown schedules return null;
+known schedules without held sessions return an empty list. Latest valid review
+revisions determine states; duplicate latest revisions stay unresolved. Private
+review fields are not returned. These states remain available even when the
+course ratio is unavailable; existing ratio and flag policies are unchanged.
+Frontend state rendering remains a separate integration task.
+
+### Evidence-backed Needs Check-In
+
+The authorized loader now evaluates each matching enrollment using the existing
+attention evaluator. Two verified required-session absences trigger the existing
+`framework-missed-sessions-v1` rule (not a consecutive-absence rule). Excused,
+unrecorded, unresolved, and ineligible sessions never count as verified absences.
+Two proven absences may flag even if other sessions remain unresolved.
+
+Mandatory-work flags require an exact program/course active configuration with
+explicit assignments, deadlines, and elapsed grace periods. Marked-watched
+checkpoint flags require an exact configured video policy. Existing shared
+signal helpers are reused; no live configuration entries or deadlines are added.
+Invalid or unmapped milestone evidence cannot establish missing work/progress.
+Assessment rules remain unevaluated because assessment evidence is not connected
+to this loader; no scores or cutoffs are inferred.
+
+Enrollments return `status` and `checkIn` (flags, unevaluated rule IDs, evaluation
+time, and a generic unavailable reason). Any supported flag produces
+`needs_check_in`; absent flags do not imply `on_track` when offering requirements
+or evidence are unknown. `on_track` means no flags under the configured evaluated
+rules, not course completion. Unconfigured offerings remain `not_evaluated` unless
+the approved absence rule has positive evidence. Session evidence references
+identify verified program/course/learner/week/session tuples, not raw review IDs;
+no private review fields or learner work are returned.
+
+Status filters evaluate the full authorized search/course/cohort-matching roster
+before deduplication-preserving pagination, retaining only matching enrollments.
+Counts and summary cards use that filtered population. A learner can match
+different statuses in different courses; those filter counts are not additive.
+Unfiltered requests retain page-scoped evidence reads. Frontend wiring and the
+Needs Check-In summary card are separate tasks.
+
+### Supporting evidence for each learner flag
+
+Every returned check-in flag now includes explicit `learnerId`, `programId`,
+`courseSlug`, and typed `supportingEvidence`, alongside the existing rule ID,
+explanation, detection timestamp, and reference labels:
+
+- `verified_absences`: confirmed count, threshold, and only the verified absent
+  week/session pairs. The rule does not claim consecutive absences.
+- `overdue_required_submissions`: missing count and threshold, plus each flagged
+  assignment's configured ID, label, week, deadline, grace days, and grace-end
+  timestamp. `submittedAt: null` describes no recorded submission, not a fabricated
+  submission row. Completed, future, and within-grace requirements are excluded.
+- `required_video_checkpoint`: configured checkpoint time and minimum percentage,
+  recorded percentage, required/marked counts, and required weeks with their
+  marked-watched timestamps or none-recorded state. These are marks, not proof of
+  video viewing. Counts reflect recorded marks at evaluation time; late marks may
+  clear a flag under the existing signal rules.
+
+Evidence is projected from the same authorized snapshot and configured rules
+that produced the flag, not inferred by parsing display text. Private submission
+or reflection content, review notes, staff identities, and file links are never
+added to flag evidence. Missing/unsupported evidence cannot produce a new flag
+type silently; assessment flags remain unavailable until evidence is connected.
+No new reads, rules, live policy entries, or frontend drawer changes are added.
+
+### Weekly milestone timestamps
+
+Each authorized enrollment returns `weeklyMilestones`, sorted by week, containing
+`weekNumber`, `submission`, `reflection`, and `markedWatched`. Each milestone has
+`at` (UTC ISO timestamp or null) and `state` (`recorded`, `none_recorded`, or
+`unavailable`). The existing page-scoped activity reads now also select
+`week_number`; no additional content reads are needed.
+
+The timestamp is the latest recorded action for that learner/course/week/type,
+not a full event history. Duplicate records collapse into the same milestone;
+invalid, future, or timezone-free timestamps make that milestone unavailable
+rather than silently falling back to an older timestamp. Other weeks and types
+remain independent. Missing/invalid week mappings use `weekNumber: null`, placed
+last, rather than guessing a week or dropping activity. Only weeks represented
+in source records are returned; no records produce an empty list. Null or absent
+marks mean none recorded, not overdue, required, or failed.
+
+Video timestamps represent a marked-watched action, not verified viewing.
+Private submissions, reflection answers, file links, staff edits, and login
+timestamps are neither selected nor returned. Sources identify learner/course,
+not historical program/cohort/attempt; shared-course enrollments may therefore
+show the same milestones. Source failures still reject the whole request.
+Frontend wiring remains separate.
 
 ### Last recorded course activity
 

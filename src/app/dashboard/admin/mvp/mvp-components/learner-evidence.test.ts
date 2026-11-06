@@ -13,6 +13,20 @@ const learner: DirectoryLearner = { id: "test", firstName: "Test", lastName: "Le
 const render = (data = learner) => renderToStaticMarkup(createElement(LearnerEvidenceContent, { learner: data }));
 
 describe("Learner evidence drawer", () => {
+  it("renders bounded selected-learner navigation while authorized evidence starts loading", () => {
+    const drawer = (index: number) => renderToStaticMarkup(createElement(LearnerEvidenceDrawer, {
+      learner, onClose: () => {}, navigation: { index, total: 3, onNavigate: () => {} },
+      filters: { search: "", programId: "", courseSlug: "", cohortId: "", status: "all" },
+    }));
+    expect(drawer(0)).toContain("1 of 3 learners");
+    expect(drawer(0)).toMatch(/disabled=""[^>]*>Previous learner/);
+    expect(drawer(0)).not.toMatch(/disabled=""[^>]*>Next learner/);
+    expect(drawer(2)).toContain("3 of 3 learners");
+    expect(drawer(2)).toMatch(/disabled=""[^>]*>Next learner/);
+    expect(drawer(1)).toContain('aria-label="Selected learners"');
+    expect(drawer(1)).toContain("Loading authorized evidence");
+    expect(drawer(1)).not.toContain("PRIVATE_REFLECTION");
+  });
   it("renders course-specific history, dates, and supported explanations", () => {
     const html = render();
     expect(html).toContain("Course A");
