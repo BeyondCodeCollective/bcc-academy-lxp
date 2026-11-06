@@ -75,11 +75,13 @@ export default async function DashboardPage({
   // In another program's course (a Catalyst instructor in the Field Ready
   // staff cohort) they are a learner; sending them to /dashboard/admin there
   // bounced back here forever (the "blinking" login page).
-  // Staff taking a running course (Field Ready staff cohort) land on the
-  // student view of it, not the admin panel. In another program's context,
+  // Staff taking a current course (Field Ready staff cohort) land on the
+  // student view of it (pre-survey first), not the admin panel or L&L hub. In another program's context,
   // switch-program repoints the cookie and opens the course.
   const learnerCourse =
-    canAccessAdminPanel(role) && ctx?.userId ? await runningLearnerCourse(ctx.userId) : null;
+    (canAccessAdminPanel(role) || !!ctx?.student?.is_staff) && ctx?.userId
+      ? await runningLearnerCourse(ctx.userId)
+      : null;
   if (learnerCourse) {
     const home = await resolveHomeProgramSlug(learnerCourse);
     if (home && home !== program.slug) {
