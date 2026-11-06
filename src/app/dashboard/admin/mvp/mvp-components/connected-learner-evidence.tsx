@@ -8,6 +8,25 @@ import { LearnerMilestoneHistory } from "./learner-milestone-history";
 import { LearnerFlagEvidence } from "./learner-flag-evidence";
 import { currentEvidenceResult, type EvidenceResponse } from "./learner-evidence-response";
 
+export function LearnerEvidenceRequestState({ state, onRetry }: {
+  state: "loading" | "error" | "unavailable"; onRetry: () => void;
+}) {
+  return <section aria-label="Evidence request status" aria-busy={state === "loading"} className="rounded-lg border border-rule p-4">
+    <div role={state === "error" ? "alert" : "status"} aria-atomic="true">
+      <h3 className="font-semibold text-ink">{{ loading: "Loading authorized evidence…", error: "Unable to load evidence", unavailable: "Evidence unavailable" }[state]}</h3>
+      <p className="mt-2 text-sm text-ink-soft">{{
+        loading: "Checking access and loading fresh evidence for the selected learner. You can close the drawer or move to another selected learner while this loads.",
+        error: "The request could not be completed. Check your connection and access, then try again. No previous evidence is being shown.",
+        unavailable: "Evidence is not available for this learner in the current scope. Access or matching enrollments may have changed. This does not establish that there are no records or that the learner is on track.",
+      }[state]}</p>
+    </div>
+    {state !== "loading" && <>
+      <button type="button" className="mt-4 min-h-11 rounded-lg border border-rule px-4 py-2 text-sm font-medium text-primary focus-visible:outline-2 focus-visible:outline-primary" onClick={onRetry}>Retry loading evidence</button>
+      <p className="mt-2 text-xs text-ink-soft">Retry rechecks access using the same learner and filters. You can also close this drawer to refresh the directory or change filters.</p>
+    </>}
+  </section>;
+}
+
 // Mounted only by an open drawer. Each open/retry reads fresh evidence; closing
 // or changing scope cancels delivery of late responses, not the server work.
 export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: string; filters: LearnerFilters }) {
@@ -24,11 +43,7 @@ export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: st
       () => setResponse({ key, result: { state: "error" } }));
   }, [key]);
   const result = currentEvidenceResult(response, key, learnerId, filters);
-  if (!result) return <p role="status" aria-busy="true">Loading authorized evidence…</p>;
-  if (result.state !== "ready" || result.evidence.id !== learnerId) return <div>
-    <p role={result.state === "error" ? "alert" : "status"}>{result.state === "error" ? "Unable to load evidence. Check your connection and access." : "Evidence unavailable in the current scope."}</p>
-    <button type="button" className="mt-4 min-h-11 rounded-lg border border-rule px-4 py-2" onClick={() => setRetry(value => value + 1)}>Retry loading evidence</button>
-  </div>;
+  if (!result || result.state !== "ready") return <LearnerEvidenceRequestState state={result?.state ?? "loading"} onRetry={() => setRetry(value => value + 1)} />;
   return <div className="space-y-4">
     <p role="status" className="text-sm text-ink-soft">Authorized evidence loaded. Private submission and reflection content is excluded.</p>
     {result.evidence.enrollments.map(course => <section key={JSON.stringify([course.programId, course.courseSlug])} className="rounded-xl border border-rule p-4">

@@ -25,6 +25,19 @@ function deferred() {
 }
 
 describe("Selected learner evidence isolation", () => {
+  it("treats an empty enrollment response as unavailable, not a ready empty result", () => {
+    const result = ready("a");
+    result.evidence.enrollments = [];
+    expect(currentEvidenceResult({ key: "current", result }, "current", "a", filters)).toEqual({ state: "unavailable" });
+  });
+  it.each(["error", "unavailable"] as const)("retry hides %s and accepts only the new attempt for the same learner and scope", state => {
+    const key = JSON.stringify(["a", filters, 0]);
+    const retryKey = JSON.stringify(["a", filters, 1]);
+    expect(currentEvidenceResult({ key, result: { state } }, retryKey, "a", filters)).toBeNull();
+    const result = ready("a");
+    expect(currentEvidenceResult({ key, result }, retryKey, "a", filters)).toBeNull();
+    expect(currentEvidenceResult({ key: retryKey, result }, retryKey, "a", filters)).toBe(result);
+  });
   it.each(["ready", "error", "unavailable"] as const)("hides stale %s immediately when the request changes", state => {
     const result = state === "ready" ? ready("a") : { state };
     expect(currentEvidenceResult({ key: "old", result }, "new", "b", filters)).toBeNull();

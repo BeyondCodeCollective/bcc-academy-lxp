@@ -11,7 +11,7 @@ export function currentEvidenceResult(response: EvidenceResponse | null, key: st
   if (!response || response.key !== key) return null;
   const result = response.result;
   if (result.state !== "ready") return result;
-  const mismatch = result.evidence.id !== learnerId || result.evidence.enrollments.some(course =>
+  const mismatch = result.evidence.id !== learnerId || !result.evidence.enrollments.length || result.evidence.enrollments.some(course =>
     (!!filters.programId && course.programId !== filters.programId) ||
     (!!filters.courseSlug && course.courseSlug !== filters.courseSlug) ||
     course.checkIn.attentionFlags.some(flag => flag.learnerId !== learnerId ||
