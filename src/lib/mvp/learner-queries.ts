@@ -10,6 +10,9 @@ import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
 import { loadLearnerActivity } from "./learner-activity";
+import { loadLearnerSessionContext, summarizeLearnerSessionContext } from "./learner-summary";
+import { loadLearnerAttendance } from "./learner-attendance";
+import { evaluateLearnerCheckIns } from "./learner-check-ins";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -80,8 +83,21 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
   const matching = await loadLearnerRoster(db, options, filters);
-  const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
-  const enrichedDirectory = await loadLearnerProgress(directory, programs);
-  const directoryWithActivity = await loadLearnerActivity(db, enrichedDirectory);
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: directoryWithActivity, pagination };
+  const asOf = new Date();
+  const sessionContext = await loadLearnerSessionContext(db, matching, asOf);
+  const initialPage = paginateLearners(sortLearners(matching, sorting), requestedPage);
+  // Status filtering needs evidence for the whole matching population, not just
+  // the current page. Ordinary requests keep their existing page-scoped reads.
+  const selected = filters.status === "all" ? initialPage.directory : matching;
+  const activity = await loadLearnerActivity(db, selected, asOf);
+  const attendance = await loadLearnerAttendance(db, activity, sessionContext.heldByOffering, asOf);
+  const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf);
+  const filtered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,
+    enrollments: learner.enrollments.filter(enrollment => enrollment.status === filters.status),
+  })).filter(learner => learner.enrollments.length > 0);
+  const page = filters.status === "all" ? { directory: filtered, pagination: initialPage.pagination }
+    : paginateLearners(sortLearners(filtered, sorting), requestedPage);
+  const directory = await loadLearnerProgress(page.directory, programs);
+  const summary = filters.status === "all" ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary };
 }
