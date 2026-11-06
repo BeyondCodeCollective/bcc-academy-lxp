@@ -85,9 +85,13 @@ export default async function DashboardPage({
   // Staff taking a current course (Field Ready staff cohort) land on the
   // student view of it (pre-survey first), not the admin panel or L&L hub. In another program's context,
   // switch-program repoints the cookie and opens the course.
+  // Field Ready (weeks open one at a time) learners of any role: coming back
+  // to bccacademy.io opens their current week, not the dashboard home.
+  const current = ctx?.userId ? await runningLearnerCourse(ctx.userId) : null;
   const learnerCourse =
-    (canAccessAdminPanel(role) || !!ctx?.student?.is_staff || setup === "1") && ctx?.userId
-      ? await runningLearnerCourse(ctx.userId)
+    current &&
+    (canAccessAdminPanel(role) || !!ctx?.student?.is_staff || setup === "1" || current.weekGated)
+      ? current.slug
       : null;
   if (learnerCourse) {
     const home = await resolveHomeProgramSlug(learnerCourse);
@@ -96,7 +100,7 @@ export default async function DashboardPage({
     }
     // Arriving from sign-in or the confirmation email link (?setup=1): open
     // the course itself (pre-survey first), not the dashboard home.
-    if (setup === "1") {
+    if (setup === "1" || current?.weekGated) {
       redirect(`/dashboard/track/${encodeURIComponent(learnerCourse)}`);
     }
   }
