@@ -10,7 +10,7 @@ import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
 import { loadLearnerActivity } from "./learner-activity";
-import { loadLearnerSessionContext } from "./learner-summary";
+import { loadLearnerSessionContext, summarizeLearnerSessionContext } from "./learner-summary";
 import { loadLearnerAttendance } from "./learner-attendance";
 import { evaluateLearnerCheckIns } from "./learner-check-ins";
 import { aggregateLearnerAttendance } from "./learner-attendance-aggregates";
@@ -110,7 +110,7 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
     enrollment.status === "needs_check_in" && enrollment.checkIn.attentionFlags.length > 0)).map(learner => learner.id)).size;
   const page = paginateLearners(sortLearners(filtered, sorting), requestedPage);
   const directory = await loadLearnerProgress(page.directory, programs);
-  const summary = { ...(filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary), needsCheckIn };
+  const summary = { ...(filters.status === "all" ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf)), needsCheckIn };
   const attendanceBySession = aggregateLearnerAttendance(filtered);
   const weeklyMilestones = aggregateLearnerMilestones(filtered);
   return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession, weeklyMilestones };

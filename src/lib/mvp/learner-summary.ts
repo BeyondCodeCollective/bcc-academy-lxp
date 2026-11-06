@@ -29,12 +29,9 @@ async function loadOverride(db: Db, programId: string, courseSlug: string) {
 // before sorting/pagination. Count session opportunities once per program/course,
 // never once per learner. Current cohort links do not establish a cohort schedule.
 export async function loadLearnerSessionContext(db: Db, matching: readonly Learner[], asOf = new Date()) {
-  const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; reason: string | null }>();
-  const totalEnrolled = new Set(matching.map(learner => learner.id)).size;
+  const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; reason: string | null; sessionsHeld: number | null }>();
   const offerings = new Map(matching.flatMap(learner => learner.enrollments.map(enrollment =>
     [JSON.stringify([enrollment.programId, enrollment.courseSlug]), enrollment] as const)));
-  let sessionsHeld = 0;
-  const reasons = new Set<string>();
   const deliveryByCourse = new Map<string, MvpSessionDelivery[]>();
   for (const { programId, courseSlug } of offerings.values()) {
     // Match the dashboard's canonical owner/override resolution, including shared
@@ -48,7 +45,10 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
       ownerId = owner.data.id;
     }
     let override = await loadOverride(db, ownerId, courseSlug);
-    if (!override && ownerId !== programId) override = await loadOverride(db, programId, courseSlug);
+    if (!override && ownerId !== programId) {
+      override = await loadOverride(db, programId, courseSlug);
+      if (override) ownerId = programId;
+    }
     const startDate = override?.start_date ?? base?.startDate;
     const totalWeeks = override?.total_weeks ?? base?.totalWeeks;
     const sessionsPerWeek = override?.sessions_per_week ?? base?.sessionsPerWeek;
@@ -60,13 +60,14 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
       weekSummaries: override?.week_summaries ?? base?.weekSummaries ?? [],
       selfPaced: override?.self_paced ?? base?.selfPaced,
     } : null;
-    let delivery = deliveryByCourse.get(courseSlug);
+    const deliveryKey = JSON.stringify([ownerId, courseSlug]);
+    let delivery = deliveryByCourse.get(deliveryKey);
     if (!delivery) {
       delivery = [];
       let cursor: string | null = null;
       while (true) {
         let query = db.from("session_content").select("id, week_number, status, status_2, status_3")
-          .eq("track", courseSlug).order("id").limit(500);
+          .eq("program_id", ownerId).eq("track", courseSlug).order("id").limit(500);
         if (cursor) query = query.gt("id", cursor);
         const { data, error } = await query;
         if (error || !Array.isArray(data)) throw new Error("Unable to verify delivered learner sessions.");
@@ -76,22 +77,35 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
         delivery.push(...data);
         cursor = next;
       }
-      deliveryByCourse.set(courseSlug, delivery);
+      deliveryByCourse.set(deliveryKey, delivery);
     }
     const result = calculateMvpSessionsRemaining(track, delivery, asOf);
     const confirmed = delivery.flatMap(row => [row.status, row.status_2, row.status_3].flatMap((status, index) =>
       status === "completed" ? [{ weekNumber: row.week_number, sessionNumber: index + 1, label: `Session ${row.week_number}.${index + 1}` }] : []));
     const slots = result.delivered === null ? null : buildMvpSchedule({ track, asOf, verifiedStartSessions: null, confirmedHeldSessions: confirmed }).heldRequiredSessions;
-    heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, reason: result.unavailableReason });
-    if (result.delivered === null) reasons.add(result.unavailableReason ?? "Verified session delivery is unavailable.");
-    else sessionsHeld += result.delivered;
+    heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, reason: result.unavailableReason, sessionsHeld: result.delivered });
   }
-  return { heldByOffering, summary: {
-    totalEnrolled,
+  return { heldByOffering, summary: summarizeLearnerSessionContext(matching, heldByOffering, asOf) };
+}
+
+// Reuse this request's authorized offering context after status filtering.
+// Missing context is unknown, never zero; each remaining offering counts once.
+export function summarizeLearnerSessionContext(matching: readonly Learner[],
+  heldByOffering: ReadonlyMap<string, { sessionsHeld: number | null; reason: string | null }>, asOf: Date) {
+  const keys = new Set(matching.flatMap(learner => learner.enrollments.map(e => JSON.stringify([e.programId, e.courseSlug]))));
+  let sessionsHeld = 0;
+  const reasons = new Set<string>();
+  for (const key of keys) {
+    const offering = heldByOffering.get(key);
+    if (!offering || offering.sessionsHeld === null) reasons.add(offering?.reason ?? "Verified session delivery is unavailable.");
+    else sessionsHeld += offering.sessionsHeld;
+  }
+  return {
+    totalEnrolled: new Set(matching.map(learner => learner.id)).size,
     sessionsHeld: reasons.size ? null : sessionsHeld,
     sessionsHeldUnavailableReason: reasons.size ? [...reasons].join(" ") : null,
     asOf: asOf.toISOString(),
-  } };
+  };
 }
 
 export async function loadLearnerSummary(db: Db, matching: readonly Learner[], asOf = new Date()) {

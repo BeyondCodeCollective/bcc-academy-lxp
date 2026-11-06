@@ -68,7 +68,7 @@ describe("Learners loader access boundary", () => {
           role: "student", is_test: false, is_staff: false } };
     })).flat();
     tables.student_tracks.push({ ...tables.student_tracks[0], id: "zzduplicate" });
-    tables.session_content = ["a", "b"].flatMap(track => [1, 2, 3, 4].map(week_number => ({ id: `${track}${week_number}`, track,
+    tables.session_content = ["a", "b"].flatMap(track => [1, 2, 3, 4].map(week_number => ({ id: `${track}${week_number}`, track, program_id: "p1",
       week_number, status: track === "b" && week_number === 2 ? "upcoming" : "completed", status_2: "upcoming", status_3: "upcoming" })));
   };
   it("summarizes the full matching population before pagination without multiplying sessions by learners", async () => {
@@ -123,6 +123,8 @@ describe("Learners loader access boundary", () => {
     expect(result.pagination).toMatchObject({ totalMatching: 1, page: 1 });
     expect(result.summary.totalEnrolled).toBe(1);
     expect(result.summary.needsCheckIn).toBe(1);
+    expect(result.summary.sessionsHeld).toBe(2);
+    expect(requests.filter(table => table === "session_content")).toHaveLength(10);
     expect(result.directory[0].enrollments.map(row => row.courseSlug)).toEqual(["a"]);
     expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0].reason).toBe("missed_sessions");
     expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0]).toMatchObject({ learnerId: "s00", programId: "p1", courseSlug: "a",
@@ -162,6 +164,34 @@ describe("Learners loader access boundary", () => {
     requests = [];
     expect((await getMvpLearnersData({ search: "No match" })).summary.needsCheckIn).toBe(0);
   });
+  it("does not let another program's check-in invalidate a verified absence", async () => {
+    seedAttendance();
+    tables.attendance = [{ id: "foreign", program_id: "p2", student_id: "s00", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments[0].attendance).toEqual({ present: 1, eligibleHeld: 2 });
+    expect(result.directory[0].enrollments[0].attendanceSessions?.[1].state).toBe("verified_absent");
+  });
+  it("keeps delivery caches separate for the same course in two programs", async () => {
+    seedSummary();
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
+    tables.track_overrides.push({ ...tables.track_overrides[0], id: "p2override", program_id: "p2" });
+    tables.student_tracks.push({ ...tables.student_tracks[0], id: "p2enrollment", program_id: "p2" });
+    tables.session_content.push(...tables.session_content.filter(row => row.track === "a").map(row => ({ ...row,
+      id: `p2${row.id}`, program_id: "p2", status: "upcoming" })));
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.summary.sessionsHeld).toBe(3);
+    const foreign = result.directory[0].enrollments.find(e => e.programId === "p2")!;
+    expect(foreign.attendance).toEqual({ present: 0, eligibleHeld: 0 });
+  });
+  it.each([true, false])("uses the resolved delivery owner, with local fallback %s", async localFallback => {
+    seedSummary();
+    mocks.home.mockReturnValue({ slug: "two", tracks: [{ slug: "a" }] });
+    if (!localFallback) tables.track_overrides.push({ ...tables.track_overrides[0], id: "owner", program_id: "p2" });
+    tables.session_content.push(...tables.session_content.filter(row => row.track === "a").map(row => ({ ...row,
+      id: `p2${row.id}`, program_id: "p2", status: "upcoming" })));
+    const result = await getMvpLearnersData({ programId: "p1", courseSlug: "a" });
+    expect(result.summary.sessionsHeld).toBe(localFallback ? 2 : 0);
+  });
   it("returns privacy-safe attendance states per enrollment even when its ratio is unavailable", async () => {
     seedAttendance();
     tables.mvp_attendance_reviews[1].outcome = "excused";
@@ -189,7 +219,7 @@ describe("Learners loader access boundary", () => {
     seedAttendance();
     const review = tables.mvp_attendance_reviews[1];
     if (kind === "missing") tables.mvp_attendance_reviews.splice(1, 1);
-    if (kind === "conflict") tables.attendance = [{ id: "checkin", student_id: "s00", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
+    if (kind === "conflict") tables.attendance = [{ id: "checkin", program_id: "p1", student_id: "s00", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
     if (kind === "excused") review.outcome = "excused";
     if (kind === "ineligible") { review.eligibility = "not_eligible"; review.outcome = "unknown"; }
     if (kind === "unknown") review.eligibility = "unknown";
@@ -205,7 +235,7 @@ describe("Learners loader access boundary", () => {
     const review = tables.mvp_attendance_reviews[1];
     tables.mvp_attendance_reviews.push({ ...review, id: "zcorrection", revision: 2, outcome: "present" });
     tables.mvp_attendance_reviews.push({ ...review, id: "zzprivate", program_id: "p2", revision: 99 });
-    tables.attendance = [{ id: "other", student_id: "other", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
+    tables.attendance = [{ id: "other", program_id: "p1", student_id: "other", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
     const result = await getMvpLearnersData({ search: "Learner00" });
     expect(result.directory[0].enrollments[0].attendance).toEqual({ present: 2, eligibleHeld: 2 });
     requests = [];
@@ -226,7 +256,7 @@ describe("Learners loader access boundary", () => {
   });
   it("finds conflicting check-ins on later pages and rejects partial or stalled attendance reads", async () => {
     seedAttendance();
-    tables.attendance = [1, 2].map(week_number => ({ id: `check${week_number}`, student_id: "s00", track: "a", week_number, session_number: 1, checked_in_at: null }));
+    tables.attendance = [1, 2].map(week_number => ({ id: `check${week_number}`, program_id: "p1", student_id: "s00", track: "a", week_number, session_number: 1, checked_in_at: null }));
     const result = await getMvpLearnersData({ search: "Learner00" });
     expect(result.directory[0].enrollments[0].attendance).toBeNull();
     requests = []; failAttendanceAfter = 1;

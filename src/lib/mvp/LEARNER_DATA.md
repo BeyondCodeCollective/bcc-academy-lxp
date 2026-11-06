@@ -59,8 +59,8 @@ This does not guarantee protection against differencing across repeated filters.
 Raw learner IDs and review details never appear in the aggregate rows.
 
 This is a server-side data contract only; chart/action wiring is not enabled by
-this step. The outstanding PR #1295 program-scoped attendance and delivery fixes
-must land before release. No additional database reads are introduced here.
+this step. The PR #1295 program-scoped attendance and delivery fixes have been
+ported to this branch. No additional database reads are introduced here.
 
 ## Connected Needs Check-In count (November 5, 2026)
 
@@ -345,13 +345,16 @@ or an invented zero. Verified upcoming/in-progress sessions contribute zero.
 
 Search and current-cohort filters select learners and their matching offerings;
 they do not establish historical cohort-specific schedules. Shared course
-delivery is stored by course slug; counting the same delivered course under two
+delivery is scoped to the resolved owner program and course slug; counting the same delivered course under two
 matching programs represents two offering opportunities, not two distinct live
 meetings. This is not yet an individual attendance denominator or a Needs
 Check-In calculation. The UI remains unwired.
 
 Only schedule and delivery metadata are read, sequentially per distinct offering
-with delivery cached by course slug and cursor-paginated until empty. Read errors,
+with delivery cached by owner program/course and cursor-paginated until empty. A
+local override fallback uses that local program's delivery. Status-filtered
+summaries reuse this request's resolved offering context rather than reading it
+again, counting only offerings left in the filtered roster. Read errors,
 duplicate schedule overrides, and stalled cursors fail the request. Synthetic
 integration tests cover filtering, deduplication, pagination independence,
 canonical ownership, known zero, unavailable evidence, and later-page failures;
@@ -432,13 +435,17 @@ the ratio for excused or explicitly ineligible sessions until a denominator
 policy is configured; exclusion/credit rules remain a policy dependency, not an
 implemented guess. Latest revisions apply only as of the request snapshot.
 
-Reviews are program/course/learner-scoped. Check-ins have only learner/course
-identity and are used to detect conflicting absence evidence, not infer activity
+Reviews and check-ins are program/course/learner-scoped. Check-ins
+are used to detect conflicting absence evidence, not infer activity
 or historical program membership. Only the ratio, safe session states described
 below, and a generic unavailable reason leave this layer: no staff identities,
 eligibility basis, or review notes.
 Read failures reject the request rather than returning partial attendance. The
 frontend connection and detailed attendance-state display remain separate tasks.
+
+Only verified present/absent states make attendance observations complete for
+check-in evaluation. Excused/ineligible states remain unevaluated pending a
+denominator policy; two independently verified absences can still trigger a flag.
 
 ### Distinct attendance session states
 

@@ -18,6 +18,15 @@ function run(states: MvpAttendanceSessionState["state"][] | null, weeklyMileston
 }
 beforeEach(() => { vi.clearAllMocks(); mocks.config.mockReturnValue(null); mocks.policy.mockReturnValue(null); });
 describe("evidence-backed learner check-ins", () => {
+  it.each(["excused", "not_eligible"] as const)("keeps %s attendance unevaluated with satisfied requirements", state => {
+    mocks.config.mockReturnValue(config);
+    const result = run(["verified_present", state], [{ weekNumber: 1,
+      submission: { at: "2026-10-01T00:00:00Z", state: "recorded" }, reflection: none, markedWatched: none }]);
+    expect(result.status).toBe("not_evaluated");
+    expect(result.checkIn.unevaluatedRuleIds).toContain("framework-missed-sessions-v1");
+    expect(result.checkIn.attentionFlags).toEqual([]);
+    expect(run(["verified_absent", "verified_absent", state]).status).toBe("needs_check_in");
+  });
   it("returns scoped session evidence without calling nonconsecutive absences consecutive", () => {
     const result = run(["verified_absent", "excused", "verified_absent", "unrecorded"]);
     expect(result.checkIn.attentionFlags[0]).toMatchObject({ learnerId: "s1", programId: "p1", courseSlug: "a",

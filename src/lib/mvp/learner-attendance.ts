@@ -38,9 +38,9 @@ export async function loadLearnerAttendance<T extends Learner>(
       const attendance: MvpAttendanceRecord[] = [];
       let cursor: string | null = null;
       while (true) {
-        // Check-ins identify learner + course, not a historical program enrollment.
+        // Check-ins are tenant-scoped even when learner/course IDs are shared.
         let query = db.from("attendance").select("id,student_id,track,week_number,session_number,checked_in_at")
-          .eq("track", courseSlug).in("student_id", batch).order("id").limit(500);
+          .eq("program_id", programId).eq("track", courseSlug).in("student_id", batch).order("id").limit(500);
         if (cursor !== null) query = query.gt("id", cursor);
         const { data, error } = await query;
         if (error || !Array.isArray(data)) throw new Error("Unable to load complete learner attendance.");
