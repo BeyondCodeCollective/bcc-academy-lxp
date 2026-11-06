@@ -7,7 +7,13 @@ import { trackHasStarted } from "@/lib/utils";
 // instructor_tracks row) keeps the admin view. The admin panel stays one
 // click away in the account menu.
 
-type TrackDates = { track_slug: string; start_date: string | null; total_weeks: number | null };
+type TrackDates = {
+  track_slug: string;
+  start_date: string | null;
+  total_weeks: number | null;
+  sequential_gating?: boolean | null;
+  self_paced?: boolean | null;
+};
 
 /** True until the course is past its last week (upcoming counts). */
 export function courseNotOver(t: TrackDates, now: Date = new Date()): boolean {
@@ -35,7 +41,7 @@ async function learnerCourses(userId: string, only?: string): Promise<TrackDates
   if (only) return [{ track_slug: only, start_date: null, total_weeks: null }];
   const { data } = await svc
     .from("track_overrides")
-    .select("track_slug, start_date, total_weeks")
+    .select("track_slug, start_date, total_weeks, sequential_gating, self_paced")
     .in("track_slug", slugs);
   return (data ?? []) as TrackDates[];
 }
@@ -45,8 +51,15 @@ export async function takesCourseAsLearner(userId: string, trackSlug: string): P
   return (await learnerCourses(userId, trackSlug)).length > 0;
 }
 
-/** An upcoming or running course this person is taking as a learner, or null. */
-export async function runningLearnerCourse(userId: string): Promise<string | null> {
-  const rows = await learnerCourses(userId);
-  return rows.find((t) => courseNotOver(t))?.track_slug ?? null;
+/**
+ * An upcoming or running course this person is taking as a learner, or null.
+ * A weeks-open-one-at-a-time cohort (Field Ready) wins, flagged `weekGated`.
+ */
+export async function runningLearnerCourse(
+  userId: string,
+): Promise<{ slug: string; weekGated: boolean } | null> {
+  const rows = (await learnerCourses(userId)).filter((t) => courseNotOver(t));
+  const gated = rows.find((t) => t.sequential_gating && !t.self_paced);
+  const pick = gated ?? rows[0];
+  return pick ? { slug: pick.track_slug, weekGated: !!gated } : null;
 }
