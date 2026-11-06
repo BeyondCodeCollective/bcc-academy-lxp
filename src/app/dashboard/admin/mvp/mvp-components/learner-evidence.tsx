@@ -95,7 +95,7 @@ export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }:
   return <dialog ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-person`} onCancel={event => { event.preventDefault(); onClose(); }}
     className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-2xl overflow-y-auto border-l border-rule bg-white p-0 text-ink shadow-2xl backdrop:bg-black/40">
     <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-rule bg-white p-5">
-      <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
+      <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} aria-live="polite" aria-atomic="true" className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
       <button ref={close} type="button" onClick={onClose} className="min-h-11 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
     </header>
     {navigation && <nav aria-label="Selected learners" className="flex flex-wrap items-center justify-between gap-2 border-b border-rule p-4">

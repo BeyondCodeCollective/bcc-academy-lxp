@@ -1,21 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { loadMvpLearnerEvidence } from "../learner-evidence-actions";
 import type { LearnerFilters } from "./learner-filters";
 import { startLearnerRequest } from "./learner-request";
 import { LearnerAttendanceHistory } from "./learner-attendance-history";
 import { LearnerMilestoneHistory } from "./learner-milestone-history";
 import { LearnerFlagEvidence } from "./learner-flag-evidence";
-
-type Result = Awaited<ReturnType<typeof loadMvpLearnerEvidence>>;
+import { currentEvidenceResult, type EvidenceResponse } from "./learner-evidence-response";
 
 // Mounted only by an open drawer. Each open/retry reads fresh evidence; closing
 // or changing scope cancels delivery of late responses, not the server work.
 export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: string; filters: LearnerFilters }) {
   const [retry, setRetry] = useState(0);
   const key = JSON.stringify([learnerId, filters, retry]);
-  const [response, setResponse] = useState<{ key: string; result: Result } | null>(null);
+  const [response, setResponse] = useState<EvidenceResponse | null>(null);
   useEffect(() => {
     const [id, scope] = JSON.parse(key) as [string, LearnerFilters, number];
     return startLearnerRequest(async () => {
@@ -25,7 +23,7 @@ export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: st
       result => setResponse({ key, result }),
       () => setResponse({ key, result: { state: "error" } }));
   }, [key]);
-  const result = response?.key === key ? response.result : null;
+  const result = currentEvidenceResult(response, key, learnerId, filters);
   if (!result) return <p role="status" aria-busy="true">Loading authorized evidence…</p>;
   if (result.state !== "ready" || result.evidence.id !== learnerId) return <div>
     <p role={result.state === "error" ? "alert" : "status"}>{result.state === "error" ? "Unable to load evidence. Check your connection and access." : "Evidence unavailable in the current scope."}</p>
