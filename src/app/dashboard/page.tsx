@@ -34,6 +34,7 @@ import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } fr
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { administersProgram } from "@/lib/auth/program-access";
+import { runningLearnerCourse } from "@/lib/auth/learner-first";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { surveyWaitsForFirstSession, surveyNotOpenYet, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
@@ -59,7 +60,19 @@ export default async function DashboardPage({
   // In another program's course (a Catalyst instructor in the Field Ready
   // staff cohort) they are a learner; sending them to /dashboard/admin there
   // bounced back here forever (the "blinking" login page).
+  // Staff taking a running course (Field Ready staff cohort) land on the
+  // student view of it, not the admin panel. In another program's context,
+  // switch-program repoints the cookie and opens the course.
+  const learnerCourse =
+    canAccessAdminPanel(role) && ctx?.userId ? await runningLearnerCourse(ctx.userId) : null;
+  if (learnerCourse) {
+    const home = await resolveHomeProgramSlug(learnerCourse);
+    if (home && home !== program.slug) {
+      redirect(`/dashboard/switch-program?track=${encodeURIComponent(learnerCourse)}`);
+    }
+  }
   const adminHere =
+    !learnerCourse &&
     canAccessAdminPanel(role) &&
     (!ctx?.userId ||
       (await administersProgram({ userId: ctx.userId, role, email, programSlug: program.slug })));

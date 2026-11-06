@@ -28,6 +28,7 @@ import { isExitConfidencePending } from "@/lib/assessment/exit-confidence";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
+import { takesCourseAsLearner } from "@/lib/auth/learner-first";
 import { type AgendaRow } from "@/components/course-agenda";
 import { type CalendarEvent, type CalendarFocus } from "@/components/track-calendar";
 import { ScheduleTabs } from "@/components/schedule-tabs";
@@ -74,7 +75,10 @@ export default async function TrackOverviewPage({
   // instructor walk their own students' experience (the toggle is scoped to
   // their assigned courses in preview-actions).
   const previewingThisTrack = (await getPreviewTrackSlugs(role)).includes(slug);
-  const isAdminViewer = canAccessAdminPanel(role) && !previewingThisTrack;
+  // Staff taking this course (Field Ready staff cohort) see it as a learner.
+  const learnerHere =
+    canAccessAdminPanel(role) && !!ctx?.userId && (await takesCourseAsLearner(ctx.userId, slug));
+  const isAdminViewer = canAccessAdminPanel(role) && !previewingThisTrack && !learnerHere;
 
   // Enrollment gate: a non-admin learner can only open a track they're enrolled
   // in — no viewing another course's curriculum by typing the URL. Staff (incl.

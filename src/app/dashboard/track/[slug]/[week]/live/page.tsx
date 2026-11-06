@@ -20,6 +20,7 @@ import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { SessionStage } from "@/components/fde/session-stage";
 import { RULEBOOK_PROMPT_TEXTS } from "@/components/fde/rulebook-prompts";
 import { getReflection } from "@/app/dashboard/track/actions";
+import { takesCourseAsLearner } from "@/lib/auth/learner-first";
 
 export default async function LiveSessionPage({
   params,
@@ -36,7 +37,9 @@ export default async function LiveSessionPage({
   if (!resolved) redirect("/dashboard");
   if (!resolved.track.weeks.find((w) => w.week === weekNum)) redirect("/dashboard");
 
-  const isStaff = canAccessAdminPanel(ctx?.student?.role ?? "");
+  const isStaff =
+    canAccessAdminPanel(ctx?.student?.role ?? "") &&
+    !(ctx?.userId && (await takesCourseAsLearner(ctx.userId, trackSlug)));
   if (!isStaff && ctx?.userId) {
     const { data: enr } = await createServiceClient()
       .from("student_tracks")

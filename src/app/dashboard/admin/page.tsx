@@ -257,7 +257,17 @@ export default async function AdminPage({
       // account with neither a program stamp nor a grant keeps the old
       // behavior rather than being locked out of the panel.
       if (allowed.length > 0 && !allowed.includes(programId)) {
-        redirect("/dashboard");
+        // Send them to their own program's panel. Bouncing to /dashboard
+        // looped forever for an admin browsing a course they take elsewhere
+        // (Rob, 2026-11-06: 6,000 reloads, then out of memory).
+        const { data: home } = homeProgramId
+          ? await svc.from("programs").select("slug").eq("id", homeProgramId).maybeSingle<{ slug: string }>()
+          : { data: null };
+        redirect(
+          home?.slug && home.slug !== program.slug
+            ? `/api/switch-program?slug=${encodeURIComponent(home.slug)}&next=/dashboard/admin`
+            : "/dashboard",
+        );
       }
       grantTrackScope = allowedTrackSlugs(homeProgramId, grants, programId);
     }
