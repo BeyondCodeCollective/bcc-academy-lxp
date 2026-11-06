@@ -211,7 +211,20 @@ export async function proxy(request: NextRequest) {
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
-    if (canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
+    // An admin who is also enrolled in a course (Field Ready staff cohort), or
+    // finishing sign-up (?setup=1), goes through the dashboard page instead:
+    // it enrolls them and lands them on the course they're taking, and still
+    // sends everyone else to the admin panel.
+    let takesACourse = request.nextUrl.searchParams.has("setup");
+    if (!takesACourse && canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
+      const { data: enr } = await supabase
+        .from("student_tracks")
+        .select("track_slug")
+        .eq("student_id", user.id)
+        .limit(1);
+      takesACourse = (enr?.length ?? 0) > 0;
+    }
+    if (!takesACourse && canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard/admin";
       url.search = "";
