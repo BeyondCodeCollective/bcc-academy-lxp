@@ -103,6 +103,6 @@ export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }:
       <button type="button" disabled={navigation.index === 0} onClick={() => navigation.onNavigate(navigation.index - 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Previous learner</button>
       <button type="button" disabled={navigation.index >= navigation.total - 1} onClick={() => navigation.onNavigate(navigation.index + 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Next learner</button>
     </nav>}
-    <div className="p-5">{filters ? <ConnectedLearnerEvidence key={JSON.stringify([learner.id, filters])} learnerId={learner.id} filters={filters} /> : <LearnerEvidenceContent learner={learner} />}</div>
+    <div className="p-5">{filters ? <ConnectedLearnerEvidence learnerId={learner.id} filters={filters} /> : <LearnerEvidenceContent learner={learner} />}</div>
   </dialog>;
 }

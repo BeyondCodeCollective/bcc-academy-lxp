@@ -25,6 +25,24 @@ function deferred() {
 }
 
 describe("Selected learner evidence isolation", () => {
+  it("rejects evidence that no longer matches the selected status", () => {
+    expect(currentEvidenceResult({ key: "current", result: ready("a") }, "current", "a", { ...filters, status: "on_track" })).toEqual({ state: "unavailable" });
+  });
+  it.each(["success", "error"])("ignores a late scope %s after changing scope and returning", async outcome => {
+    const first = deferred(); const other = deferred(); const reopened = deferred();
+    const show = vi.fn(); const fail = vi.fn();
+    const stopFirst = startLearnerRequest(() => first.promise, show, fail);
+    await flush(); stopFirst();
+    const stopOther = startLearnerRequest(() => other.promise, show, fail);
+    await flush(); stopOther();
+    startLearnerRequest(() => reopened.promise, show, fail);
+    if (outcome === "success") first.resolve(ready("a")); else first.reject(new Error("old scope"));
+    other.resolve({ state: "unavailable" }); await flush();
+    expect(show).not.toHaveBeenCalled();
+    expect(fail).not.toHaveBeenCalled();
+    reopened.resolve(ready("a")); await flush();
+    expect(show).toHaveBeenCalledExactlyOnceWith(ready("a"));
+  });
   it("treats an empty enrollment response as unavailable, not a ready empty result", () => {
     const result = ready("a");
     result.evidence.enrollments = [];

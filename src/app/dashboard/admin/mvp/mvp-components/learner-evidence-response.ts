@@ -14,6 +14,7 @@ export function currentEvidenceResult(response: EvidenceResponse | null, key: st
   const mismatch = result.evidence.id !== learnerId || !result.evidence.enrollments.length || result.evidence.enrollments.some(course =>
     (!!filters.programId && course.programId !== filters.programId) ||
     (!!filters.courseSlug && course.courseSlug !== filters.courseSlug) ||
+    (filters.status !== "all" && course.status !== filters.status) ||
     course.checkIn.attentionFlags.some(flag => flag.learnerId !== learnerId ||
       flag.programId !== course.programId || flag.courseSlug !== course.courseSlug));
   return mismatch ? { state: "unavailable" } : result;

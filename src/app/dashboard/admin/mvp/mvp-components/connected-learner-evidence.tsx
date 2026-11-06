@@ -30,6 +30,12 @@ export function LearnerEvidenceRequestState({ state, onRetry }: {
 // Mounted only by an open drawer. Each open/retry reads fresh evidence; closing
 // or changing scope cancels delivery of late responses, not the server work.
 export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: string; filters: LearnerFilters }) {
+  // Own the reset boundary: callers cannot accidentally retain resolved evidence
+  // or retry state across selection/scope changes, including A → B → A.
+  return <LearnerEvidenceRequest key={JSON.stringify([learnerId, filters])} learnerId={learnerId} filters={filters} />;
+}
+
+function LearnerEvidenceRequest({ learnerId, filters }: { learnerId: string; filters: LearnerFilters }) {
   const [retry, setRetry] = useState(0);
   const key = JSON.stringify([learnerId, filters, retry]);
   const [response, setResponse] = useState<EvidenceResponse | null>(null);
