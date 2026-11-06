@@ -6,6 +6,7 @@ import type { LearnerFilters } from "./learner-filters";
 import { startLearnerRequest } from "./learner-request";
 import { LearnerAttendanceHistory } from "./learner-attendance-history";
 import { LearnerMilestoneHistory } from "./learner-milestone-history";
+import { LearnerFlagEvidence } from "./learner-flag-evidence";
 
 type Result = Awaited<ReturnType<typeof loadMvpLearnerEvidence>>;
 
@@ -37,8 +38,7 @@ export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: st
       <p>{{ not_evaluated: "Not evaluated", needs_check_in: "Needs Check-In", on_track: "On Track" }[course.status]}</p>
       <LearnerAttendanceHistory sessions={course.attendanceSessions} unavailableReason={course.attendanceUnavailableReason} />
       <LearnerMilestoneHistory weeks={course.weeklyMilestones} />
-      <p className="text-sm">{course.checkIn.attentionFlags.length} supported flags loaded.</p>
-      {course.checkIn.unavailableReason && <p className="mt-2 text-sm text-ink-soft">{course.checkIn.unavailableReason}</p>}
+      <LearnerFlagEvidence checkIn={course.checkIn} />
     </section>)}
   </div>;
 }
