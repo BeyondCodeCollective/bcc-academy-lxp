@@ -37,6 +37,7 @@ import { signRecordingUrl } from "@/lib/blob-recordings";
 import { InstructorPanel } from "@/components/instructor-panel";
 import { SessionStage } from "@/components/session-stage";
 import { SessionTabs } from "@/components/session-tabs";
+import { takesCourseAsLearner } from "@/lib/auth/learner-first";
 
 /**
  * Sessions that have a built stage (`./live`). Those open into the immersive
@@ -79,7 +80,12 @@ export default async function TrackWeekPage({
   // Curriculum lock: before launch, non-admins can't open lessons by direct URL
   // either — bounce them to the holding page (countdown). Mirrors the overview's
   // pre-start gate so registration never exposes content early.
-  const gateIsAdmin = canAccessAdminPanel(gateCtx?.student?.role ?? "");
+  // Staff taking this course (Field Ready staff cohort) see it as a learner.
+  const learnerHere =
+    canAccessAdminPanel(gateCtx?.student?.role ?? "") &&
+    !!gateCtx?.userId &&
+    (await takesCourseAsLearner(gateCtx.userId, trackSlug));
+  const gateIsAdmin = canAccessAdminPanel(gateCtx?.student?.role ?? "") && !learnerHere;
   // Enrollment gate: only an enrolled learner (or admin) can open this track's
   // lessons by URL — no peeking into a course you didn't join.
   if (!gateIsAdmin && gateCtx?.userId) {
@@ -232,7 +238,7 @@ export default async function TrackWeekPage({
 
   // Sequential gating (opt-in, self-paced only): a locked week renders a
   // placeholder regardless of how the student arrived. Admins preview freely.
-  const isAdminViewer = canAccessAdminPanel(sessionCtx?.student?.role ?? "");
+  const isAdminViewer = canAccessAdminPanel(sessionCtx?.student?.role ?? "") && !learnerHere;
   if (progressMap && trackStarted && !isAdminViewer) {
     const unlockedThrough = highestUnlockedWeek(
       track,
