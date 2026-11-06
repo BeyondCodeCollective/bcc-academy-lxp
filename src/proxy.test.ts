@@ -6,8 +6,9 @@ import { NextRequest } from "next/server";
 // the role. Everything else (host rules, redirects, cookies) is the real code.
 const getClaims = vi.fn();
 const maybeSingle = vi.fn();
+const limit = vi.fn();
 const from = vi.fn(() => ({
-  select: () => ({ eq: () => ({ maybeSingle }) }),
+  select: () => ({ eq: () => ({ maybeSingle, limit }) }),
 }));
 
 vi.mock("@supabase/ssr", () => ({
@@ -27,6 +28,7 @@ function req(url: string, cookies: Record<string, string> = {}) {
 const signedIn = (role: string) => {
   getClaims.mockResolvedValue({ data: { claims: { sub: "user-1" } } });
   maybeSingle.mockResolvedValue({ data: { role } });
+  limit.mockResolvedValue({ data: [] });
 };
 const signedOut = () => getClaims.mockResolvedValue({ data: null });
 
@@ -113,6 +115,19 @@ describe("proxy: signed-in visitors", () => {
       const res = await proxy(req(u));
       expect(location(res)!.pathname).toBe("/dashboard/admin");
     }
+  });
+
+  it("lets an admin who takes a course through to the dashboard page", async () => {
+    signedIn("admin");
+    limit.mockResolvedValue({ data: [{ track_slug: "field-ready-staff-cohort" }] });
+    const res = await proxy(req("https://bccacademy.io/dashboard"));
+    expect(location(res)?.pathname).not.toBe("/dashboard/admin");
+  });
+
+  it("lets an admin finishing sign-up through so setup runs", async () => {
+    signedIn("admin");
+    const res = await proxy(req("https://bccacademy.io/dashboard?setup=1"));
+    expect(location(res)?.pathname).not.toBe("/dashboard/admin");
   });
 
   it("keeps a student on /dashboard", async () => {
