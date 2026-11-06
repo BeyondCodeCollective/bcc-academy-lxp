@@ -93,7 +93,7 @@ describe("Learners loader access boundary", () => {
   it("aggregates weekly activity over all matching learners independently of paging and sorting", async () => {
     seedSummary();
     tables.submissions = Array.from({ length: 26 }, (_, i) => ({ id: `submission-${String(i).padStart(2, "0")}`,
-      student_id: `s${String(i).padStart(2, "0")}`, track_slug: "a", week_number: 1, submitted_at: "2000-01-02T12:00:00Z" }));
+      student_id: `s${String(i).padStart(2, "0")}`, program_id: "p1", track_slug: "a", week_number: 1, submitted_at: "2000-01-02T12:00:00Z" }));
     tables.reflections = tables.submissions.slice(0, 13).map(row => ({ ...row, id: `reflection-${row.id}` }));
     const first = await getMvpLearnersData({ pageSize: "10" });
     requests = [];
@@ -297,16 +297,16 @@ describe("Learners loader access boundary", () => {
   it("returns weekly timestamp-only milestones across all source pages without mixing learners or courses", async () => {
     seedActivityLearner();
     tables.submissions = [
-      { id: "s1", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
-      { id: "s2", student_id: "s1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" },
-      { id: "s3", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T12:00:00Z" },
-      { id: "s4", student_id: "other", track_slug: "a", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
-      { id: "s5", student_id: "s1", track_slug: "private", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
+      { id: "s1", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
+      { id: "s2", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" },
+      { id: "s3", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T12:00:00Z" },
+      { id: "s4", student_id: "other", program_id: "p1", track_slug: "a", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
+      { id: "s5", student_id: "s1", program_id: "p2", track_slug: "private", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
     ];
-    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T16:00:00+01:00", answers: "PRIVATE" }];
+    tables.reflections = [{ id: "r1", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T16:00:00+01:00", answers: "PRIVATE" }];
     tables.week_progress = [
-      { id: "v1", user_id: "s1", track_slug: "a", week_number: 2, video_watched_at: "2026-01-04T12:00:00Z" },
-      { id: "v2", user_id: "s1", track_slug: "b", week_number: 1, video_watched_at: "2026-01-05T12:00:00Z" },
+      { id: "v1", user_id: "s1", program_id: "p1", track_slug: "a", week_number: 2, video_watched_at: "2026-01-04T12:00:00Z" },
+      { id: "v2", user_id: "s1", program_id: "p1", track_slug: "b", week_number: 1, video_watched_at: "2026-01-05T12:00:00Z" },
     ];
     const [a, b] = (await getMvpLearnersData()).directory[0].enrollments;
     const none = { at: null, state: "none_recorded" };
@@ -321,10 +321,10 @@ describe("Learners loader access boundary", () => {
   it.each(["bad", "2999-01-01T00:00:00Z", "2026-01-01T12:00:00"])("isolates invalid milestone timestamps to their week and source: %s", async submitted_at => {
     seedActivityLearner();
     tables.submissions = [
-      { id: "s1", student_id: "s1", track_slug: "a", week_number: 1, submitted_at },
-      { id: "s2", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T12:00:00Z" },
+      { id: "s1", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 1, submitted_at },
+      { id: "s2", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T12:00:00Z" },
     ];
-    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" }];
+    tables.reflections = [{ id: "r1", student_id: "s1", program_id: "p1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" }];
     const [a, b] = (await getMvpLearnersData()).directory[0].enrollments;
     expect(a.weeklyMilestones[0].submission).toEqual({ at: null, state: "unavailable" });
     expect(a.weeklyMilestones[0].reflection.state).toBe("recorded");
@@ -333,8 +333,8 @@ describe("Learners loader access boundary", () => {
   });
   it("preserves unmapped activity and null marks without inferring completion or deadlines", async () => {
     seedActivityLearner();
-    tables.submissions = [{ id: "s1", student_id: "s1", track_slug: "a", week_number: null, submitted_at: "2026-01-01T12:00:00Z" }];
-    tables.week_progress = [{ id: "v1", user_id: "s1", track_slug: "a", week_number: 1, video_watched_at: null, updated_at: "2026-01-01T12:00:00Z" }];
+    tables.submissions = [{ id: "s1", student_id: "s1", program_id: "p1", track_slug: "a", week_number: null, submitted_at: "2026-01-01T12:00:00Z" }];
+    tables.week_progress = [{ id: "v1", user_id: "s1", program_id: "p1", track_slug: "a", week_number: 1, video_watched_at: null, updated_at: "2026-01-01T12:00:00Z" }];
     const a = (await getMvpLearnersData()).directory[0].enrollments[0];
     expect(a.weeklyMilestones.map(row => row.weekNumber)).toEqual([1, null]);
     expect(a.weeklyMilestones[0].markedWatched).toEqual({ at: null, state: "none_recorded" });
@@ -343,15 +343,15 @@ describe("Learners loader access boundary", () => {
   it("returns the latest course action in UTC across complete timestamp-only source pages", async () => {
     seedActivityLearner();
     tables.submissions = [
-      { id: "a1", student_id: "s1", track_slug: "a", submitted_at: "2026-01-01T09:00:00-05:00" },
-      { id: "a2", student_id: "s1", track_slug: "a", submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
-      { id: "a3", student_id: "other", track_slug: "a", submitted_at: "2026-01-09T00:00:00Z" },
-      { id: "a4", student_id: "s1", track_slug: "private", submitted_at: "2026-01-09T00:00:00Z" },
+      { id: "a1", student_id: "s1", program_id: "p1", track_slug: "a", submitted_at: "2026-01-01T09:00:00-05:00" },
+      { id: "a2", student_id: "s1", program_id: "p1", track_slug: "a", submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
+      { id: "a3", student_id: "other", program_id: "p1", track_slug: "a", submitted_at: "2026-01-09T00:00:00Z" },
+      { id: "a4", student_id: "s1", program_id: "p2", track_slug: "private", submitted_at: "2026-01-09T00:00:00Z" },
     ];
-    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", submitted_at: "2026-01-03T09:00:00-05:00", answers: "PRIVATE" }];
+    tables.reflections = [{ id: "r1", student_id: "s1", program_id: "p1", track_slug: "a", submitted_at: "2026-01-03T09:00:00-05:00", answers: "PRIVATE" }];
     tables.week_progress = [
-      { id: "v1", user_id: "s1", track_slug: "a", video_watched_at: "2026-01-03T16:00:00+01:00" },
-      { id: "v2", user_id: "s1", track_slug: "b", video_watched_at: "2026-01-01T12:00:00Z" },
+      { id: "v1", user_id: "s1", program_id: "p1", track_slug: "a", video_watched_at: "2026-01-03T16:00:00+01:00" },
+      { id: "v2", user_id: "s1", program_id: "p1", track_slug: "b", video_watched_at: "2026-01-01T12:00:00Z" },
     ];
     const result = await getMvpLearnersData();
     expect(result.directory[0].enrollments.map(e => e.lastActivity)).toEqual([
@@ -363,13 +363,13 @@ describe("Learners loader access boundary", () => {
   });
   it.each(["bad", "2999-01-01T00:00:00Z", "2026-01-01T12:00:00"])("marks invalid activity unavailable without contaminating other courses: %s", async submitted_at => {
     seedActivityLearner();
-    tables.submissions = [{ id: "a1", student_id: "s1", track_slug: "a", submitted_at }];
+    tables.submissions = [{ id: "a1", student_id: "s1", program_id: "p1", track_slug: "a", submitted_at }];
     const result = await getMvpLearnersData();
     expect(result.directory[0].enrollments.map(e => e.lastActivity.state)).toEqual(["unavailable", "none_recorded"]);
   });
   it("does not treat draft timestamps or staff changes as learner activity", async () => {
     seedActivityLearner();
-    tables.submissions = [{ id: "a1", student_id: "s1", track_slug: "a", submitted_at: null, updated_at: "2026-01-01T12:00:00Z" }];
+    tables.submissions = [{ id: "a1", student_id: "s1", program_id: "p1", track_slug: "a", submitted_at: null, updated_at: "2026-01-01T12:00:00Z" }];
     expect((await getMvpLearnersData()).directory[0].enrollments[0].lastActivity).toEqual({ at: null, state: "none_recorded" });
   });
   it.each(["submissions", "reflections", "week_progress"])("fails rather than reporting no activity when %s cannot be read", async source => {
