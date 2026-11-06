@@ -246,6 +246,12 @@ export default async function TrackOverviewPage({
   // three always agree on which Day is current.
   const currentWeek = resolveCurrentUnit(track, now);
 
+  // Weeks-open-one-at-a-time cohorts (Field Ready): a learner opens straight
+  // onto the current week's page; there is nothing else to pick from.
+  if (!isAdminViewer && isDateGated(track) && currentWeek > 0 && track.weeks.some((w) => w.week === currentWeek)) {
+    redirect(`/dashboard/track/${slug}/${currentWeek}`);
+  }
+
   // A dated track reports 0 until its first unit's date arrives in ET, even
   // once `started` (which trips at midnight UTC — the prior evening here).
   // Never link to unit 0; there is no such page.
