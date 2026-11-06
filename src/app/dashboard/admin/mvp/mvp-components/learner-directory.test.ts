@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { directoryPage, LearnerDirectory, selectDirectoryLearners, type DirectoryLearner, type DirectoryEnrollment } from "./learner-directory";
+import { directoryPage, LearnerDirectory, selectDirectoryLearners, toggleLearnerSelection, type DirectoryLearner, type DirectoryEnrollment } from "./learner-directory";
 import { EMPTY_LEARNER_FILTERS as filters } from "./learner-filters";
 
 const enrollment: DirectoryEnrollment = {
@@ -14,6 +14,30 @@ const second = { ...enrollment, programId: "p2", courseSlug: "course-b", courseN
 const render = (learners?: DirectoryLearner[]) => renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners }));
 
 describe("Learner directory", () => {
+  it("selects and deselects individuals and pages without duplicates or mutation", () => {
+    const original = ["a"];
+    expect(toggleLearnerSelection(original, ["a", "b"], true)).toEqual(["a", "b"]);
+    expect(original).toEqual(["a"]);
+    expect(toggleLearnerSelection(["a", "b", "c"], ["b", "c"], false)).toEqual(["a"]);
+    expect(toggleLearnerSelection(["a", "b"], ["a"], false)).toEqual(["b"]);
+    expect(toggleLearnerSelection([], [], true)).toEqual([]);
+  });
+  it("offers labeled selection controls with empty bulk action disabled", () => {
+    const html = render([learner]);
+    expect(html).toContain('aria-label="Select learners on this page"');
+    expect(html).toContain('aria-label="Select Test Learner"');
+    expect(html).toContain("0 learners selected");
+    expect(html).toMatch(/disabled="" aria-haspopup="dialog">Open evidence/);
+    expect(html).toContain("Clear selection");
+  });
+  it("resets the workspace identity on scope, result, or page changes", () => {
+    const props = { filters, learners: [learner] };
+    const initial = LearnerDirectory(props).key;
+    expect(LearnerDirectory(props).key).toBe(initial);
+    expect(LearnerDirectory({ ...props, filters: { ...filters, search: "new" } }).key).not.toBe(initial);
+    expect(LearnerDirectory({ ...props, learners: [] }).key).not.toBe(initial);
+    expect(LearnerDirectory({ ...props, serverPagination: { page: 2, pageSize: 10, totalMatching: 11, totalPages: 2, start: 11, end: 11 } }).key).not.toBe(initial);
+  });
   it("shows course-specific milestone timestamps without implying missing work is overdue", () => {
     const html = render([{ ...learner, enrollments: [
       { ...enrollment, weeklyMilestones: [{ weekNumber: 2,

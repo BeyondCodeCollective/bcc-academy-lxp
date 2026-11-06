@@ -97,7 +97,7 @@ function Milestones({ enrollment }: { enrollment: DirectoryEnrollment }) {
   </details>;
 }
 
-export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange, sorting, onSortChange }: {
+type DirectoryProps = {
   filters: LearnerFilters;
   learners?: DirectoryLearner[];
   onViewEvidence?: (learner: DirectoryLearner) => void;
@@ -105,10 +105,21 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
   onPageChange?: (page: number, pageSize: number) => void;
   sorting?: DirectorySorting;
   onSortChange?: (sorting: DirectorySorting) => void;
-}) {
+};
+
+export function LearnerDirectory(props: DirectoryProps) {
+  return <DirectoryWorkspace key={JSON.stringify([props.filters, props.learners, props.serverPagination, props.sorting])} {...props} />;
+}
+
+export function toggleLearnerSelection(selected: string[], ids: string[], checked: boolean) {
+  return checked ? [...new Set([...selected, ...ids])] : selected.filter(id => !ids.includes(id));
+}
+
+function DirectoryWorkspace({ filters, learners, onViewEvidence, serverPagination, onPageChange, sorting, onSortChange }: DirectoryProps) {
   const id = useId();
   const [paging, setPaging] = useState({ scope: "", page: 1, size: 25 });
-  const [selection, setSelection] = useState<{ id: string; scope: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [review, setReview] = useState<{ ids: string[]; index: number } | null>(null);
   let matching: DirectoryLearner[] = [];
   let invalid = false;
   try { matching = serverPagination ? learners ?? [] : selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
@@ -118,7 +129,16 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
     start: serverPagination.start, end: serverPagination.end } : directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
   const total = serverPagination?.totalMatching ?? matching.length;
   const ready = learners !== undefined && !invalid;
-  const selected = ready && selection?.scope === scope ? matching.find(row => row.id === selection.id) : undefined;
+  const selectedLearners = ready ? matching.filter(row => selectedIds.includes(row.id)) : [];
+  const selected = ready && review ? matching.find(row => row.id === review.ids[review.index]) : undefined;
+  const pageIds = page.rows.map(row => row.id);
+  const allOnPage = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+  const someOnPage = pageIds.some(id => selectedIds.includes(id));
+  const openEvidence = (rows: DirectoryLearner[]) => {
+    if (!ready || !rows.length) return;
+    setReview({ ids: rows.map(row => row.id), index: 0 });
+    onViewEvidence?.(rows[0]);
+  };
   const buttonClass = "min-h-11 rounded-lg border border-rule px-3 py-2 text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
   return <section className="panel mt-6 min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -141,14 +161,30 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
         </select>
       </label>
     </div>}
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rule p-3" role="group" aria-label="Selected learner actions">
+      <div><p role="status">{selectedLearners.length} {selectedLearners.length === 1 ? "learner" : "learners"} selected</p>
+        <p className="mt-1 text-xs text-ink-soft">Select this page or individual learners. {serverPagination ? "Changing page, sort, or filters clears selections." : "Changing filters or results clears selections."}</p></div>
+      <div className="flex gap-2">
+        <button type="button" className={buttonClass} disabled={!selectedLearners.length} onClick={() => setSelectedIds([])}>Clear selection</button>
+        <button type="button" className={buttonClass} disabled={!selectedLearners.length} aria-haspopup="dialog" onClick={() => openEvidence(selectedLearners)}>Open evidence</button>
+      </div>
+    </div>
     <div className="mt-5 overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Scrollable learner directory">
       <table className="w-full min-w-[1000px] text-left text-sm">
         <caption className="sr-only">Learners and their matching course-specific evidence. Activity times use Eastern Time.</caption>
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-ink-soft"><tr>
+          <th scope="col" className="px-4 py-4"><label className="flex min-h-11 min-w-11 items-center justify-center"><input type="checkbox" aria-label="Select learners on this page" checked={allOnPage}
+            ref={element => { if (element) element.indeterminate = someOnPage && !allOnPage; }}
+            disabled={!ready || !pageIds.length} onChange={event => setSelectedIds(current => toggleLearnerSelection(current, pageIds, event.target.checked))}
+            className="h-4 w-4 accent-primary" /></label></th>
           {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Weekly milestone timestamps", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
         </tr></thead>
-        <tbody>{!ready || !matching.length ? <tr><td colSpan={9} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters. Try a different search or use Clear filters above. If results remain empty, no learners are available in your authorized scope."}</td></tr>
+        <tbody>{!ready || !matching.length ? <tr><td colSpan={10} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters. Try a different search or use Clear filters above. If results remain empty, no learners are available in your authorized scope."}</td></tr>
           : page.rows.map(learner => <tr key={learner.id} className="border-t border-rule align-top">
+            <td className="px-4 py-5"><label className="flex min-h-11 min-w-11 items-center justify-center"><input type="checkbox"
+              aria-label={`Select ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || learner.email || "learner"}`}
+              checked={selectedIds.includes(learner.id)} onChange={event => setSelectedIds(current => toggleLearnerSelection(current, [learner.id], event.target.checked))}
+              className="h-4 w-4 accent-primary" /></label></td>
             <th scope="row" className="px-4 py-5 font-medium text-ink"><span className="block">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}</span><span className="mt-1 block break-all text-xs font-normal text-ink-soft">{learner.email || "Email unavailable"}</span></th>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block font-medium">{e.courseName}</span><span className="text-xs text-ink-soft">{e.programName}</span></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort?.name ?? "Unlinked"}</li>)}</ul></td>
@@ -157,7 +193,7 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><Milestones enrollment={e} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span><Activity activity={e.lastActivity} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="mb-1 block text-xs text-ink-soft">{e.courseName}</span><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${e.status === "needs_check_in" ? "bg-amber-50 text-amber-800" : e.status === "on_track" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-ink-soft"}`}>{statusLabels[e.status] ?? "Not evaluated"}</span></li>)}</ul></td>
-            <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => { setSelection({ id: learner.id, scope }); onViewEvidence?.(learner); }} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
+            <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => openEvidence([learner])} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
           </tr>)}</tbody>
       </table>
     </div>
@@ -169,6 +205,12 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
         <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => serverPagination ? onPageChange?.(page.page + 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
       </div>
     </div>
-    {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} filters={serverPagination ? filters : undefined} onClose={() => setSelection(null)} />}
+    {selected && review && <LearnerEvidenceDrawer learner={selected} filters={serverPagination ? filters : undefined} onClose={() => setReview(null)}
+      navigation={{ index: review.index, total: review.ids.length, onNavigate: index => {
+        if (index < 0 || index >= review.ids.length) return;
+        setReview({ ...review, index });
+        const learner = matching.find(row => row.id === review.ids[index]);
+        if (learner) onViewEvidence?.(learner);
+      } }} />}
   </section>;
 }

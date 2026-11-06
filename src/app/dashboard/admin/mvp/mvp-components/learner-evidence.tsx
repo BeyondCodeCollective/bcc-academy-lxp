@@ -72,10 +72,13 @@ export function LearnerEvidenceContent({ learner }: { learner: DirectoryLearner 
   </div>;
 }
 
-export function LearnerEvidenceDrawer({ learner, onClose, filters }: { learner: DirectoryLearner; onClose: () => void; filters?: LearnerFilters }) {
+export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }: { learner: DirectoryLearner; onClose: () => void; filters?: LearnerFilters;
+  navigation?: { index: number; total: number; onNavigate: (index: number) => void };
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const id = useId();
+  useEffect(() => { dialog.current?.scrollTo({ top: 0 }); }, [learner.id]);
   useEffect(() => {
     const element = dialog.current!;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -95,6 +98,11 @@ export function LearnerEvidenceDrawer({ learner, onClose, filters }: { learner: 
       <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
       <button ref={close} type="button" onClick={onClose} className="min-h-11 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
     </header>
+    {navigation && <nav aria-label="Selected learners" className="flex flex-wrap items-center justify-between gap-2 border-b border-rule p-4">
+      <p role="status" aria-live="polite">{navigation.index + 1} of {navigation.total} learners</p>
+      <button type="button" disabled={navigation.index === 0} onClick={() => navigation.onNavigate(navigation.index - 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Previous learner</button>
+      <button type="button" disabled={navigation.index >= navigation.total - 1} onClick={() => navigation.onNavigate(navigation.index + 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Next learner</button>
+    </nav>}
     <div className="p-5">{filters ? <ConnectedLearnerEvidence key={JSON.stringify([learner.id, filters])} learnerId={learner.id} filters={filters} /> : <LearnerEvidenceContent learner={learner} />}</div>
   </dialog>;
 }
