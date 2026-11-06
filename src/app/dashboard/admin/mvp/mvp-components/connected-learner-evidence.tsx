@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { loadMvpLearnerEvidence } from "../learner-evidence-actions";
 import type { LearnerFilters } from "./learner-filters";
 import { startLearnerRequest } from "./learner-request";
+import { LearnerAttendanceHistory } from "./learner-attendance-history";
 
 type Result = Awaited<ReturnType<typeof loadMvpLearnerEvidence>>;
 
@@ -33,7 +34,7 @@ export function ConnectedLearnerEvidence({ learnerId, filters }: { learnerId: st
     {result.evidence.enrollments.map(course => <section key={JSON.stringify([course.programId, course.courseSlug])} className="rounded-xl border border-rule p-4">
       <h3 className="font-semibold">{course.courseName} · {course.programName}</h3>
       <p>{{ not_evaluated: "Not evaluated", needs_check_in: "Needs Check-In", on_track: "On Track" }[course.status]}</p>
-      <p className="mt-2 text-sm">{course.attendanceSessions === null ? "Attendance evidence unavailable." : `${course.attendanceSessions.length} session records loaded.`}</p>
+      <LearnerAttendanceHistory sessions={course.attendanceSessions} unavailableReason={course.attendanceUnavailableReason} />
       <p className="text-sm">{course.weeklyMilestones.length} weekly milestone groups loaded.</p>
       <p className="text-sm">{course.checkIn.attentionFlags.length} supported flags loaded.</p>
       {course.checkIn.unavailableReason && <p className="mt-2 text-sm text-ink-soft">{course.checkIn.unavailableReason}</p>}
