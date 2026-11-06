@@ -131,7 +131,10 @@ export default async function TrackOverviewPage({
     // Completed-but-not-started learners stay on the all-done screen — done
     // materials aren't acceptance, so the course stays closed until start day
     // (when this condition stops matching and the course renders normally).
-    if (status && (!status.allComplete || !trackHasStarted(track))) {
+    // Weeks-open-one-at-a-time cohorts (Field Ready) open Week 1 as soon as
+    // the checklist is done, so only an unfinished checklist holds them here.
+    const holdUntilStart = !trackHasStarted(track) && !isDateGated(track);
+    if (status && (!status.allComplete || holdUntilStart)) {
       const studentName = [ctx.student?.first_name, ctx.student?.last_name]
         .filter(Boolean)
         .join(" ")
@@ -248,8 +251,10 @@ export default async function TrackOverviewPage({
 
   // Weeks-open-one-at-a-time cohorts (Field Ready): a learner opens straight
   // onto the current week's page; there is nothing else to pick from.
-  if (!isAdminViewer && isDateGated(track) && currentWeek > 0 && track.weeks.some((w) => w.week === currentWeek)) {
-    redirect(`/dashboard/track/${slug}/${currentWeek}`);
+  // Week 1 is open from the moment the pre-survey is done, before day one.
+  const openWeek = Math.max(currentWeek, 1);
+  if (!isAdminViewer && isDateGated(track) && track.weeks.some((w) => w.week === openWeek)) {
+    redirect(`/dashboard/track/${slug}/${openWeek}`);
   }
 
   // A dated track reports 0 until its first unit's date arrives in ET, even

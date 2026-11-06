@@ -107,7 +107,8 @@ export default async function TrackWeekPage({
   }
 
   const hasStarted = trackHasStarted(track);
-  if (!gateIsAdmin && !hasStarted) {
+  // Weeks-open-one-at-a-time cohorts (Field Ready) open Week 1 before day one.
+  if (!gateIsAdmin && !hasStarted && !(isDateGated(track) && weekNum === 1)) {
     // Back to the course, which carries the pre-start banner ("Starts Monday,
     // July 13 · 6:30 PM EDT") and locked cards that each name their own date.
     // A dedicated locked page here would only restate that on an empty screen.
@@ -222,7 +223,7 @@ export default async function TrackWeekPage({
 
   // One week at a time on a cohort track: a future week bounces to the course
   // page, whose schedule shows it locked with its date (same as pre-start).
-  if (!gateIsAdmin && isDateGated(track) && weekNum > currentWeek) {
+  if (!gateIsAdmin && isDateGated(track) && weekNum > Math.max(currentWeek, 1)) {
     redirect(`/dashboard/track/${trackSlug}`);
   }
 
@@ -346,7 +347,12 @@ export default async function TrackWeekPage({
   const comingSoonPassed =
     !!weekContent.comingSoonUntil && now >= new Date(weekContent.comingSoonUntil);
   const unlocked =
-    track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek || comingSoonPassed;
+    track.selfPaced ||
+    isCurrent ||
+    isCompleted ||
+    weekNum < currentWeek ||
+    comingSoonPassed ||
+    (isDateGated(track) && weekNum === 1);
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
