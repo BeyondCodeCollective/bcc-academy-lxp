@@ -56,6 +56,21 @@ export default async function DashboardPage({
   const ctx = isSupabaseConfigured() ? await getSessionContext() : null;
   const role = ctx?.student?.role ?? "";
   const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
+  // Sign-up setup (enrollment, welcome email) for admin-panel roles runs here,
+  // before the admin redirects below. It only ran in the learner render, so an
+  // admin who registered for a course (Jaileen, Field Ready) was never enrolled.
+  const adminSetupDone = setup === "1" && !!ctx?.userId && canAccessAdminPanel(role);
+  if (adminSetupDone && ctx?.userId) {
+    await completePendingSetup(
+      ctx.userId,
+      email ?? "",
+      program,
+      joinTrack ?? null,
+      ctx.student?.cohort_id,
+      role,
+      ctx.student?.welcome_seen_at,
+    );
+  }
   // Admin-panel roles count as admins only in a program they actually run.
   // In another program's course (a Catalyst instructor in the Field Ready
   // staff cohort) they are a learner; sending them to /dashboard/admin there
@@ -139,7 +154,7 @@ export default async function DashboardPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-8 md:px-5 py-8">
-      <DashboardContent program={program} setup={setup} joinTrack={joinTrack} adminHere={adminHere} />
+      <DashboardContent program={program} setup={adminSetupDone ? undefined : setup} joinTrack={joinTrack} adminHere={adminHere} />
     </div>
   );
 }
