@@ -39,9 +39,12 @@ export async function heldChecklistTrackSlug(studentId: string): Promise<string 
     // TS config; no date anywhere = treat as not started (hold, conservative).
     const { data: ov } = await svc
       .from("track_overrides")
-      .select("start_date")
+      .select("start_date, sequential_gating, self_paced")
       .eq("track_slug", trackSlug)
-      .maybeSingle<{ start_date: string | null }>();
+      .maybeSingle<{ start_date: string | null; sequential_gating: boolean | null; self_paced: boolean | null }>();
+    // Weeks-open-one-at-a-time cohorts (Field Ready) open Week 1 once the
+    // checklist is done, so there is nothing to hold them for.
+    if (ov?.sequential_gating && !ov?.self_paced) continue;
     const startDate =
       ov?.start_date ||
       getHomeProgramForTrack(trackSlug)?.tracks.find((t) => t.slug === trackSlug)
