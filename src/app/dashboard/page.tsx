@@ -59,7 +59,9 @@ export default async function DashboardPage({
   // Sign-up setup (enrollment, welcome email) for admin-panel roles runs here,
   // before the admin redirects below. It only ran in the learner render, so an
   // admin who registered for a course (Jaileen, Field Ready) was never enrolled.
-  const adminSetupDone = setup === "1" && !!ctx?.userId && canAccessAdminPanel(role);
+  // Runs for everyone arriving with ?setup=1, so the landing below can open
+  // the course they just joined.
+  const adminSetupDone = setup === "1" && !!ctx?.userId;
   if (adminSetupDone && ctx?.userId) {
     await completePendingSetup(
       ctx.userId,
@@ -70,6 +72,11 @@ export default async function DashboardPage({
       role,
       ctx.student?.welcome_seen_at,
     );
+    // Same hold check the learner render ran after setup.
+    if (!canAccessAdminPanel(role)) {
+      const heldTrack = await heldChecklistTrackSlug(ctx.userId);
+      if (heldTrack) redirect(`/dashboard/track/${heldTrack}`);
+    }
   }
   // Admin-panel roles count as admins only in a program they actually run.
   // In another program's course (a Catalyst instructor in the Field Ready
@@ -79,13 +86,18 @@ export default async function DashboardPage({
   // student view of it (pre-survey first), not the admin panel or L&L hub. In another program's context,
   // switch-program repoints the cookie and opens the course.
   const learnerCourse =
-    (canAccessAdminPanel(role) || !!ctx?.student?.is_staff) && ctx?.userId
+    (canAccessAdminPanel(role) || !!ctx?.student?.is_staff || setup === "1") && ctx?.userId
       ? await runningLearnerCourse(ctx.userId)
       : null;
   if (learnerCourse) {
     const home = await resolveHomeProgramSlug(learnerCourse);
     if (home && home !== program.slug) {
       redirect(`/dashboard/switch-program?track=${encodeURIComponent(learnerCourse)}`);
+    }
+    // Arriving from sign-in or the confirmation email link (?setup=1): open
+    // the course itself (pre-survey first), not the dashboard home.
+    if (setup === "1") {
+      redirect(`/dashboard/track/${encodeURIComponent(learnerCourse)}`);
     }
   }
   const adminHere =
