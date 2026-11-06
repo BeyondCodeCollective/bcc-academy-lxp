@@ -169,6 +169,6 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
         <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => serverPagination ? onPageChange?.(page.page + 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
       </div>
     </div>
-    {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} onClose={() => setSelection(null)} />}
+    {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} filters={serverPagination ? filters : undefined} onClose={() => setSelection(null)} />}
   </section>;
 }

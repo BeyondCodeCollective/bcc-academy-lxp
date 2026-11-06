@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef } from "react";
 import type { DirectoryLearner } from "./learner-directory";
+import type { LearnerFilters } from "./learner-filters";
+import { ConnectedLearnerEvidence } from "./connected-learner-evidence";
 
 // Metadata-only contract for a future authorized server loader. Never pass raw
 // submission/reflection records, free-text review notes, or storage URLs here.
@@ -70,7 +72,7 @@ export function LearnerEvidenceContent({ learner }: { learner: DirectoryLearner 
   </div>;
 }
 
-export function LearnerEvidenceDrawer({ learner, onClose }: { learner: DirectoryLearner; onClose: () => void }) {
+export function LearnerEvidenceDrawer({ learner, onClose, filters }: { learner: DirectoryLearner; onClose: () => void; filters?: LearnerFilters }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -93,6 +95,6 @@ export function LearnerEvidenceDrawer({ learner, onClose }: { learner: Directory
       <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
       <button ref={close} type="button" onClick={onClose} className="min-h-11 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
     </header>
-    <div className="p-5"><LearnerEvidenceContent learner={learner} /></div>
+    <div className="p-5">{filters ? <ConnectedLearnerEvidence key={JSON.stringify([learner.id, filters])} learnerId={learner.id} filters={filters} /> : <LearnerEvidenceContent learner={learner} />}</div>
   </dialog>;
 }

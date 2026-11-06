@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client }));
-import { getMvpLearnersData, getMvpLearnerFilterOptions } from "./learner-queries";
+import { getMvpLearnersData, getMvpLearnerFilterOptions, getMvpLearnerEvidence } from "./learner-queries";
 
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
@@ -116,6 +116,35 @@ describe("Learners loader access boundary", () => {
       outcome: track_slug === "a" && week_number === 2 ? "absent" : "present", recorded_by: "PRIVATE ACTOR", recorded_at: "2000-01-03T12:00:00Z",
     })));
   };
+  it("loads one authorized learner independently of page and excludes private review fields", async () => {
+    seedAttendance();
+    const result = await getMvpLearnerEvidence("s00", { programId: "p1", courseSlug: "a", page: "3", pageSize: "10" });
+    expect(result).toMatchObject({ id: "s00", enrollments: [{ programId: "p1", courseSlug: "a",
+      attendanceSessions: [{ state: "verified_present" }, { state: "verified_absent" }] }] });
+    expect(result?.enrollments).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(JSON.stringify(result)).not.toContain("s25");
+  });
+  it("does not read evidence for an unknown or filtered-out learner", async () => {
+    seedAttendance();
+    expect(await getMvpLearnerEvidence("missing")).toBeNull();
+    expect(await getMvpLearnerEvidence("s00", { search: "Learner25" })).toBeNull();
+    expect(requests).not.toContain("attendance");
+    expect(requests).not.toContain("submissions");
+  });
+  it("rechecks preview and program authorization for evidence", async () => {
+    seedAttendance();
+    await expect(getMvpLearnerEvidence("s00", { programId: "p2" })).rejects.toThrow();
+    mocks.preview.mockResolvedValue(true);
+    await expect(getMvpLearnerEvidence("s00")).rejects.toThrow();
+    expect(requests).not.toContain("attendance");
+  });
+  it("rechecks status and fails closed on incomplete evidence reads", async () => {
+    seedAttendance();
+    expect(await getMvpLearnerEvidence("s00", { status: "on_track" })).toBeNull();
+    failure = "attendance";
+    await expect(getMvpLearnerEvidence("s00")).rejects.toThrow();
+  });
   it("filters supported check-in statuses before pagination with accurate learner and summary counts", async () => {
     seedAttendance();
     tables.mvp_attendance_reviews[0].outcome = "absent";

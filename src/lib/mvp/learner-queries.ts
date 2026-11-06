@@ -93,6 +93,34 @@ export async function getMvpLearnerFilterOptions() {
   return (await loadAuthorizedLearnerContext()).options;
 }
 
+// Resolve membership before reading evidence. A browser-supplied ID is never
+// an authorization grant, and directory pagination does not constrain this read.
+export async function getMvpLearnerEvidence(learnerId: string, params: LearnerQueryParams = {}) {
+  const { db, programs, options, filters } = await loadAuthorizedLearnerContext(params);
+  if (typeof learnerId !== "string" || !learnerId.trim() || learnerId.length > 200) throw new Error("Invalid learner.");
+  const learner = (await loadLearnerRoster(db, options, filters)).find(row => row.id === learnerId);
+  if (!learner) return null;
+  const asOf = new Date();
+  const sessions = await loadLearnerSessionContext(db, [learner], asOf);
+  const activity = await loadLearnerActivity(db, [learner], asOf);
+  const attendance = await loadLearnerAttendance(db, activity, sessions.heldByOffering, asOf);
+  const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf)[0];
+  const enrollments = evaluated.enrollments.filter(e => filters.status === "all" || e.status === filters.status);
+  if (!enrollments.length) return null;
+  // Only metadata from the safe attendance/activity/check-in projections leaves
+  // this boundary. No raw records, review notes, content, or storage URLs.
+  return { id: learner.id, asOf: asOf.toISOString(), enrollments: enrollments.map(e => ({
+    programId: e.programId, programName: e.programName, courseSlug: e.courseSlug, courseName: e.courseName,
+    status: e.status, attendanceUnavailableReason: e.attendanceUnavailableReason,
+    attendanceSessions: e.attendanceSessions?.map(s => ({ weekNumber: s.weekNumber, sessionNumber: s.sessionNumber, state: s.state })) ?? null,
+    weeklyMilestones: e.weeklyMilestones.map(w => ({ weekNumber: w.weekNumber,
+      submission: { at: w.submission.at, state: w.submission.state },
+      reflection: { at: w.reflection.at, state: w.reflection.state },
+      markedWatched: { at: w.markedWatched.at, state: w.markedWatched.state } })),
+    checkIn: e.checkIn,
+  })) };
+}
+
 export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const { db, programs, options, filters, requestedPage, sorting, requested } = await loadAuthorizedLearnerContext(params);
   const matching = await loadLearnerRoster(db, options, filters);
