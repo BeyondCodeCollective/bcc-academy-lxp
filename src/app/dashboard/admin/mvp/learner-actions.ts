@@ -3,6 +3,7 @@
 import { getSessionContext } from "@/lib/auth/session";
 import { getMvpLearnersData } from "@/lib/mvp/learner-queries";
 import type { LearnerQueryParams } from "@/lib/mvp/learner-roster";
+import { requireCurrentMvpLearnerAccess } from "@/lib/mvp/learner-request-access";
 
 export async function searchMvpLearners(params: LearnerQueryParams) {
   try {
@@ -10,6 +11,7 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
     // independently rechecks role, preview mode, and all program/course grants.
     const context = await getSessionContext();
     if (!context?.userId || context.student?.role !== "super_admin") throw new Error("Access denied");
+    await requireCurrentMvpLearnerAccess();
     const result = await getMvpLearnersData(params);
     return { ok: true as const, pagination: result.pagination,
       summary: { totalEnrolled: result.summary.totalEnrolled, sessionsHeld: result.summary.sessionsHeld,

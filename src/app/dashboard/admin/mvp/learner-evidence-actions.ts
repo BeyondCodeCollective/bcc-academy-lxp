@@ -3,11 +3,13 @@
 import { getSessionContext } from "@/lib/auth/session";
 import { getMvpLearnerEvidence } from "@/lib/mvp/learner-queries";
 import type { LearnerQueryParams } from "@/lib/mvp/learner-roster";
+import { requireCurrentMvpLearnerAccess } from "@/lib/mvp/learner-request-access";
 
 export async function loadMvpLearnerEvidence(learnerId: string, params: LearnerQueryParams) {
   try {
     const context = await getSessionContext();
     if (!context?.userId || context.student?.role !== "super_admin") throw new Error("Access denied");
+    await requireCurrentMvpLearnerAccess();
     // The loader independently checks preview mode, grants, and membership.
     const evidence = await getMvpLearnerEvidence(learnerId, params);
     return evidence ? { state: "ready" as const, evidence } : { state: "unavailable" as const };

@@ -1,13 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ session: vi.fn(), load: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), load: vi.fn(), currentAccess: vi.fn() }));
+vi.mock("@/lib/mvp/learner-request-access", () => ({ requireCurrentMvpLearnerAccess: mocks.currentAccess }));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/mvp/learner-queries", () => ({ getMvpLearnersData: mocks.load }));
 import { searchMvpLearners } from "./learner-actions";
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.currentAccess.mockResolvedValue(undefined);
   mocks.session.mockResolvedValue({ userId: "staff", student: { role: "super_admin" } });
 });
 describe("Learners search action", () => {
+  it("denies a cached super-admin after current access is revoked", async () => {
+    mocks.currentAccess.mockRejectedValue(new Error("PRIVATE revoked role"));
+    const result = await searchMvpLearners({});
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(mocks.load).not.toHaveBeenCalled();
+  });
   it.each([null, "student", "instructor", "admin"])("blocks direct action access for %s", async role => {
     mocks.session.mockResolvedValue(role ? { userId: "actor", student: { role } } : null);
     expect((await searchMvpLearners({})).ok).toBe(false);
