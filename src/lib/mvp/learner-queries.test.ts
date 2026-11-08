@@ -133,6 +133,53 @@ describe("Learners loader access boundary", () => {
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
     tables.students[0].role = "super_admin";
   };
+  it("excludes private source content, review notes, staff identities and file links from both browser responses", async () => {
+    seedAttendance(); signInSuperAdmin();
+    tables.mvp_attendance_reviews[0].outcome = "absent";
+    const at = "2000-01-02T12:00:00.000Z";
+    tables.submissions = [{ id: "submission-private-source", program_id: "p1", student_id: "s00", track_slug: "a", week_number: 1, submitted_at: at }];
+    tables.reflections = [{ ...tables.submissions[0], id: "reflection-private-source" }];
+    tables.week_progress = [{ id: "video-private-source", program_id: "p1", user_id: "s00", track_slug: "a", week_number: 1, video_watched_at: at }];
+    const privateFields = {
+      content: "PRIVATE submission content", answers: { text: "PRIVATE reflection answer" },
+      review_notes: "PRIVATE review note", internal_notes: "PRIVATE internal note",
+      staff_name: "PRIVATE staff name", staff_email: "PRIVATE-staff@example.invalid",
+      file_url: "https://private.example.invalid/file", signed_url: "https://private.example.invalid/signed?token=PRIVATE",
+      attachments: [{ href: "https://private.example.invalid/attachment" }],
+    };
+    // This mock deliberately retains fields omitted by SELECT, testing the
+    // response projection as well as the production queries' narrow selects.
+    for (const rows of Object.values(tables)) for (const row of rows) Object.assign(row, privateFields);
+    for (const row of tables.student_tracks) Object.assign(row.students as Row, privateFields);
+    const params = { programId: "p1", courseSlug: "a", search: "Learner00" };
+    const evidence = await loadMvpLearnerEvidence("s00", params);
+    requests = [];
+    const directory = await searchMvpLearners(params);
+    expect(evidence.state).toBe("ready");
+    expect(directory.ok).toBe(true);
+    if (evidence.state !== "ready" || !directory.ok) throw new Error("Expected authorized responses");
+    expect(directory.directory).toHaveLength(1);
+    const enrollment = evidence.evidence.enrollments[0];
+    expect(enrollment.attendanceSessions).toEqual([
+      { weekNumber: 1, sessionNumber: 1, state: "verified_absent" },
+      { weekNumber: 2, sessionNumber: 1, state: "verified_absent" },
+    ]);
+    expect(enrollment.weeklyMilestones[0]).toMatchObject({ weekNumber: 1,
+      submission: { at, state: "recorded" }, reflection: { at, state: "recorded" }, markedWatched: { at, state: "recorded" } });
+    expect(enrollment.checkIn.attentionFlags).toHaveLength(1);
+    expect(enrollment.checkIn.attentionFlags[0]).toMatchObject({ reason: "missed_sessions",
+      explanation: expect.any(String), supportingEvidence: { kind: "verified_absences", count: 2 } });
+    for (const response of [directory, evidence]) {
+      const serialized = JSON.stringify(response);
+      expect(serialized).not.toContain("PRIVATE");
+      expect(serialized).not.toContain("private.example.invalid");
+      expect(serialized).not.toContain("private-source");
+      for (const key of [...Object.keys(privateFields), "recorded_by", "eligibility_basis"]) {
+        expect(serialized).not.toContain(`"${key}":`);
+      }
+    }
+    for (const reference of enrollment.checkIn.attentionFlags[0].evidence) expect(reference.href).toBeNull();
+  });
   const expectNoActivityReads = () => {
     for (const table of ["attendance", "mvp_attendance_reviews", "submissions", "reflections", "week_progress", "session_content"]) {
       expect(requests).not.toContain(table);
