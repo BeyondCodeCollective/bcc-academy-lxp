@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ session: vi.fn(), load: vi.fn(), currentAccess: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), load: vi.fn(), currentAccess: vi.fn(), audit: vi.fn() }));
+vi.mock("@/lib/mvp/learner-access-audit", () => ({ auditMvpLearnerView: mocks.audit }));
 vi.mock("@/lib/mvp/learner-request-access", () => ({ requireCurrentMvpLearnerAccess: mocks.currentAccess }));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/mvp/learner-queries", () => ({ getMvpLearnersData: mocks.load }));
 import { searchMvpLearners } from "./learner-actions";
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.currentAccess.mockResolvedValue(undefined);
+  mocks.currentAccess.mockResolvedValue("fresh-staff");
   mocks.session.mockResolvedValue({ userId: "staff", student: { role: "super_admin" } });
 });
 describe("Learners search action", () => {
@@ -16,11 +17,13 @@ describe("Learners search action", () => {
     expect(result.ok).toBe(false);
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
     expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
   });
   it.each([null, "student", "instructor", "admin"])("blocks direct action access for %s", async role => {
     mocks.session.mockResolvedValue(role ? { userId: "actor", student: { role } } : null);
     expect((await searchMvpLearners({})).ok).toBe(false);
     expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
   });
   it("delegates search, status, scope and pagination to the authorized loader with an explicit response projection", async () => {
     const params = { search: "Ada@example.test", status: "needs_check_in", programId: "p1", courseSlug: "a", page: "2", pageSize: "10", sortBy: "email", sortOrder: "desc" };
@@ -38,6 +41,7 @@ describe("Learners search action", () => {
     expect(mocks.load).toHaveBeenCalledWith(params);
     expect(result).toMatchObject({ ok: true, pagination, summary, directory: [{ id: "s1", enrollments: [{ status: "needs_check_in" }] }] });
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(mocks.audit).toHaveBeenCalledExactlyOnceWith("fresh-staff", "mvp/learners/directory", result.ok ? result.directory : []);
     expect(result).toMatchObject({ directory: [{ enrollments: [{ attendanceUnavailableReason: "Review incomplete.",
       weeklyMilestones: [{ weekNumber: 1, submission: { at: "2026-10-20T15:30:00Z", state: "recorded" },
         reflection: { at: null, state: "none_recorded" }, markedWatched: { at: null, state: "unavailable" } }],
@@ -49,5 +53,6 @@ describe("Learners search action", () => {
     expect(result.ok).toBe(false);
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
     expect(result).not.toHaveProperty("directory");
+    expect(mocks.audit).not.toHaveBeenCalled();
   });
 });

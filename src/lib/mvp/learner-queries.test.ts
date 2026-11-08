@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), home: vi.fn() }));
 vi.mock("@/lib/programs", () => ({ getEveryProgramConfig: mocks.configs, getHomeProgramForTrack: mocks.home }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/app/dashboard/admin/actions-shared", () => ({ logAdminAccess: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client,

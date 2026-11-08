@@ -4,6 +4,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getMvpLearnersData } from "@/lib/mvp/learner-queries";
 import type { LearnerQueryParams } from "@/lib/mvp/learner-roster";
 import { requireCurrentMvpLearnerAccess } from "@/lib/mvp/learner-request-access";
+import { auditMvpLearnerView } from "@/lib/mvp/learner-access-audit";
 
 export async function searchMvpLearners(params: LearnerQueryParams) {
   try {
@@ -11,9 +12,9 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
     // independently rechecks role, preview mode, and all program/course grants.
     const context = await getSessionContext();
     if (!context?.userId || context.student?.role !== "super_admin") throw new Error("Access denied");
-    await requireCurrentMvpLearnerAccess();
+    const actorUserId = await requireCurrentMvpLearnerAccess();
     const result = await getMvpLearnersData(params);
-    return { ok: true as const, pagination: result.pagination,
+    const response = { ok: true as const, pagination: result.pagination,
       summary: { totalEnrolled: result.summary.totalEnrolled, sessionsHeld: result.summary.sessionsHeld,
         needsCheckIn: result.summary.needsCheckIn,
         sessionsHeldUnavailableReason: result.summary.sessionsHeldUnavailableReason, asOf: result.summary.asOf },
@@ -29,6 +30,8 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
         })),
         caughtUp: e.caughtUp, lastActivity: e.lastActivity, status: e.status })),
     })) };
+    auditMvpLearnerView(actorUserId, "mvp/learners/directory", response.directory);
+    return response;
   } catch {
     return { ok: false as const, message: "Unable to load learners. Check your access and filters, then try again." };
   }

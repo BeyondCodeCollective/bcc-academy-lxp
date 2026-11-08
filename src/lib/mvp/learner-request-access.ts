@@ -13,4 +13,5 @@ export async function requireCurrentMvpLearnerAccess() {
     .eq("id", identity.user.id).single();
   if (error || profile?.id !== identity.user.id || profile?.role !== "super_admin" ||
       await isPreviewingAsStudent(profile.role)) throw new Error("Learner access is required.");
+  return identity.user.id;
 }

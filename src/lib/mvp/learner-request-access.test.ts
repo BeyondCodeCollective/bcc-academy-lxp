@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 describe("Fresh MVP learner request authorization", () => {
   it("rechecks identity and database role on each invocation", async () => {
-    await requireCurrentMvpLearnerAccess();
+    expect(await requireCurrentMvpLearnerAccess()).toBe("actor");
     mocks.profile.mockResolvedValue({ data: { id: "actor", role: "student" }, error: null });
     await expect(requireCurrentMvpLearnerAccess()).rejects.toThrow();
     expect(mocks.user).toHaveBeenCalledTimes(2);
