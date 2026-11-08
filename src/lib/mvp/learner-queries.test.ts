@@ -4,8 +4,12 @@ vi.mock("@/lib/programs", () => ({ getEveryProgramConfig: mocks.configs, getHome
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
-vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client }));
+vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client,
+  createClient: async () => ({ ...mocks.client(), auth: { getUser: async () => ({ data: { user: { id: "actor" } }, error: null }) } }),
+}));
 import { getMvpLearnersData, getMvpLearnerFilterOptions, getMvpLearnerEvidence } from "./learner-queries";
+import { loadMvpLearnerEvidence } from "@/app/dashboard/admin/mvp/learner-evidence-actions";
+import { searchMvpLearners } from "@/app/dashboard/admin/mvp/learner-actions";
 
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
@@ -124,6 +128,81 @@ describe("Learners loader access boundary", () => {
     expect(result?.enrollments).toHaveLength(1);
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
     expect(JSON.stringify(result)).not.toContain("s25");
+  });
+  const signInSuperAdmin = () => {
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
+    tables.students[0].role = "super_admin";
+  };
+  const expectNoActivityReads = () => {
+    for (const table of ["attendance", "mvp_attendance_reviews", "submissions", "reflections", "week_progress", "session_content"]) {
+      expect(requests).not.toContain(table);
+    }
+  };
+  it.each(["missing", "foreign", "staff", "test", "s00' OR '1'='1", "%"])("does not disclose guessed ID %s through the evidence action", async guessedId => {
+    seedAttendance(); signInSuperAdmin();
+    const profile = tables.student_tracks[0].students as Row;
+    tables.student_tracks.push(...[
+      { id: "foreign", program_id: "p2", is_staff: false, is_test: false },
+      { id: "staff", program_id: "p1", is_staff: true, is_test: false },
+      { id: "test", program_id: "p1", is_staff: false, is_test: true },
+    ].map(row => ({ id: `zz-${row.id}`, student_id: row.id, program_id: row.program_id, track_slug: "a",
+      students: { ...profile, id: row.id, first_name: "PRIVATE", is_staff: row.is_staff, is_test: row.is_test } })));
+    const result = await loadMvpLearnerEvidence(guessedId, { programId: "p1", courseSlug: "a" });
+    expect(result).toEqual({ state: "unavailable" });
+    expectNoActivityReads();
+  });
+  it.each([
+    { programId: "missing" },
+    { programId: "p1", courseSlug: "missing" },
+    { programId: "p1", courseSlug: "a", cohortId: "wrong-cohort" },
+    { programId: ["p1", "p2"] },
+    { programId: "p1", courseSlug: ["a", "b"] },
+    { courseSlug: "a" },
+    { programId: "p1' OR '1'='1" },
+  ])("rejects altered filters %j before directory or evidence reads", async params => {
+    seedAttendance(); signInSuperAdmin();
+    expect(await loadMvpLearnerEvidence("s00", params)).toEqual({ state: "error" });
+    const directory = await searchMvpLearners(params);
+    expect(directory.ok).toBe(false);
+    expect(directory).not.toHaveProperty("directory");
+    expect(directory).not.toHaveProperty("summary");
+    expect(requests).not.toContain("student_tracks");
+    expectNoActivityReads();
+  });
+  it("does not treat an ID from the previous scope as membership in the new course", async () => {
+    seedAttendance(); signInSuperAdmin();
+    tables.student_tracks = tables.student_tracks.filter(row => !(row.student_id === "s00" && row.track_slug === "b"));
+    expect((await loadMvpLearnerEvidence("s00", { programId: "p1", courseSlug: "a" })).state).toBe("ready");
+    requests = [];
+    expect(await loadMvpLearnerEvidence("s00", { programId: "p1", courseSlug: "b" })).toEqual({ state: "unavailable" });
+    expectNoActivityReads();
+  });
+  it("permits valid super-admin filter changes without mixing course evidence", async () => {
+    seedAttendance(); signInSuperAdmin();
+    for (const courseSlug of ["a", "b"]) {
+      requests = [];
+      const result = await loadMvpLearnerEvidence("s00", { programId: "p1", courseSlug });
+      expect(result.state).toBe("ready");
+      if (result.state === "ready") {
+        expect(result.evidence.enrollments).toHaveLength(1);
+        expect(result.evidence.enrollments[0]).toMatchObject({ programId: "p1", courseSlug });
+        expect(JSON.stringify(result)).not.toContain("PRIVATE");
+      }
+    }
+  });
+  it("does not broaden restricted loader grants when filters are omitted or altered", async () => {
+    seedAttendance();
+    tables.students[0].program_id = null;
+    tables.staff_program_access = [{ id: "g1", student_id: "actor", program_id: "p1", role: "admin", track_slug: "a" }];
+    const result = await getMvpLearnerEvidence("s00");
+    expect(result?.enrollments.map(row => row.courseSlug)).toEqual(["a"]);
+    requests = [];
+    for (const params of [{ programId: "p2" }, { programId: "p1", courseSlug: "b" }]) {
+      await expect(getMvpLearnerEvidence("s00", params)).rejects.toThrow();
+      await expect(getMvpLearnersData(params)).rejects.toThrow();
+    }
+    expect(requests).not.toContain("student_tracks");
+    expectNoActivityReads();
   });
   it("does not read evidence for an unknown or filtered-out learner", async () => {
     seedAttendance();
