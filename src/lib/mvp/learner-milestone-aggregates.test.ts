@@ -10,6 +10,12 @@ const roster = () => Array.from({ length: 15 }, (_, i) => ({ id: `PRIVATE-${i}`,
   }] as LearnerWeeklyMilestones[],
 }] }));
 describe("weekly milestone aggregates", () => {
+  it.each((["submission", "reflection", "markedWatched"] as const).flatMap(kind =>
+    [1, 2, 3, 4, 11, 12, 13, 14].map(count => ({ kind, count }))))("withholds $kind count $count or its small complement before serialization", ({ kind, count }) => {
+    const learners = roster();
+    learners.forEach((learner, i) => { learner.enrollments[0].weeklyMilestones[0][kind] = i < count ? recorded : none; });
+    expect(JSON.stringify(aggregateLearnerMilestones(learners))).toBe('{"state":"suppressed"}');
+  });
   it("counts distinct learners per activity without exposing identities or timestamps", () => {
     const learners = roster();
     learners[0].enrollments.push(learners[0].enrollments[0]);
