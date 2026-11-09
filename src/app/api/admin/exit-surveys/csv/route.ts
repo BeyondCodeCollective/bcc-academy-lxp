@@ -24,15 +24,14 @@ export async function GET(req: NextRequest) {
 
   const rows = await loadExitSurveyResults(actor.svc, track);
   const csv = toCsv(
-    ["Participant code", "Week", "Session", UNDERSTANDING_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT, "Updated"],
+    // Anonymous like the results page: no code, name or timestamp per row.
+    ["Week", "Session", UNDERSTANDING_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT],
     rows.map((r) => [
-      r.participant_code,
       r.week_number,
       r.session_number,
       r.understanding,
       r.unclear_text,
       r.hours_text,
-      r.updated_at,
     ]),
   );
   return new NextResponse(csv, {

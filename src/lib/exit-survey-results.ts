@@ -1,8 +1,9 @@
 // Admin results: load a course's exit survey rows and summarize them.
-// Rows are identified by participant code only, never name or email, so
-// learners can be candid about a session without the facilitator knowing who.
-
-import { NO_PARTICIPANT_CODE } from "@/lib/surveys/participant-code";
+// Untraceable on purpose: staff see answers with no name, email, participant
+// code or timestamp, in an order that doesn't follow submission time, and
+// completion only as a count. In a staff cohort the readers are often the
+// learners' colleagues, so any per-person handle (or a "who hasn't answered"
+// list next to the answers) lets them work out who said what.
 
 import type { createServiceClient } from "@/lib/supabase/server";
 
@@ -12,8 +13,6 @@ export type ExitSurveyResult = {
   understanding: number | null;
   unclear_text: string | null;
   hours_text: string | null;
-  updated_at: string;
-  participant_code: string;
 };
 
 export type SessionSummary = {
@@ -23,24 +22,31 @@ export type SessionSummary = {
   average: number | null;
 };
 
+/**
+ * Answers for one course, grouped by week and session. Within a session they
+ * are sorted by content (rating, then text), never by time or person, so the
+ * list order can't be matched to who submitted when.
+ */
 export async function loadExitSurveyResults(
   svc: ReturnType<typeof createServiceClient>,
   trackSlug: string,
 ): Promise<ExitSurveyResult[]> {
   const { data } = await svc
     .from("session_exit_surveys")
-    .select(
-      "week_number, session_number, understanding, unclear_text, hours_text, updated_at, participant_code",
-    )
-    .eq("track_slug", trackSlug)
-    .order("week_number")
-    .order("session_number")
-    .order("updated_at");
-  type Row = Omit<ExitSurveyResult, "participant_code"> & { participant_code: string | null };
-  return ((data ?? []) as unknown as Row[]).map((r) => ({
-    ...r,
-    participant_code: r.participant_code || NO_PARTICIPANT_CODE,
-  }));
+    .select("week_number, session_number, understanding, unclear_text, hours_text")
+    .eq("track_slug", trackSlug);
+  return sortUntraceable((data ?? []) as ExitSurveyResult[]);
+}
+
+export function sortUntraceable(rows: ExitSurveyResult[]): ExitSurveyResult[] {
+  return [...rows].sort(
+    (a, b) =>
+      a.week_number - b.week_number ||
+      a.session_number - b.session_number ||
+      (a.understanding ?? 0) - (b.understanding ?? 0) ||
+      (a.unclear_text ?? "").localeCompare(b.unclear_text ?? "") ||
+      (a.hours_text ?? "").localeCompare(b.hours_text ?? ""),
+  );
 }
 
 /** Average rating per session, counting only rows that carry a rating. */
@@ -64,20 +70,19 @@ export function summarizeBySession(rows: ExitSurveyResult[]): SessionSummary[] {
 }
 
 // ─── Completion check ──────────────────────────────────────────────────────
-// Who hasn't rated a session yet, by name. Kept apart from the answers on
-// purpose: staff can chase completion without seeing who wrote what, because
-// the answers above carry only participant codes.
+// How many enrolled learners have rated each session. A count only: a named
+// "who hasn't answered" list shrinks as answers arrive, which ties names to
+// answers in a small cohort.
 
 export type SessionCompletion = {
   week: number;
   session: number;
   answered: number;
   enrolled: number;
-  missing: string[];
 };
 
 export function completionBySession(
-  enrolled: { id: string; name: string }[],
+  enrolledIds: string[],
   rated: { student_id: string; week_number: number; session_number: number }[],
 ): SessionCompletion[] {
   const bySession = new Map<string, { week: number; session: number; ids: Set<string> }>();
@@ -87,22 +92,18 @@ export function completionBySession(
     g.ids.add(r.student_id);
     bySession.set(key, g);
   }
-  const enrolledIds = new Set(enrolled.map((e) => e.id));
+  const enrolled = new Set(enrolledIds);
   return [...bySession.values()]
     .sort((a, b) => a.week - b.week || a.session - b.session)
     .map((g) => ({
       week: g.week,
       session: g.session,
-      answered: [...g.ids].filter((id) => enrolledIds.has(id)).length,
-      enrolled: enrolled.length,
-      missing: enrolled
-        .filter((e) => !g.ids.has(e.id))
-        .map((e) => e.name)
-        .sort((a, b) => a.localeCompare(b)),
+      answered: [...g.ids].filter((id) => enrolled.has(id)).length,
+      enrolled: enrolled.size,
     }));
 }
 
-/** Sessions that have at least one rating, with the enrolled learners missing from each. */
+/** Sessions that have at least one rating, with how many enrolled learners answered. */
 export async function loadExitSurveyCompletion(
   svc: ReturnType<typeof createServiceClient>,
   trackSlug: string,
@@ -115,19 +116,18 @@ export async function loadExitSurveyCompletion(
       .not("understanding", "is", null),
     svc
       .from("student_tracks")
-      .select("student_id, students(first_name, last_name, email, is_test)")
+      .select("student_id, students(is_test)")
       .eq("track_slug", trackSlug),
   ]);
-  type Person = { first_name: string | null; last_name: string | null; email: string | null; is_test: boolean | null };
-  const enrolled = ((enrollRows ?? []) as unknown as { student_id: string; students: Person | Person[] | null }[])
-    .map((r) => ({ id: r.student_id, s: Array.isArray(r.students) ? r.students[0] : r.students }))
-    .filter((r) => r.s && !r.s.is_test)
-    .map((r) => ({
-      id: r.id,
-      name: [r.s?.first_name, r.s?.last_name].filter(Boolean).join(" ").trim() || r.s?.email || "Unknown",
-    }));
+  type Person = { is_test: boolean | null };
+  const enrolledIds = ((enrollRows ?? []) as unknown as { student_id: string; students: Person | Person[] | null }[])
+    .filter((r) => {
+      const s = Array.isArray(r.students) ? r.students[0] : r.students;
+      return s && !s.is_test;
+    })
+    .map((r) => r.student_id);
   return completionBySession(
-    enrolled,
+    enrolledIds,
     (rated ?? []) as { student_id: string; week_number: number; session_number: number }[],
   );
 }
