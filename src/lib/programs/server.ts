@@ -175,6 +175,7 @@ type TrackOverrideRow = {
   submissions_enabled: boolean | null;
   reflections_enabled: boolean | null;
   exit_survey_enabled: boolean | null;
+  staff_cohort: boolean | null;
   sequential_gating: boolean | null;
   phase: string | null;
   office_hours: OfficeHour[] | null;
@@ -262,6 +263,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     submissionsEnabled: row.submissions_enabled ?? true,
     reflectionsEnabled: row.reflections_enabled ?? true,
     exitSurveyEnabled: row.exit_survey_enabled ?? false,
+    staffCohort: row.staff_cohort ?? false,
     sequentialGating: row.sequential_gating ?? undefined,
     officeHours: (row.office_hours as OfficeHour[] | null) ?? undefined,
     // Builder courses default to cohort semantics; a self-paced course (e.g.
@@ -362,7 +364,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
  * Cached per-request via React.cache (layout + page share one roundtrip).
  */
 const OVERRIDE_COLUMNS =
-  "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, exit_survey_enabled, sequential_gating, phase, office_hours, self_paced";
+  "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, exit_survey_enabled, staff_cohort, sequential_gating, phase, office_hours, self_paced";
 
 /**
  * Every track_overrides row, grouped by owning program slug, in ONE round trip
@@ -498,6 +500,7 @@ function mergeTrack(
       override.reflections_enabled ?? config.reflectionsEnabled,
     exitSurveyEnabled:
       override.exit_survey_enabled ?? config.exitSurveyEnabled,
+    staffCohort: override.staff_cohort ?? config.staffCohort,
     sequentialGating: override.sequential_gating ?? config.sequentialGating,
     phase: (override.phase as TrackConfig["phase"] | null) ?? config.phase,
     officeHours: override.office_hours ?? config.officeHours,
