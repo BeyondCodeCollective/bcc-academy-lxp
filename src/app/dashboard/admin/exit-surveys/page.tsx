@@ -38,7 +38,7 @@ export default async function ExitSurveyResultsPage({
         }
       />
       <p className="text-sm text-ink-soft">
-        Learners appear by participant code, not name, so they can be candid. Back to the{" "}
+        Answers are anonymous: no names, codes or times, so no one can tell who said what. Back to the{" "}
         <Link href="/dashboard/admin" className="text-ink underline">
           admin panel
         </Link>
@@ -77,11 +77,8 @@ export default async function ExitSurveyResultsPage({
 
           <section>
             <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Who hasn&apos;t answered yet
+              Completion
             </h2>
-            <p className="mt-1 text-xs text-ink-faint">
-              Names only, never linked to answers, so you can check completion without knowing who said what.
-            </p>
             <ul className="mt-2 divide-y divide-neutral-100">
               {completion.map((c) => (
                 <li key={`${c.week}:${c.session}`} className="py-2 text-sm">
@@ -92,11 +89,6 @@ export default async function ExitSurveyResultsPage({
                     {" "}
                     · {c.answered} of {c.enrolled} answered
                   </span>
-                  {c.missing.length > 0 ? (
-                    <p className="mt-0.5 text-ink-soft">{c.missing.join(", ")}</p>
-                  ) : (
-                    <p className="mt-0.5 text-ink-soft">Everyone has answered.</p>
-                  )}
                 </li>
               ))}
             </ul>
@@ -108,9 +100,8 @@ export default async function ExitSurveyResultsPage({
               {rows.map((r, i) => (
                 <li key={i} className="py-3 text-sm">
                   <p className="font-medium text-ink">
-                    <span className="font-mono">{r.participant_code}</span>{" "}
                     <span className="font-normal text-ink-faint">
-                      · Week {r.week_number}, session {r.session_number}
+                      Week {r.week_number}, session {r.session_number}
                       {r.understanding !== null ? ` · rated ${r.understanding}` : ""}
                       {r.hours_text ? ` · ${r.hours_text} hrs` : ""}
                     </span>

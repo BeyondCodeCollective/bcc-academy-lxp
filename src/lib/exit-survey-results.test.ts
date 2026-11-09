@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { completionBySession, summarizeBySession, type ExitSurveyResult } from "./exit-survey-results";
+import {
+  completionBySession,
+  sortUntraceable,
+  summarizeBySession,
+  type ExitSurveyResult,
+} from "./exit-survey-results";
 
-const row = (week: number, session: number, understanding: number | null): ExitSurveyResult => ({
+const row = (
+  week: number,
+  session: number,
+  understanding: number | null,
+  unclear_text: string | null = null,
+): ExitSurveyResult => ({
   week_number: week,
   session_number: session,
   understanding,
-  unclear_text: null,
+  unclear_text,
   hours_text: null,
-  updated_at: "2026-11-09T00:00:00Z",
-  participant_code: "P-TEST01",
 });
 
 describe("summarizeBySession", () => {
@@ -26,29 +34,43 @@ describe("summarizeBySession", () => {
   });
 });
 
-describe("completionBySession", () => {
-  const enrolled = [
-    { id: "a", name: "Zoe" },
-    { id: "b", name: "Amir" },
-    { id: "c", name: "Bea" },
-  ];
+describe("sortUntraceable", () => {
+  it("orders by session, then rating, then text, never by arrival", () => {
+    const out = sortUntraceable([row(1, 1, 5, "b"), row(1, 2, 1), row(1, 1, 2), row(1, 1, 5, "a")]);
+    expect(out.map((r) => [r.session_number, r.understanding, r.unclear_text])).toEqual([
+      [1, 2, null],
+      [1, 5, "a"],
+      [1, 5, "b"],
+      [2, 1, null],
+    ]);
+  });
 
-  it("lists who hasn't rated each session, sorted by name", () => {
+  it("carries no per-person or time fields", () => {
+    const [r] = sortUntraceable([row(1, 1, 3)]);
+    expect(Object.keys(r).sort()).toEqual(
+      ["hours_text", "session_number", "unclear_text", "understanding", "week_number"],
+    );
+  });
+});
+
+describe("completionBySession", () => {
+  const enrolled = ["a", "b", "c"];
+
+  it("counts who has rated each session, with no names", () => {
     const out = completionBySession(enrolled, [
       { student_id: "a", week_number: 1, session_number: 1 },
       { student_id: "a", week_number: 1, session_number: 2 },
       { student_id: "b", week_number: 1, session_number: 2 },
     ]);
     expect(out).toEqual([
-      { week: 1, session: 1, answered: 1, enrolled: 3, missing: ["Amir", "Bea"] },
-      { week: 1, session: 2, answered: 2, enrolled: 3, missing: ["Bea"] },
+      { week: 1, session: 1, answered: 1, enrolled: 3 },
+      { week: 1, session: 2, answered: 2, enrolled: 3 },
     ]);
   });
 
   it("ignores ratings from people no longer enrolled", () => {
     const [s] = completionBySession(enrolled, [{ student_id: "gone", week_number: 2, session_number: 1 }]);
     expect(s.answered).toBe(0);
-    expect(s.missing).toHaveLength(3);
   });
 
   it("returns nothing before anyone has rated", () => {
