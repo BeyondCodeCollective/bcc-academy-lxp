@@ -370,11 +370,13 @@ export default async function TrackWeekPage({
 
   // "Session 1 · Mon, Nov 9" / "Session 2 · Thu, Nov 12": labels the
   // Materials groups and homework so learners know what's due before which class.
-  const sessionLabels = sessionDates(
+  const sessionDateList = sessionDates(
     weekClock?.date,
     weekContent.sessions.length,
     track.officeHours,
-  ).map((d, i) => sessionLabel(i, d));
+  );
+  const sessionLabels = sessionDateList.map((d, i) => sessionLabel(i, d));
+  const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const groupMaterialsBySession =
     weekContent.sessions.length > 1 && resources.some((r) => (r.session ?? 1) > 1);
 
@@ -832,15 +834,21 @@ export default async function TrackWeekPage({
               // happened shows "Session Ended", not a Join button. Without the
               // recording/past-week test this offered a live join to a Google
               // Meet link for a class held two weeks ago.
+              // A later session with its own date (Field Ready's Thursday) ends
+              // on its own day, not when Monday's window passes, and offers no
+              // join before that day.
+              const ownDate = i > 0 ? sessionDateList[i] : null;
+              const windowPassed = ownDate ? ownDate < todayET : sessionWindowPassed;
+              const notYet = !!ownDate && ownDate > todayET;
               const action = sessionStatuses[i] === "completed" ||
                 recordingUrls[i] ||
                 weekIsPast ||
-                sessionWindowPassed ? (
+                windowPassed ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   <CheckCircle size={14} />
                   Session Ended
                 </span>
-              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) ? (
+              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) && !notYet ? (
                 <a
                   href={meetingLinks[i]!}
                   target="_blank"
