@@ -55,6 +55,24 @@ export function surveyOwnerProgramSlug(surveyId: string): string | null {
 }
 
 /**
+ * The courses a survey is the instrument for (its appliesToTracks), or null.
+ * A course instrument's answers belong to that course, not to the program the
+ * respondent happens to call home: the Field Ready pre-survey filed 17 of 26
+ * answers under BGC, Catalyst and Beyond Code Centers, so the Field Ready
+ * export showed 9 (Mica, 2026-11-09).
+ */
+export function surveyCourseTracks(surveyId: string): string[] | null {
+  const platform = PLATFORM_AUTH_SURVEYS[surveyId]?.appliesToTracks;
+  if (platform?.length) return platform;
+  for (const p of getEveryProgramConfig()) {
+    for (const s of p.surveys ?? []) {
+      if (s.id === surveyId && s.appliesToTracks?.length) return s.appliesToTracks;
+    }
+  }
+  return null;
+}
+
+/**
  * Allowlist counterpart to surveySkippedForTracks: is this survey meant for a
  * learner in these programs at all?
  *

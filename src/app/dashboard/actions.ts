@@ -9,7 +9,7 @@ import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { promoteProfileFields } from "@/lib/profile-promotion";
-import { surveyOwnerProgramSlug } from "@/lib/surveys/platform";
+import { surveyCourseTracks, surveyOwnerProgramSlug } from "@/lib/surveys/platform";
 
 /**
  * One-time learner profile capture: ZIP + birthday, for grant reporting.
@@ -163,6 +163,27 @@ export async function saveSurveyResponse(
     if (ownerRow?.id) programId = ownerRow.id as string;
   }
 
+  // A course instrument (appliesToTracks, e.g. the Field Ready pre/post) files
+  // under the course the learner is taking, program and cohort both. Staff
+  // from other programs take Field Ready, and filing their answers under BGC
+  // or Catalyst hid them from the Field Ready export.
+  const svc = createServiceClient();
+  let courseTrack: string | null = null;
+  const courseTracks = surveyCourseTracks(surveyType);
+  if (courseTracks) {
+    const { data: enr } = await svc
+      .from("student_tracks")
+      .select("track_slug, program_id")
+      .eq("student_id", user.id)
+      .in("track_slug", courseTracks)
+      .limit(1)
+      .maybeSingle();
+    if (enr) {
+      courseTrack = enr.track_slug as string;
+      if (enr.program_id) programId = enr.program_id as string;
+    }
+  }
+
   if (!programId) {
     const lookupSlug = programSlug === "marketing" ? "catalyst" : programSlug;
     const { data: programRow, error: programErr } = await supabase
@@ -186,9 +207,14 @@ export async function saveSurveyResponse(
   // results group by cohort in Survey Insights. Stored in `program_variant` —
   // the same field public surveys use — so cohort is one consistent signal
   // across every survey. Only derived when the survey didn't already collect it.
-  const svc = createServiceClient();
   let enriched = responses;
-  if (!responses.program_variant) {
+  if (courseTrack) {
+    enriched = {
+      ...responses,
+      program_variant: BCC_TRACK_VARIANT_LABELS[courseTrack] ?? courseTrack,
+      _cohort_track: courseTrack,
+    };
+  } else if (!responses.program_variant) {
     const { data: enr } = await svc
       .from("student_tracks")
       .select("track_slug")
