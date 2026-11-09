@@ -158,7 +158,7 @@ export function TrackView({
     // include instructors/admins assigned to the track, which would
     // inflate the header and diverge from the People sub-tab's count.
     const studentRoleIds = new Set(
-      students.filter(isLearner).map((s) => s.id),
+      (activeTrack.staffCohort ? students : students.filter(isLearner)).map((s) => s.id),
     );
     const enrolledInTrack = enrollments.filter(
       (e) => e.track_slug === activeTrack.slug && studentRoleIds.has(e.student_id),
@@ -635,6 +635,7 @@ export function TrackView({
                 onSetInstructorRole={setInstructorTrackRole}
                 onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
                 initialTrackFilter={activeTrack.slug}
+                staffCohort={activeTrack.staffCohort}
                 attendanceRates={attendanceRates}
                 embedded
                 viewSwitcher={viewSwitcher}
