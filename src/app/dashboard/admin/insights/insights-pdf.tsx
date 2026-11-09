@@ -13,6 +13,7 @@ import type { InsightsData, InsightsSection } from "@/lib/analytics/insights-dat
 import type { BCCSurveyResponse } from "@/app/dashboard/admin/actions-surveys";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
+import { likertLegend, likertPoint } from "@/lib/surveys/likert-scale";
 
 // Cohort family — single cobalt hue, distinguished by lightness (no rainbow),
 // mirroring the on-screen Insights palette.
@@ -204,12 +205,9 @@ export async function renderInsightsPdf(opts: {
 // A per-survey breakdown: every question with its response distribution
 // (option counts, Likert averages/spread, and verbatim text answers).
 
-// Likert answers are stored as labels (mostly) or a numeric string; map both to
-// 1–5 where 1 = Strongly Agree … 5 = Strongly Disagree.
-const LIKERT_SCALE: Record<string, number> = {
-  "strongly agree": 1, agree: 2, neutral: 3, disagree: 4, "strongly disagree": 5,
-  "1": 1, "2": 2, "3": 3, "4": 4, "5": 5,
-};
+// Likert answers are stored as labels or a numeric string. Each question's own
+// anchors decide how they map onto 1..5 and what the legend says (likertPoint,
+// likertLegend), so Field Ready reads 1 = Strongly disagree to 5 = Strongly agree.
 const SHADES = ["#1D59FF", "#4B7BFF", "#7CA0FF", "#A7BEE8", "#C9D4F0"];
 const TRACK = "#EEF1F8";
 
@@ -265,11 +263,11 @@ function DetailedSurveyDoc({
     );
   };
 
-  const Likert = (q: { id: string; statements: string[] }) => (
+  const Likert = (q: { id: string; statements: string[]; scaleAnchors?: { low: string; high: string } }) => (
     <View>
       {q.statements.map((st) => {
         const raw = rows.map((r) => (val(r, q.id) as Record<string, string> | undefined)?.[st]).filter(Boolean) as string[];
-        const nums = raw.map((v) => LIKERT_SCALE[String(v).trim().toLowerCase()]).filter((n) => n >= 1 && n <= 5);
+        const nums = raw.map((v) => likertPoint(v, q.scaleAnchors)).filter((n) => n >= 1 && n <= 5);
         const dist = [1, 2, 3, 4, 5].map((n) => nums.filter((x) => x === n).length);
         const total = nums.length || 1;
         const mean = nums.length ? (nums.reduce((a, x) => a + x, 0) / nums.length).toFixed(2) : "—";
@@ -285,7 +283,7 @@ function DetailedSurveyDoc({
           </View>
         );
       })}
-      <Text style={{ fontSize: 7.5, color: INK_FAINT, marginTop: 6 }}>Scale 1 = Strongly Agree to 5 = Strongly Disagree (lower = more confident)</Text>
+      <Text style={{ fontSize: 7.5, color: INK_FAINT, marginTop: 6 }}>{likertLegend(q.scaleAnchors)}</Text>
     </View>
   );
 
