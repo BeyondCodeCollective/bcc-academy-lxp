@@ -51,7 +51,7 @@ export default async function ExitSurveyPage({
         {track.shortName} · {unit} {weekNum}
         {weekContent.sessions.length > 1 ? ` · Session ${sessionNum}` : ""}
       </p>
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Exit survey</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Session survey</h1>
       <p className="mt-2 text-sm text-ink-soft">Two quick questions about today&apos;s session.</p>
 
       {rows === null ? (
@@ -68,7 +68,7 @@ export default async function ExitSurveyPage({
             trackSlug={trackSlug}
             weekNumber={weekNum}
             sessionNumber={sessionNum}
-            title={weekContent.sessions.length > 1 ? `Session ${sessionNum} exit survey` : "Exit survey"}
+            title={weekContent.sessions.length > 1 ? `Session ${sessionNum}` : "Today's session"}
             initialRating={row?.understanding ?? null}
             initialUnclear={row?.unclear_text ?? null}
           />
