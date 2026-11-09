@@ -5,6 +5,19 @@ import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import { getYouTubeEmbedUrl, VIDEO_EXTENSIONS } from "@/lib/storage-utils";
 import { toDriveEmbedUrl } from "@/lib/lunch-learns/drive";
 
+// Class recordings open on black (Zoom's first frames), so the player showed a
+// large black box until someone pressed play. A plain ink frame with a play
+// mark reads as "video, ready" instead. Inline so it costs no request.
+const RECORDING_POSTER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">' +
+      '<rect width="1600" height="900" fill="#1a1a1a"/>' +
+      '<circle cx="800" cy="450" r="64" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="4"/>' +
+      '<path d="M782 418 L782 482 L834 450 Z" fill="#ffffff" fill-opacity="0.85"/>' +
+      "</svg>",
+  );
+
 type Props = {
   url: string;
   title: string;
@@ -88,8 +101,9 @@ export function RecordingCard({
             src={url}
             controls
             playsInline
-            className="w-full max-h-[480px] bg-ink"
-            preload="metadata"
+            poster={RECORDING_POSTER}
+            className="w-full aspect-video max-h-[480px] bg-ink"
+            preload="none"
           />
         ) : (
           <div className="px-4 py-3">

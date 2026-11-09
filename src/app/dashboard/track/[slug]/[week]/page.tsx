@@ -871,7 +871,11 @@ export default async function TrackWeekPage({
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ink">
-                        Session {i + 1}: {session.title}
+                        {/* Builder courses title sessions "Session N", which
+                           read "Session 1: Session 1"; show the day instead. */}
+                        {session.title === `Session ${i + 1}`
+                          ? sessionLabels[i]
+                          : `${sessionLabels[i]}: ${session.title}`}
                       </p>
                       <p className="text-xs text-ink-faint mt-0.5">
                         {session.time}
@@ -885,6 +889,30 @@ export default async function TrackWeekPage({
           </div>
         </section>
       )}
+
+      {/* Session survey: once a session is live or has a replay, its survey
+         sits right under the sessions list, above the recording, so the
+         full-height player doesn't push it out of sight. */}
+      {exitSurvey &&
+        weekContent.sessions.map((_, i) => {
+          if (!liveNow.has(i) && !playbackUrls[i]) return null;
+          const row = exitSurvey[i + 1];
+          return (
+            <ExitSurveyForm
+              key={`exit-${i}`}
+              trackSlug={trackSlug}
+              weekNumber={weekNum}
+              sessionNumber={i + 1}
+              title={
+                weekContent.sessions.length > 1
+                  ? `${sessionLabels[i]} · Session survey`
+                  : "Session survey"
+              }
+              initialRating={row?.understanding ?? null}
+              initialUnclear={row?.unclear_text ?? null}
+            />
+          );
+        })}
 
       {/* Config-level recording (e.g. Google Drive link set in the program
          config). Skipped when any session has an admin-uploaded recording —
@@ -916,7 +944,7 @@ export default async function TrackWeekPage({
           ? `Session ${i + 1} Recording`
           : "Session Recording";
         const recordingSubtitle = weekContent.sessions.length > 1
-          ? session.title
+          ? session.title === `Session ${i + 1}` ? sessionLabels[i] : session.title
           : `${unitName} replay`;
 
         const showWatchButton = isSupabaseConfigured() && unlocked;
@@ -934,24 +962,6 @@ export default async function TrackWeekPage({
           />
         );
       })}
-
-      {/* Exit survey, under each session's video (live or replay). */}
-      {exitSurvey &&
-        weekContent.sessions.map((_, i) => {
-          if (!liveNow.has(i) && !playbackUrls[i]) return null;
-          const row = exitSurvey[i + 1];
-          return (
-            <ExitSurveyForm
-              key={`exit-${i}`}
-              trackSlug={trackSlug}
-              weekNumber={weekNum}
-              sessionNumber={i + 1}
-              title={weekContent.sessions.length > 1 ? `Session ${i + 1} exit survey` : "Exit survey"}
-              initialRating={row?.understanding ?? null}
-              initialUnclear={row?.unclear_text ?? null}
-            />
-          );
-        })}
 
       {/* The lab itself. Idle, this renders AS the stage (the dark slab that
          anchors the page); once the learner starts, it becomes the live
