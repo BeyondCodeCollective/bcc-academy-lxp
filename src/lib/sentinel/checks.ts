@@ -5,6 +5,7 @@
 //
 // Read-only: nothing in this file writes.
 
+import { isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { meetingAutoRecording, meetingIdFromLink } from "@/lib/zoom-recordings";
 
@@ -227,9 +228,11 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
     );
   }
 
-  const learnerIds = new Set(
-    people.filter((p) => p.role === "student" && !p.is_staff && !p.is_test).map((p) => p.id),
-  );
+  // Per enrollment: on a staff cohort every non-test enrollee is a learner.
+  const isLearnerEnrollment = (e: { student_id: string; track_slug: string }) => {
+    const p = personById[e.student_id];
+    return !!p && isLearnerOnCourse(p, e.track_slug, staffCohortTracks);
+  };
 
   // ── 3. Finished courses with no certificates issued ──────────────────────
   // Completion is only ever recorded by issuing a certificate, so a course that
@@ -377,7 +380,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
   const hiddenWithLearners = hidden
     .map((h) => {
       const n = enrollments.filter(
-        (e) => e.track_slug === h.track_slug && learnerIds.has(e.student_id),
+        (e) => e.track_slug === h.track_slug && isLearnerEnrollment(e),
       ).length;
       return n > 0
         ? { label: `${h.track_slug}: ${n} enrolled learner(s)`, key: h.track_slug }
@@ -418,7 +421,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
   const hiddenSlugs = new Set(hidden.map((h) => h.track_slug));
   const learnersByTrack: Record<string, number> = {};
   for (const e of enrollments) {
-    if (learnerIds.has(e.student_id)) {
+    if (isLearnerEnrollment(e)) {
       learnersByTrack[e.track_slug] = (learnersByTrack[e.track_slug] ?? 0) + 1;
     }
   }

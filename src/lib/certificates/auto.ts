@@ -5,6 +5,7 @@ import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { sendCertificateEmail, sendCertificatePdfToStaff } from "@/lib/email";
 import { listDriveFileNames, uploadPdfToDrive } from "@/lib/google-drive";
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { loadCertificate } from "./data";
 import { certificateFileName, renderCertificatePdf } from "./pdf";
 
@@ -27,10 +28,10 @@ async function programId(svc: Svc, slug: string): Promise<string | null> {
   return data?.id ?? null;
 }
 
-/** Learners (not staff, not test accounts) who have marked every week watched. */
+/** Learners (not staff unless the course is a staff cohort, not test accounts) who have marked every week watched. */
 async function finishedLearners(svc: Svc, track: TrackConfig, studentIds: string[]): Promise<string[]> {
   if (studentIds.length === 0) return [];
-  const [{ data: watched }, { data: people }] = await Promise.all([
+  const [{ data: watched }, { data: people }, staffCohortSlugs] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, week_number")
@@ -38,13 +39,14 @@ async function finishedLearners(svc: Svc, track: TrackConfig, studentIds: string
       .in("user_id", studentIds)
       .not("video_watched_at", "is", null),
     svc.from("students").select("id, role, is_staff, is_test").in("id", studentIds),
+    getStaffCohortSlugs(svc),
   ]);
   const weeks = new Map<string, Set<number>>();
   for (const w of (watched ?? []) as { user_id: string; week_number: number }[]) {
     (weeks.get(w.user_id) ?? weeks.set(w.user_id, new Set()).get(w.user_id)!).add(w.week_number);
   }
   return ((people ?? []) as { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }[])
-    .filter((p) => p.role === "student" && !p.is_staff && !p.is_test)
+    .filter((p) => isLearnerOnCourse(p, track.slug, staffCohortSlugs))
     .filter((p) => Array.from({ length: track.totalWeeks }, (_, i) => i + 1).every((w) => weeks.get(p.id)?.has(w)))
     .map((p) => p.id);
 }

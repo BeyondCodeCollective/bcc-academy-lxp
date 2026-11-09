@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 
 // Membership is by TRACK SLUG, not program_id — the same rule every admin tab
@@ -39,12 +40,10 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
     memberIds.length
       ? svc
           .from("students")
-          .select("id, role, email, first_name, last_name, last_seen_at, last_activity_at")
+          .select("id, role, is_staff, is_test, email, first_name, last_name, last_seen_at, last_activity_at")
           .in("id", memberIds)
-          .eq("role", "student")
           .eq("is_test", false)
-          .eq("is_staff", false)
-      : Promise.resolve({ data: [] as { id: string; role: string; email: string; first_name: string | null; last_name: string | null; last_seen_at: string | null; last_activity_at: string | null }[] }),
+      : Promise.resolve({ data: [] as { id: string; role: string; is_staff: boolean | null; is_test: boolean | null; email: string; first_name: string | null; last_name: string | null; last_seen_at: string | null; last_activity_at: string | null }[] }),
     Promise.resolve({ data: enrollRows ?? [] }),
     svc.from("alumni_enrollments").select("email").in("program_id", ids),
     svc
@@ -98,8 +97,19 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
       .not("video_watched_at", "is", null),
   ]);
 
+  // Role/staff is judged per course (a staff cohort's learners ARE staff), so a
+  // person stays if they're a learner on ANY course they're enrolled in here.
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
+  const slugsOf = new Map<string, string[]>();
+  for (const r of enrollRows ?? []) {
+    (slugsOf.get(r.student_id) ?? slugsOf.set(r.student_id, []).get(r.student_id)!).push(r.track_slug);
+  }
+  const allStudents = (allStudentsRes.data ?? []).filter((p) =>
+    (slugsOf.get(p.id) ?? []).some((slug) => isLearnerOnCourse(p, slug, staffCohortSlugs)),
+  );
+
   return {
-    allStudents: allStudentsRes.data ?? [],
+    allStudents,
     studentTracks: studentTracksRes.data ?? [],
     alumni: alumniRes.data ?? [],
     recentSubmissions: recentSubmissionsRes.data ?? [],

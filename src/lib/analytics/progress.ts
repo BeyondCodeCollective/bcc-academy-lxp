@@ -8,7 +8,8 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { resolveTrackLengths } from "@/lib/programs/scope";
-import { isLearner, LEARNER_FIELDS } from "@/lib/analytics/engagement";
+import { LEARNER_FIELDS } from "@/lib/analytics/engagement";
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
@@ -64,19 +65,22 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
   const enrolledIds = Array.from(
     new Set((enrollRes.data ?? []).map((e) => e.student_id)),
   );
-  const learnerIds = new Set<string>();
+  const learnerPairs = new Set<string>(); // `${student}|${slug}`
   if (enrolledIds.length > 0) {
     const { data: people } = await svc
       .from("students")
       .select(LEARNER_FIELDS)
       .in("id", enrolledIds);
-    for (const p of people ?? []) {
-      if (isLearner(p)) learnerIds.add(p.id as string);
+    const staffCohortSlugs = await getStaffCohortSlugs(svc);
+    const personById = new Map((people ?? []).map((p) => [p.id as string, p]));
+    for (const e of enrollRes.data ?? []) {
+      const p = personById.get(e.student_id);
+      if (p && isLearnerOnCourse(p, e.track_slug, staffCohortSlugs)) learnerPairs.add(`${e.student_id}|${e.track_slug}`);
     }
   }
 
-  const enrollments = (enrollRes.data ?? []).filter((e) => learnerIds.has(e.student_id));
-  const completions = (completeRes.data ?? []).filter((c) => learnerIds.has(c.student_id));
+  const enrollments = (enrollRes.data ?? []).filter((e) => learnerPairs.has(`${e.student_id}|${e.track_slug}`));
+  const completions = (completeRes.data ?? []).filter((c) => learnerPairs.has(`${c.student_id}|${c.track_slug}`));
 
   // Track metadata (name + length), DB-first so builder courses are covered.
   // Never default a length: unknown → the track is reported with no dropoff
