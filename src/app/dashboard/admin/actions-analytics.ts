@@ -1,5 +1,6 @@
 "use server";
 
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { requireCapability } from "./actions-shared";
 import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
@@ -125,20 +126,32 @@ export async function getEngagementAnalytics(
   // enrollment side can't over-include.
   const { data: enrolledRows } = await svc
     .from("student_tracks")
-    .select("student_id")
+    .select("student_id, track_slug")
     .in("track_slug", trackSlugs);
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
   const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
+  // Enrolled people count if they're a learner on ANY of their courses (a staff
+  // cohort's learners are staff), so role/staff is filtered here, not in SQL.
+  const slugsOf = new Map<string, string[]>();
+  for (const r of (enrolledRows ?? []) as { student_id: string; track_slug: string }[]) {
+    (slugsOf.get(r.student_id) ?? slugsOf.set(r.student_id, []).get(r.student_id)!).push(r.track_slug);
+  }
+  const onAnyCourse = (p: { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }) =>
+    (slugsOf.get(p.id) ?? []).some((slug) => isLearnerOnCourse(p, slug, staffCohortSlugs));
   const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, last_activity_at, zip, state, date_of_birth";
   // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
   // so they must never inflate the activation funnel or the per-learner table.
   const [byProgram, byEnrollment] = await Promise.all([
     svc.from("students").select(STUDENT_FIELDS).in("program_id", ids).eq("role", "student").eq("is_test", false).eq("is_staff", false),
     enrolledIds.length > 0
-      ? svc.from("students").select(STUDENT_FIELDS).in("id", enrolledIds).eq("role", "student").eq("is_test", false).eq("is_staff", false)
+      ? svc.from("students").select(`${STUDENT_FIELDS}, role, is_staff, is_test`).in("id", enrolledIds).eq("is_test", false)
       : Promise.resolve({ data: [] }),
   ]);
   const byId = new Map<string, unknown>();
-  for (const row of [...(byProgram.data ?? []), ...(byEnrollment.data ?? [])]) {
+  for (const row of [
+    ...(byProgram.data ?? []),
+    ...((byEnrollment.data ?? []) as unknown as { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }[]).filter(onAnyCourse),
+  ]) {
     byId.set((row as { id: string }).id, row);
   }
   const students = Array.from(byId.values());
@@ -385,20 +398,30 @@ export async function getEngagementTrends(
   const trackSlugs = (await getProgramWithOverrides(program.slug)).tracks.map((t) => t.slug);
   const { data: enrolledRows } = await svc
     .from("student_tracks")
-    .select("student_id")
+    .select("student_id, track_slug")
     .in("track_slug", trackSlugs);
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
   const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
+  // Enrolled people count if they're a learner on ANY of their courses (a staff
+  // cohort's learners are staff), so role/staff is filtered here, not in SQL.
+  const slugsOf = new Map<string, string[]>();
+  for (const r of (enrolledRows ?? []) as { student_id: string; track_slug: string }[]) {
+    (slugsOf.get(r.student_id) ?? slugsOf.set(r.student_id, []).get(r.student_id)!).push(r.track_slug);
+  }
+  const onAnyCourse = (p: { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }) =>
+    (slugsOf.get(p.id) ?? []).some((slug) => isLearnerOnCourse(p, slug, staffCohortSlugs));
   const [byProgram, byEnrollment] = await Promise.all([
     svc.from("students").select("id").in("program_id", ids).eq("role", "student").eq("is_test", false).eq("is_staff", false),
     enrolledIds.length > 0
-      ? svc.from("students").select("id").in("id", enrolledIds).eq("role", "student").eq("is_test", false).eq("is_staff", false)
+      ? svc.from("students").select("id, role, is_staff, is_test").in("id", enrolledIds).eq("is_test", false)
       : Promise.resolve({ data: [] }),
   ]);
   const studentIds = Array.from(
     new Set(
-      [...(byProgram.data ?? []), ...(byEnrollment.data ?? [])].map(
-        (r) => (r as { id: string }).id,
-      ),
+      [
+        ...(byProgram.data ?? []),
+        ...((byEnrollment.data ?? []) as unknown as { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }[]).filter(onAnyCourse),
+      ].map((r) => (r as { id: string }).id),
     ),
   );
   if (studentIds.length === 0) return base;

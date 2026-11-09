@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { getEveryProgramConfig } from "@/lib/programs";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { SurveyConfig } from "@/lib/programs/types";
@@ -163,10 +164,11 @@ async function scopeSectionsToTrack(
   const svc = createServiceClient();
   const { data: enrollRows } = await svc
     .from("student_tracks")
-    .select("students(email, participant_code, role, is_staff)")
+    .select("students(email, participant_code, role, is_staff, is_test)")
     .eq("track_slug", trackSlug);
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
 
-  type Learner = { email: string; participant_code: string | null; role: string; is_staff: boolean | null };
+  type Learner = { email: string; participant_code: string | null; role: string; is_staff: boolean | null; is_test: boolean | null };
   const emails = new Set<string>();
   // Participant-coded responses carry no email, so they match on the code.
   const codes = new Set<string>();
@@ -174,7 +176,7 @@ async function scopeSectionsToTrack(
     students: Learner | Learner[] | null;
   }[]) {
     const s = Array.isArray(row.students) ? row.students[0] : row.students;
-    if (!s?.email || s.role !== "student" || s.is_staff) continue;
+    if (!s?.email || !isLearnerOnCourse(s, trackSlug, staffCohortSlugs)) continue;
     emails.add(s.email.toLowerCase());
     if (s.participant_code) codes.add(s.participant_code);
   }

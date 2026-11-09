@@ -5,6 +5,7 @@
 //
 // Read-only: nothing in this file writes.
 
+import { isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { meetingAutoRecording, meetingIdFromLink } from "@/lib/zoom-recordings";
 
@@ -168,9 +169,44 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       )
     : [];
   const personById = Object.fromEntries(people.map((p) => [p.id, p]));
+  // Staff cohorts (track_overrides.staff_cohort) enroll staff on purpose: the
+  // staff ARE the learners, so neither check below applies to them.
+  const staffCohortTracks = new Set(
+    (
+      await rows<{ track_slug: string }>(
+        svc.from("track_overrides").select("track_slug").eq("staff_cohort", true).limit(LIMIT),
+      )
+    ).map((t) => t.track_slug),
+  );
+  const isStaffish = (p: Person) => p.role !== "student" || !!p.is_staff;
+
+  // ── 2a. A course that is mostly staff but not flagged as a staff cohort ──
+  // Every learner count on it silently drops the real learners (the Field
+  // Ready kickoff read 6 of 21 present this way).
+  const realByTrack: Record<string, Person[]> = {};
+  for (const e of enrollments) {
+    const p = personById[e.student_id];
+    if (p && !p.is_test && !staffCohortTracks.has(e.track_slug)) (realByTrack[e.track_slug] ??= []).push(p);
+  }
+  const likelyStaffCohorts = Object.entries(realByTrack).filter(([, ps]) => {
+    const staff = ps.filter(isStaffish).length;
+    return staff >= 3 && staff / ps.length > 0.5;
+  });
+  if (likelyStaffCohorts.length) {
+    report(
+      "unflagged-staff-cohort",
+      "high",
+      "Most enrollees on this course are staff, but it is not marked as a staff cohort, so attendance, rosters, rates and certificates leave them out. If staff are the learners here, turn on Staff cohort in the course overview.",
+      likelyStaffCohorts.map(([t, ps]) => ({
+        label: `${t}: ${ps.filter(isStaffish).length} of ${ps.length} enrollees are staff`,
+        key: t,
+      })),
+    );
+  }
+
   const staffEnrolled = enrollments.filter((e) => {
     const p = personById[e.student_id];
-    return p && (p.role !== "student" || p.is_staff || p.is_test);
+    return p && !staffCohortTracks.has(e.track_slug) && (p.role !== "student" || p.is_staff || p.is_test);
   });
   if (staffEnrolled.length) {
     const byTrack: Record<string, string[]> = {};
@@ -192,9 +228,11 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
     );
   }
 
-  const learnerIds = new Set(
-    people.filter((p) => p.role === "student" && !p.is_staff && !p.is_test).map((p) => p.id),
-  );
+  // Per enrollment: on a staff cohort every non-test enrollee is a learner.
+  const isLearnerEnrollment = (e: { student_id: string; track_slug: string }) => {
+    const p = personById[e.student_id];
+    return !!p && isLearnerOnCourse(p, e.track_slug, staffCohortTracks);
+  };
 
   // ── 3. Finished courses with no certificates issued ──────────────────────
   // Completion is only ever recorded by issuing a certificate, so a course that
@@ -342,7 +380,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
   const hiddenWithLearners = hidden
     .map((h) => {
       const n = enrollments.filter(
-        (e) => e.track_slug === h.track_slug && learnerIds.has(e.student_id),
+        (e) => e.track_slug === h.track_slug && isLearnerEnrollment(e),
       ).length;
       return n > 0
         ? { label: `${h.track_slug}: ${n} enrolled learner(s)`, key: h.track_slug }
@@ -383,7 +421,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
   const hiddenSlugs = new Set(hidden.map((h) => h.track_slug));
   const learnersByTrack: Record<string, number> = {};
   for (const e of enrollments) {
-    if (learnerIds.has(e.student_id)) {
+    if (isLearnerEnrollment(e)) {
       learnersByTrack[e.track_slug] = (learnersByTrack[e.track_slug] ?? 0) + 1;
     }
   }

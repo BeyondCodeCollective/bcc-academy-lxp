@@ -1,6 +1,7 @@
 import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import type { loadLearnerOptions } from "./learner-options";
+import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { learnerCourseBatches } from "./learner-batches";
 
 export type LearnerQueryParams = Partial<Record<"programId" | "courseSlug" | "cohortId" | "search" | "status" | "page" | "pageSize" | "sortBy" | "sortOrder", string | string[]>>;
@@ -33,19 +34,23 @@ export async function loadLearnerRoster(db: ReturnType<typeof createServiceClien
   if (filters.courseSlug && !options.courses.some(c => c.programId === filters.programId && c.slug === filters.courseSlug)) throw new Error("The selected course is unavailable.");
   if (filters.cohortId && !options.cohorts.some(c => c.programId === filters.programId && c.courseSlug === filters.courseSlug && c.id === filters.cohortId)) throw new Error("The selected cohort is unavailable.");
   const learners = new Map<string, Learner>();
+  const staffCohortSlugs = await getStaffCohortSlugs(db);
   const search = filters.search.toLocaleLowerCase("en-US");
   const selectedCourses = options.courses.filter(c => (!filters.programId || c.programId === filters.programId) && (!filters.courseSlug || c.slug === filters.courseSlug));
   for (const batch of learnerCourseBatches(selectedCourses)) {
     const programId = batch[0].programId;
     const bySlug = new Map(batch.map(course => [course.slug, course]));
+    const batchHasStaffCohort = batch.some(course => staffCohortSlugs.has(course.slug));
     let cursor: string | null = null;
     while (true) {
       let query = db.from("student_tracks")
         .select("id, student_id, program_id, track_slug, students!inner(id, first_name, last_name, email, cohort_id, role, is_test, is_staff)")
-        .eq("program_id", programId).in("track_slug", [...bySlug.keys()]).eq("students.role", "student")
+        .eq("program_id", programId).in("track_slug", [...bySlug.keys()])
         .or("is_test.is.null,is_test.eq.false", { referencedTable: "students" })
-        .or("is_staff.is.null,is_staff.eq.false", { referencedTable: "students" })
         .order("id").limit(500);
+      // A staff cohort's learners ARE staff: only filter role/staff in SQL when no such course is in the batch
+      // (the per-row check below handles the mixed case).
+      if (!batchHasStaffCohort) query = query.eq("students.role", "student").or("is_staff.is.null,is_staff.eq.false", { referencedTable: "students" });
       if (filters.cohortId) query = query.eq("students.cohort_id", filters.cohortId);
       if (cursor) query = query.gt("id", cursor);
       const { data, error } = await query;
@@ -56,7 +61,8 @@ export async function loadLearnerRoster(db: ReturnType<typeof createServiceClien
         const embedded = row.students as unknown as Profile | Profile[] | null;
         const profile = Array.isArray(embedded) ? (embedded.length === 1 ? embedded[0] : null) : embedded;
         if (!course || !profile || profile.id !== row.student_id || row.program_id !== programId) throw new Error("Inconsistent learner enrollment records.");
-        if (profile.role !== "student" || profile.is_test === true || profile.is_staff === true) continue;
+        if (profile.is_test === true) continue;
+        if (!staffCohortSlugs.has(row.track_slug) && (profile.role !== "student" || profile.is_staff === true)) continue;
         if (![profile.first_name, profile.last_name, profile.email, profile.cohort_id].every(v => v === null || typeof v === "string")) throw new Error("Invalid learner profile fields.");
         if (filters.cohortId && profile.cohort_id !== filters.cohortId) continue;
         if (search && ![[profile.first_name, profile.last_name].filter(Boolean).join(" "), profile.email || ""].some(v => v.toLocaleLowerCase("en-US").includes(search))) continue;

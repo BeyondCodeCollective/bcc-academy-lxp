@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getExam } from "@/lib/exams";
+import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
 import { BackLink, DataTable } from "@/components/ui";
@@ -94,8 +95,22 @@ export default async function ExamScoresPage({
   // Staff walk the exam to check it works, and those two-minute 20% runs sat in
   // the class list looking like learners who bombed it. Same rule the response
   // rates use: this is a roster of learners, so staff and test accounts are out.
+  // Exception: people enrolled in a staff-cohort course this exam applies to ARE
+  // the learners there, so they stay (test accounts still go).
+  const staffSlugs = [...(await getStaffCohortSlugs(svc))].filter((sl) => exam.appliesToTracks.includes(sl));
+  const cohortIds = new Set<string>();
+  if (staffSlugs.length > 0 && ids.length > 0) {
+    const { data: cohort } = await svc
+      .from("student_tracks")
+      .select("student_id")
+      .in("track_slug", staffSlugs)
+      .in("student_id", ids);
+    for (const c of cohort ?? []) cohortIds.add(c.student_id as string);
+  }
   const isLearner = new Set(
-    (students ?? []).filter((s) => !s.is_staff && !s.is_test).map((s) => s.id as string),
+    (students ?? [])
+      .filter((s) => !s.is_test && (!s.is_staff || cohortIds.has(s.id as string)))
+      .map((s) => s.id as string),
   );
 
   const rows = [...byStudent.values()]

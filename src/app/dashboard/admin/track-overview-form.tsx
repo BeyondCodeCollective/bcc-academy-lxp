@@ -21,6 +21,7 @@ type Props = {
     unitLabel?: string;
     selfPaced?: boolean;
     sequentialGating?: boolean;
+    staffCohort?: boolean;
   };
   programSlug: string;
   onLiveChange?: (patch: { name: string; instructor: string }) => void;
@@ -42,27 +43,29 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
     () => track.weekSummaries.map((w) => ({ ...w })),
   );
   const [sequentialGating, setSequentialGating] = useState(!!track.sequentialGating);
+  const [staffCohort, setStaffCohort] = useState(!!track.staffCohort);
   // Singular unit label ("Week", "Day", "Session", …). Blank falls back to "Week".
   const [unitLabel, setUnitLabel] = useState(track.unitLabel ?? "Week");
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const isFirstRun = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestValues = useRef({ name, instructor, description, weekSummaries, sequentialGating, unitLabel });
+  const latestValues = useRef({ name, instructor, description, weekSummaries, sequentialGating, staffCohort, unitLabel });
 
   // Keep ref in sync so the blur handler always sends fresh values.
-  latestValues.current = { name, instructor, description, weekSummaries, sequentialGating, unitLabel };
+  latestValues.current = { name, instructor, description, weekSummaries, sequentialGating, staffCohort, unitLabel };
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saved"); // optimistic indicator
     setTimeout(() => setSaveState("idle"), 2000);
     try {
-      const { weekSummaries: weeks, sequentialGating: gating, unitLabel: unit, ...rest } = latestValues.current;
+      const { weekSummaries: weeks, sequentialGating: gating, staffCohort: staff, unitLabel: unit, ...rest } = latestValues.current;
       const patch: TrackOverviewPatch = {
         ...rest,
         week_summaries: weeks,
         sequential_gating: gating,
+        staff_cohort: staff,
         unit_label: unit,
       };
       await saveTrackOverview(track.slug, patch, programSlug);
@@ -101,6 +104,11 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   const toggleGating = (next: boolean) => {
     setSequentialGating(next);
     latestValues.current = { ...latestValues.current, sequentialGating: next };
+    doSave.current(true);
+  };
+  const toggleStaffCohort = (next: boolean) => {
+    setStaffCohort(next);
+    latestValues.current = { ...latestValues.current, staffCohort: next };
     doSave.current(true);
   };
 
@@ -164,6 +172,20 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
               {track.selfPaced
                 ? "Students must finish each week before the next unlocks."
                 : "Future weeks stay closed, content and resources included, until the week begins. Earlier weeks stay open."}
+            </span>
+          </span>
+        </label>
+        <label className="mt-4 flex cursor-pointer items-start gap-3 border-t border-rule-soft pt-4">
+          <input
+            type="checkbox"
+            checked={staffCohort}
+            onChange={(e) => toggleStaffCohort(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            <span className="block text-sm font-medium text-ink">Staff cohort</span>
+            <span className="mt-0.5 block text-xs text-ink-faint">
+              The learners in this course are staff. Staff and admin enrollees count toward attendance, rosters, rates and certificates.
             </span>
           </span>
         </label>

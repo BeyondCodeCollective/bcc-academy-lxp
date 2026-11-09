@@ -47,10 +47,16 @@ export function HomeTab({
   // / tutor chat / browsing for "active" (so a live Zoom camp isn't 0).
   // The client-side fallbacks below are the old, narrower answers, used
   // only when the server didn't supply stats.
+  const staffCohortSlugs = new Set(tracks.filter((t) => t.staffCohort).map((t) => t.slug));
+  // `students` is already test-filtered upstream (admin/page.tsx).
+  const allIds = new Set(students.map((s) => s.id));
   const studentCountFor = (slug: string) =>
     courseStats[slug]?.total ??
     enrollments.filter(
-      (e) => e.track_slug === slug && studentRoleIds.has(e.student_id),
+      (e) =>
+        e.track_slug === slug &&
+        (studentRoleIds.has(e.student_id) ||
+          (staffCohortSlugs.has(slug) && allIds.has(e.student_id))),
     ).length;
   const now = new Date();
   // Cross-course triage: "N active this week" per course. Only worth the

@@ -4,7 +4,8 @@
 // course has no learners.
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { isLearner, LEARNER_FIELDS } from "@/lib/analytics/engagement";
+import { LEARNER_FIELDS } from "@/lib/analytics/engagement";
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import type { ProgressDay, HeatLevel } from "@/components/stats/streak-heatmap";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
@@ -80,7 +81,16 @@ export async function getCourseRosterStats(
     : (await svc.from("students").select(LEARNER_FIELDS).in("id", enrolledIds)).data;
   // Real learners only — QA logins and staff would inflate the course roster,
   // active count, and the certificate-eligible "full attendance" number.
-  const learners = (studentRows ?? []).filter(isLearner);
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
+  const slugsByStudent = new Map<string, string[]>();
+  for (const e of enrollments) {
+    const arr = slugsByStudent.get(e.student_id) ?? [];
+    arr.push(e.track_slug);
+    slugsByStudent.set(e.student_id, arr);
+  }
+  const learners = (studentRows ?? []).filter((s) =>
+    (slugsByStudent.get(s.id) ?? []).some((slug) => isLearnerOnCourse(s, slug, staffCohortSlugs)),
+  );
   const learnerIds = learners.map((s) => s.id);
   if (learnerIds.length === 0) return empty;
 
@@ -169,10 +179,11 @@ export async function getCourseRosterStats(
   }
 
   const learnerIdSet = new Set(learnerIds);
+  const personById = new Map((studentRows ?? []).map((p) => [p.id, p]));
   const stats: Record<string, CourseRosterStat> = {};
   for (const slug of trackSlugs) {
     const ids = new Set(
-      enrollments.filter((e) => e.track_slug === slug && learnerIdSet.has(e.student_id))
+      enrollments.filter((e) => e.track_slug === slug && learnerIdSet.has(e.student_id) && isLearnerOnCourse(personById.get(e.student_id) ?? {}, slug, staffCohortSlugs))
         .map((e) => e.student_id),
     );
     const inTrack = activeInTrack.get(slug) ?? new Set<string>();
@@ -230,7 +241,8 @@ export async function getCourseEngagement(
     .select("id, first_name, last_name, email, role, is_test, is_staff, last_seen_at")
     .in("id", enrolledIds);
   // Real learners only — exclude QA and staff accounts.
-  const learners = (studentRows ?? []).filter(isLearner) as {
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
+  const learners = (studentRows ?? []).filter((s) => isLearnerOnCourse(s, trackSlug, staffCohortSlugs)) as {
     id: string;
     first_name: string | null;
     last_name: string | null;

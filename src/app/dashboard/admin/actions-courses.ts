@@ -3,6 +3,7 @@
 import { requireCapability } from "./actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope, resolveScopeTrackSlugs, resolveTrackLengths } from "@/lib/programs/scope";
+import { getStaffCohortSlugs, isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 
@@ -92,12 +93,21 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     enrolledStudentIds.length > 0
       ? await svc
           .from("students")
-          .select("id, first_name, last_name, email")
+          .select("id, first_name, last_name, email, role, is_staff, is_test")
           .in("id", enrolledStudentIds)
-          .eq("role", "student")
           .eq("is_test", false)
-          .eq("is_staff", false)
       : { data: [] };
+  // Role/staff filtering is per course (a staff cohort's learners ARE staff).
+  const staffCohortSlugs = await getStaffCohortSlugs(svc);
+  const personById = new Map(
+    ((studentRes.data ?? []) as { id: string; role: string; is_staff: boolean | null; is_test: boolean | null }[]).map(
+      (r) => [r.id, r],
+    ),
+  );
+  const isLearnerPair = (sid: string, slug: string) => {
+    const p = personById.get(sid);
+    return !!p && isLearnerOnCourse(p, slug, staffCohortSlugs);
+  };
 
   // Track metadata (totalWeeks) for progress fractions.
   // Whether this scope contains a self-paced (VOD) course — decides if the
@@ -124,20 +134,22 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // this page — Tech+ read 50% complete with certificates issued to all four of
   // its actual learners, because four staff sat in the same track.
   const learnerIdSet = new Set(
-    ((studentRes.data ?? []) as { id: string }[]).map((r) => r.id),
+    ((enrollRes.data ?? []) as { student_id: string; track_slug: string }[])
+      .filter((e) => isLearnerPair(e.student_id, e.track_slug))
+      .map((e) => e.student_id),
   );
 
   // Enrolled (student,course) pairs, de-duped. Program-altitude on purpose —
   // per-course numbers live inside each course (course-first hierarchy).
   const enrolledPairs = new Set<string>();
   for (const e of (enrollRes.data ?? []) as { student_id: string; track_slug: string }[]) {
-    if (!learnerIdSet.has(e.student_id)) continue;
+    if (!isLearnerPair(e.student_id, e.track_slug)) continue;
     enrolledPairs.add(`${e.student_id}|${e.track_slug}`);
   }
   // Completed pairs (100% by definition).
   const completedPairs = new Set<string>();
   for (const c of (completeRes.data ?? []) as { student_id: string; track_slug: string }[]) {
-    if (!learnerIdSet.has(c.student_id)) continue;
+    if (!isLearnerPair(c.student_id, c.track_slug)) continue;
     completedPairs.add(`${c.student_id}|${c.track_slug}`);
   }
   // Furthest week + last-active timestamp per (student,course) from the union.
@@ -222,9 +234,9 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     const [sid, slug] = key.split("|");
     (enrolledBySid.get(sid) ?? enrolledBySid.set(sid, []).get(sid)!).push(slug);
   }
-  const students = (studentRes.data ?? []) as {
+  const students = ((studentRes.data ?? []) as {
     id: string; first_name: string | null; last_name: string | null; email: string;
-  }[];
+  }[]).filter((s) => learnerIdSet.has(s.id));
   const activeStudents: ActiveStudent[] = students
     .filter(
       (s) =>

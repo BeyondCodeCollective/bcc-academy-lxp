@@ -96,7 +96,9 @@ export default async function InsightsPage() {
     .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
     .slice(0, 10);
 
-  const students = allStudents.filter((s) => s.role === "student");
+  // allStudents is already limited to per-course learners (fetchAllInsightsData),
+  // which keeps staff-cohort learners that a plain role check would drop.
+  const students = allStudents;
   const totalStudents = students.length;
   // Gate every downstream count to real learners — enrollment/activity rows for
   // staff or QA accounts must never inflate active/per-track/phase totals.

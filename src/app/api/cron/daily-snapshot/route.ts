@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getEveryProgramConfig } from "@/lib/programs";
-import { isLearner } from "@/lib/analytics/engagement";
+import { isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 
 // Daily cron (Vercel) that records one learner snapshot per program into
 // `analytics_daily_snapshots`: learners, active (behavior) in 1d/7d, videos
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   //  - video_views_total: rows with video_watched_at set
   const [{ data: programs, error: prErr }, { data: overrides, error: ovErr }] = await Promise.all([
     svc.from("programs").select("id, slug"),
-    svc.from("track_overrides").select("program_id, track_slug"),
+    svc.from("track_overrides").select("program_id, track_slug, staff_cohort"),
   ]);
   if (prErr || ovErr) {
     console.error("[cron/daily-snapshot] program load failed", prErr ?? ovErr);
@@ -74,17 +74,23 @@ export async function GET(request: Request) {
     console.error("[cron/daily-snapshot] fetch failed", eErr ?? sErr ?? pErr);
     return NextResponse.json({ ok: false, error: (eErr ?? sErr ?? pErr)?.message }, { status: 500 });
   }
-  const learnerById = new Map<string, { last_activity_at: string | null }>();
-  for (const st of students ?? []) if (isLearner(st)) learnerById.set(st.id as string, { last_activity_at: st.last_activity_at as string | null });
+  // Learner-ness is per course (a staff cohort's learners are staff), so keep
+  // every person here and judge each enrollment below.
+  const staffCohortSlugs = new Set((overrides ?? []).filter((o) => o.staff_cohort).map((o) => o.track_slug as string));
+  const personById = new Map<string, NonNullable<typeof students>[number]>();
+  for (const st of students ?? []) personById.set(st.id as string, st);
 
   type Agg = { total: number; active1d: number; active7d: number; views: number };
   const byProgram = new Map<string, Agg>();
   for (const [programId, slugs] of slugsByProgram) {
     const members = new Set<string>();
-    for (const e of enroll ?? []) if (slugs.has(e.track_slug as string) && learnerById.has(e.student_id as string)) members.add(e.student_id as string);
+    for (const e of enroll ?? []) {
+      const p = personById.get(e.student_id as string);
+      if (p && slugs.has(e.track_slug as string) && isLearnerOnCourse(p, e.track_slug as string, staffCohortSlugs)) members.add(e.student_id as string);
+    }
     let active1d = 0, active7d = 0;
     for (const id of members) {
-      const act = learnerById.get(id)?.last_activity_at;
+      const act = personById.get(id)?.last_activity_at as string | null | undefined;
       if (act) { if (act >= oneDayAgo) active1d++; if (act >= sevenDaysAgo) active7d++; }
     }
     let views = 0;

@@ -1,5 +1,6 @@
 import "server-only";
 import { protectMvpGeography, isSmallMvpCount, MVP_SUPPRESSION_REASON } from "./privacy";
+import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { loadMvpParticipants } from "./participant-queries";
 import { loadMvpLinkedCohorts } from "./cohort-queries";
 import { buildMvpStaffReview } from "./staff-review";
@@ -90,6 +91,7 @@ async function loadMvpLearnerIds(
 ): Promise<string[]> {
   const learnerIds = new Set<string>();
   let cursor: string | null = null;
+  const staffCohort = (await getStaffCohortSlugs(db)).has(courseSlug);
 
   while (true) {
     let query = db
@@ -97,15 +99,17 @@ async function loadMvpLearnerIds(
       .select(`id, student_id, students!inner(id, location${includeDemographics ? ", date_of_birth" : ""}${includeDemographics || includeLocations ? ", zip, state" : ""})`)
       .eq("track_slug", courseSlug)
       .eq("program_id", courseProgramId)
-      .eq("students.role", "student")
       .or("is_test.is.null,is_test.eq.false", {
-        referencedTable: "students",
-      })
-      .or("is_staff.is.null,is_staff.eq.false", {
         referencedTable: "students",
       })
       .order("id", { ascending: true })
       .limit(500);
+    // A staff cohort's learners ARE staff, so only other courses get the role/staff filters.
+    if (!staffCohort) {
+      query = query
+        .eq("students.role", "student")
+        .or("is_staff.is.null,is_staff.eq.false", { referencedTable: "students" });
+    }
 
     if (cursor !== null) {
       query = query.gt("id", cursor);

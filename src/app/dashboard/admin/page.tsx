@@ -513,8 +513,13 @@ export default async function AdminPage({
       // Canonical engagement (docs/analytics-plan.md): the four did-the-work
       // signals, each worth up to 25 pts → /100. Video replaces the old tutor
       // term so self-paced tracks aren't structurally under-scored.
+      const staffCohortSlugs = new Set(program.tracks.filter((t) => t.staffCohort).map((t) => t.slug));
+      const learnerIds = new Set(
+        studentTracks.filter((st) => staffCohortSlugs.has(st.track_slug)).map((st) => st.student_id),
+      );
       for (const s of allStudents) {
-        if (s.role !== "student" || s.is_staff) continue;
+        // Staff cohort enrollees are learners on that course (test rows are already excluded).
+        if ((s.role !== "student" || s.is_staff) && !learnerIds.has(s.id)) continue;
         const att = new Set(attendanceRows.filter((r) => r.student_id === s.id).map((r) => `${r.track}-${r.week_number}`)).size;
         const sub = new Set(submissionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
         const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
