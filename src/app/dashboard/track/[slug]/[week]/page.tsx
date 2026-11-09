@@ -31,6 +31,7 @@ import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { ResourceLink } from "@/components/resource-link";
+import { sessionDates, sessionLabel } from "@/lib/session-days";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 import { signRecordingUrl } from "@/lib/blob-recordings";
@@ -366,6 +367,16 @@ export default async function TrackWeekPage({
   // The unit's scheduled clock (date + time) as the course schedule holds it —
   // the same row the live-join window and the unlock gate below read.
   const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
+
+  // "Session 1 · Mon, Nov 9" / "Session 2 · Thu, Nov 12": labels the
+  // Materials groups and homework so learners know what's due before which class.
+  const sessionLabels = sessionDates(
+    weekClock?.date,
+    weekContent.sessions.length,
+    track.officeHours,
+  ).map((d, i) => sessionLabel(i, d));
+  const groupMaterialsBySession =
+    weekContent.sessions.length > 1 && resources.some((r) => (r.session ?? 1) > 1);
 
   // Header data, hoisted so both the normal header and the merged staged-
   // session stage below can use it — one subtitle line, computed once.
@@ -1049,7 +1060,32 @@ export default async function TrackWeekPage({
             label: "Materials",
             count: resources.length,
             content:
-              resources.length > 0 ? (
+              resources.length > 0 && groupMaterialsBySession ? (
+                // Multi-session week with materials assigned to later sessions:
+                // group them under each session's day so learners see what's
+                // due before Thursday's class and what comes after it.
+                <div className="max-w-4xl space-y-8">
+                  {sessionLabels.map((label, s) => {
+                    const items = resources.filter(
+                      (r) => Math.min(r.session ?? 1, sessionLabels.length) === s + 1,
+                    );
+                    return items.length > 0 ? (
+                      <section key={s}>
+                        <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+                          {label}
+                        </h3>
+                        <ul className="grid gap-3 sm:grid-cols-2">
+                          {items.map((r, i) => (
+                            <li key={i} className={r.embed ? "sm:col-span-2" : undefined}>
+                              <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null;
+                  })}
+                </div>
+              ) : resources.length > 0 ? (
                 <ul className="grid max-w-4xl gap-3 sm:grid-cols-2">
                   {resources.map((r, i) => (
                     <li key={i} className={r.embed ? "sm:col-span-2" : undefined}>
@@ -1071,6 +1107,7 @@ export default async function TrackWeekPage({
                   weekNum={weekNum}
                   weekContent={weekContent}
                   homeworkInstructions={homeworkInstructions}
+                  sessionLabels={sessionLabels}
                   showSubmissions={weekSubmissionsEnabled}
                   showReflections={track.reflectionsEnabled !== false}
                   defaultReflectionPrompts={track.defaultReflectionPrompts}
@@ -1088,6 +1125,7 @@ async function SubmissionsReflectionsSection({
   weekNum,
   weekContent,
   homeworkInstructions,
+  sessionLabels,
   showSubmissions,
   showReflections,
   defaultReflectionPrompts,
@@ -1096,6 +1134,7 @@ async function SubmissionsReflectionsSection({
   weekNum: number;
   weekContent: WeekConfig;
   homeworkInstructions: string[];
+  sessionLabels: string[];
   showSubmissions: boolean;
   showReflections: boolean;
   defaultReflectionPrompts?: string[];
@@ -1134,7 +1173,7 @@ async function SubmissionsReflectionsSection({
             >
               {homeworkInstructions.length > 1 && (
                 <span className="mb-1 block text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-                  Session {i + 1} homework
+                  {sessionLabels[i] ?? `Session ${i + 1}`} homework
                 </span>
               )}
               {text}
