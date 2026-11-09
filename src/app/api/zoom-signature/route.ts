@@ -129,7 +129,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (trackSlug && weekNumber && !isStaffEmail(user.email)) {
+  // On a staff cohort the staff ARE the learners, so their joins count.
+  const countsAsLearner = !isStaffEmail(user.email) || !!liveTrack?.staffCohort;
+  if (trackSlug && weekNumber && countsAsLearner) {
     // Runs AFTER the response so the Zoom join is never delayed — but via
     // after(), which the platform guarantees to complete. The previous
     // `void (async () => …)()` fire-and-forget was frozen with the lambda the

@@ -150,6 +150,9 @@ export function TrackView({
       enrollments.filter((e) => e.track_slug === activeTrack.slug).map((e) => e.student_id),
     );
     const trackStudents = students.filter((s) => trackStudentIds.has(s.id));
+    // On a staff cohort the staff ARE the learners (test logins are already
+    // excluded upstream), so every enrollee belongs on the roster.
+    const trackLearners = activeTrack.staffCohort ? trackStudents : trackStudents.filter(isLearner);
 
     // Count only role=student enrollments. The raw student_tracks rows
     // include instructors/admins assigned to the track, which would
@@ -647,7 +650,7 @@ export function TrackView({
 
             {subView === "attendance" && (
               <AttendanceTab
-                students={trackStudents.filter(isLearner)}
+                students={trackLearners}
                 tracks={[activeTrack]}
                 scopeLabel={activeTrack.shortName}
                 embedded
@@ -657,7 +660,7 @@ export function TrackView({
 
             {subView === "progress" && (
               <ProgressTab
-                students={trackStudents.filter(isLearner)}
+                students={trackLearners}
                 trackSlug={activeTrack.slug}
                 totalWeeks={activeTrack.totalWeeks}
                 viewSwitcher={viewSwitcher}
@@ -674,7 +677,7 @@ export function TrackView({
 
             {subView === "certificates" && (
               <CertificatesPanel
-                students={trackStudents.filter(isLearner)}
+                students={trackLearners}
                 trackSlug={activeTrack.slug}
                 programSlug={programSlug}
                 viewSwitcher={viewSwitcher}

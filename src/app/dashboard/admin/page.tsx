@@ -823,6 +823,7 @@ export default async function AdminPage({
       submissionsEnabled: t.submissionsEnabled,
       reflectionsEnabled: t.reflectionsEnabled,
       exitSurveyEnabled: t.exitSurveyEnabled,
+      staffCohort: t.staffCohort,
       sequentialGating: t.sequentialGating,
       officeHours: t.officeHours ?? [],
     };
