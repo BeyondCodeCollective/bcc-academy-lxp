@@ -29,6 +29,20 @@ export function isLearner(row: {
   return row.role === "student" && !row.is_test && !row.is_staff;
 }
 
+/**
+ * Learner predicate for anything scoped to ONE course. On a staff cohort
+ * (track_overrides.staff_cohort) the staff ARE the learners, so every non-test
+ * enrollee counts. Use this, not isLearner, for per-course rosters, counts,
+ * rates and certificates.
+ */
+export function isCourseLearner(
+  row: { role?: string | null; is_test?: boolean | null; is_staff?: boolean | null },
+  course: { staffCohort?: boolean | null } | null | undefined,
+): boolean {
+  if (course?.staffCohort) return !row.is_test;
+  return isLearner(row);
+}
+
 export type DidWorkSignal = "attendance" | "video" | "submission" | "reflection";
 
 /** The signals that count as engagement. Order is display-priority. */

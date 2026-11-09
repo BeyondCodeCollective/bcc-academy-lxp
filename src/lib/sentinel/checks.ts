@@ -168,9 +168,44 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       )
     : [];
   const personById = Object.fromEntries(people.map((p) => [p.id, p]));
+  // Staff cohorts (track_overrides.staff_cohort) enroll staff on purpose: the
+  // staff ARE the learners, so neither check below applies to them.
+  const staffCohortTracks = new Set(
+    (
+      await rows<{ track_slug: string }>(
+        svc.from("track_overrides").select("track_slug").eq("staff_cohort", true).limit(LIMIT),
+      )
+    ).map((t) => t.track_slug),
+  );
+  const isStaffish = (p: Person) => p.role !== "student" || !!p.is_staff;
+
+  // ── 2a. A course that is mostly staff but not flagged as a staff cohort ──
+  // Every learner count on it silently drops the real learners (the Field
+  // Ready kickoff read 6 of 21 present this way).
+  const realByTrack: Record<string, Person[]> = {};
+  for (const e of enrollments) {
+    const p = personById[e.student_id];
+    if (p && !p.is_test && !staffCohortTracks.has(e.track_slug)) (realByTrack[e.track_slug] ??= []).push(p);
+  }
+  const likelyStaffCohorts = Object.entries(realByTrack).filter(([, ps]) => {
+    const staff = ps.filter(isStaffish).length;
+    return staff >= 3 && staff / ps.length > 0.5;
+  });
+  if (likelyStaffCohorts.length) {
+    report(
+      "unflagged-staff-cohort",
+      "high",
+      "Most enrollees on this course are staff, but it is not marked as a staff cohort, so attendance, rosters, rates and certificates leave them out. If staff are the learners here, turn on Staff cohort in the course overview.",
+      likelyStaffCohorts.map(([t, ps]) => ({
+        label: `${t}: ${ps.filter(isStaffish).length} of ${ps.length} enrollees are staff`,
+        key: t,
+      })),
+    );
+  }
+
   const staffEnrolled = enrollments.filter((e) => {
     const p = personById[e.student_id];
-    return p && (p.role !== "student" || p.is_staff || p.is_test);
+    return p && !staffCohortTracks.has(e.track_slug) && (p.role !== "student" || p.is_staff || p.is_test);
   });
   if (staffEnrolled.length) {
     const byTrack: Record<string, string[]> = {};
