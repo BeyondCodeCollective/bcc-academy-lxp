@@ -33,6 +33,7 @@ export function PeopleTab({
   onSetInstructorRole,
   onStudentAdded,
   initialTrackFilter,
+  staffCohort,
   attendanceRates = null,
   embedded,
   viewSwitcher,
@@ -59,6 +60,8 @@ export function PeopleTab({
   onSetInstructorRole?: (instructorId: string, trackSlug: string, role: "lead" | "assistant") => Promise<void>;
   onStudentAdded: (student: StudentRow) => void;
   initialTrackFilter?: string;
+  /** Course whose learners are staff: every enrollee counts as a learner. */
+  staffCohort?: boolean;
   /** Sessions held + each learner's attended count, for the open course. */
   attendanceRates?: { held: number; attended: Record<string, number> } | null;
   embedded?: boolean;
@@ -66,7 +69,8 @@ export function PeopleTab({
   pendingPeople?: PendingPerson[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState(embedded ? "student" : "all");
+  const [roleFilter, setRoleFilter] = useState(embedded && !staffCohort ? "student" : "all");
+  const isRosterLearner = (s: { role?: string | null }) => !!staffCohort || s.role === "student";
   const [trackFilter, setTrackFilter] = useState(initialTrackFilter ?? "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -266,7 +270,7 @@ export function PeopleTab({
          the program-wide header count, "N shown", and the Pending section's
          own count, which each measured a different population. */}
       {(() => {
-        const joined = filtered.filter((s) => s.role === "student").length;
+        const joined = filtered.filter((s) => isRosterLearner(s)).length;
         const staff = filtered.length - joined;
         const invited = filteredPending.filter((p) => p.inviteSent).length;
         const allowlisted = filteredPending.length - invited;
@@ -296,7 +300,7 @@ export function PeopleTab({
           // Attendance only means something for a learner in the open course —
           // staff don't check in, and the rate is course-scoped.
           const attendanceRate =
-            attendanceRates && s.role === "student"
+            attendanceRates && isRosterLearner(s)
               ? (() => {
                   const attended = attendanceRates.attended[s.id] ?? 0;
                   const held = attendanceRates.held;
@@ -366,7 +370,7 @@ export function PeopleTab({
                   <span className="text-micro text-ink-faint tabular-nums hidden sm:block">
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
-                  {s.role === "student" && (
+                  {isRosterLearner(s) && (
                     <StatusPill status={s.last_activity_at ? "active" : "joined"} />
                   )}
                   <span
@@ -553,7 +557,7 @@ export function PeopleTab({
                   )}
 
                   {/* Engagement snapshot (only if scores were fetched) */}
-                  {s.role === "student" && engagementScores[s.id] && (
+                  {isRosterLearner(s) && engagementScores[s.id] && (
                     <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
                       <span>
                         <strong className="font-semibold text-ink">

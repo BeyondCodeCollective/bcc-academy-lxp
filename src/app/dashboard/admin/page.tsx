@@ -708,7 +708,7 @@ export default async function AdminPage({
       // fully responded. Same filter the completion rate uses.
       const learnerIds = new Set(
         allStudents
-          .filter((s) => s.role === "student" && !s.is_staff)
+          .filter((s) => activeTrack!.staffCohort || (s.role === "student" && !s.is_staff))
           .map((s) => s.id),
       );
       const trackStudentIds = Array.from(
