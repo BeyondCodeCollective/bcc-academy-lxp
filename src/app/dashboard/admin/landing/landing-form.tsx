@@ -689,6 +689,20 @@ export function LandingForm({
                   </span>
                 </span>
               </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={Boolean(x.beforeSignup)}
+                  onChange={(e) => updateSection(i, { beforeSignup: e.target.checked })}
+                  className="mt-1"
+                />
+                <span>
+                  Show above the signup form
+                  <span className="block text-xs text-ink-faint">
+                    For the section that sells the course. On phones the form still comes last.
+                  </span>
+                </span>
+              </label>
             </div>
           ))}
         </div>

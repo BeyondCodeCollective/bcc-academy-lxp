@@ -135,12 +135,17 @@ export async function saveLandingPageAction(
   // across rows on its own.
   let emphasisTaken = false;
   const bodySections: LandingSection[] = (input.bodySections ?? [])
-    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim(), emphasis: x.emphasis }))
+    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim(), emphasis: x.emphasis, beforeSignup: x.beforeSignup }))
     .filter((x) => x.heading && x.body)
     .map((x) => {
       const emphasis = Boolean(x.emphasis) && !emphasisTaken;
       if (emphasis) emphasisTaken = true;
-      return emphasis ? { ...x, emphasis: true } : { heading: x.heading, body: x.body };
+      return {
+        heading: x.heading,
+        body: x.body,
+        ...(emphasis ? { emphasis: true } : {}),
+        ...(x.beforeSignup ? { beforeSignup: true } : {}),
+      };
     });
 
   const instructorName = input.instructor?.name.trim() ?? "";

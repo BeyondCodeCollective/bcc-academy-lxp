@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { notFound, redirect } from "next/navigation";
-import { getLandingPage, landingPath, landingPrefix } from "@/lib/landing-pages";
+import { getLandingPage, landingPath, landingPrefix, type LandingSection } from "@/lib/landing-pages";
 import { getProgramBySlug } from "@/lib/programs";
 import { CampEmailForm } from "../_components/camp-email-form";
 import { CampEnrollForm } from "../_components/camp-enroll-form";
@@ -134,6 +134,61 @@ export async function LandingView({
   const framed = page.heroLayout === "framed" && !!page.heroImageUrl;
   const column = framed ? "w-full" : page.heroImageUrl ? "w-full max-w-[460px] md:ml-auto" : "";
   const padX = framed ? "px-6 md:px-0" : "px-6 md:px-12";
+  // A section flagged `beforeSignup` sits between the pitch and the form, so
+  // the reader sees what they get before being asked for their details.
+  const earlySections = page.bodySections.filter((x) => x.beforeSignup);
+  const restSections = page.bodySections.filter((x) => !x.beforeSignup);
+  const renderSection = (section: LandingSection, i: number, lead: boolean) => {
+    if (section.emphasis) {
+      return (
+        <div
+          key={i}
+          // The field, not a flat stripe — the same object as
+          // the session stage and the home band. Lit from this
+          // page's own tone rather than a hardcoded cobalt, so a
+          // BGC page comes out purple with no extra CSS.
+          className="stage-surface stage-grid relative isolate mt-9 overflow-hidden rounded-2xl px-6 py-7"
+          style={
+            {
+              color: onGround,
+              "--primary": accent,
+              "--stage-base": fieldBase,
+            } as CSSProperties
+          }
+        >
+          <div className="relative">
+            <h2 className="text-[22px] font-bold leading-[1.15] tracking-[-0.01em]">
+              {section.heading}
+            </h2>
+            <RichText
+              text={section.body}
+              className="mt-3 text-[17px] leading-[1.6]"
+              style={{ color: `${onGround}c4` }}
+            />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div
+        key={i}
+        className={lead ? "" : "mt-9 pt-9"}
+        style={lead ? undefined : { borderTop: `1px solid ${INK}12` }}
+      >
+        <h2
+          className="text-[22px] font-bold leading-[1.2] tracking-[-0.01em]"
+          style={{ color: INK }}
+        >
+          {section.heading}
+        </h2>
+        <RichText
+          text={section.body}
+          className="mt-2.5 max-w-[62ch] text-[17px] leading-[1.62]"
+          style={{ color: `${INK}e0` }}
+        />
+      </div>
+    );
+  };
   return (
     // Outer ground spans the full window so a centered framed page has no
     // bare body color either side of it.
@@ -256,6 +311,13 @@ export async function LandingView({
               </a>
             )}
 
+            {earlySections.length > 0 && (
+              // A featured band carries its own top margin.
+              <div className={earlySections[0].emphasis ? "" : "mt-10"}>
+                {earlySections.map((section, i) => renderSection(section, i, i === 0))}
+              </div>
+            )}
+
             {/* Signup. For an event the page leads with the event itself, so
                the slot comes after the details at every width and holds only
                a Register button until it is pressed (EventSignupReveal); the
@@ -367,60 +429,9 @@ export async function LandingView({
                 Ink headings also keep the accent scarce enough to mean
                 something. One section may set `emphasis` to sit on the
                 program's dark ground — the spine of a long page. */}
-            {page.bodySections.length > 0 && (
+            {restSections.length > 0 && (
               <div className="mt-12">
-                {page.bodySections.map((section, i) => {
-                  const lead = i === 0;
-                  if (section.emphasis) {
-                    return (
-                      <div
-                        key={i}
-                        // The field, not a flat stripe — the same object as
-                        // the session stage and the home band. Lit from this
-                        // page's own tone rather than a hardcoded cobalt, so a
-                        // BGC page comes out purple with no extra CSS.
-                        className="stage-surface stage-grid relative isolate mt-9 overflow-hidden rounded-2xl px-6 py-7"
-                        style={
-                          {
-                            color: onGround,
-                            "--primary": accent,
-                            "--stage-base": fieldBase,
-                          } as CSSProperties
-                        }
-                      >
-                        <div className="relative">
-                          <h2 className="text-[22px] font-bold leading-[1.15] tracking-[-0.01em]">
-                            {section.heading}
-                          </h2>
-                          <RichText
-                            text={section.body}
-                            className="mt-3 text-[17px] leading-[1.6]"
-                            style={{ color: `${onGround}c4` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      key={i}
-                      className={lead ? "" : "mt-9 pt-9"}
-                      style={lead ? undefined : { borderTop: `1px solid ${INK}12` }}
-                    >
-                      <h2
-                        className="text-[22px] font-bold leading-[1.2] tracking-[-0.01em]"
-                        style={{ color: INK }}
-                      >
-                        {section.heading}
-                      </h2>
-                      <RichText
-                        text={section.body}
-                        className="mt-2.5 max-w-[62ch] text-[17px] leading-[1.62]"
-                        style={{ color: `${INK}e0` }}
-                      />
-                    </div>
-                  );
-                })}
+                {restSections.map((section, i) => renderSection(section, i, i === 0))}
               </div>
             )}
 
