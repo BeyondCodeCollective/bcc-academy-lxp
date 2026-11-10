@@ -94,6 +94,8 @@ export type LandingPage = {
   heroFit: "cover" | "contain";
   /** Letterbox background behind a 'contain' hero. */
   heroBg: string | null;
+  /** 'split' = edge-to-edge image panel; 'framed' = centered page, framed picture. */
+  heroLayout: "split" | "framed";
   /** "dark" flips the page onto logo black; null/anything else = light. */
   pageTheme: string | null;
   footerText: string | null;
@@ -184,6 +186,7 @@ export const getLandingPage = cache(async function getLandingPage(
     heroImageUrl: (data.hero_image_url as string | null) ?? null,
     heroFit: (data.hero_fit as string | null) === "contain" ? "contain" : "cover",
     heroBg: (data.hero_bg as string | null) ?? null,
+    heroLayout: (data.hero_layout as string | null) === "framed" ? "framed" : "split",
     pageTheme: (data.page_theme as string | null) ?? null,
     footerText: (data.footer_text as string | null) ?? null,
     metaTitle: (data.meta_title as string | null) ?? null,
