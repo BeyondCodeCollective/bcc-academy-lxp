@@ -324,8 +324,19 @@ export async function LandingView({
                hero button and the phone's sticky bar reveal the same form.
                Other signup variants keep the form directly under the pitch
                from md and move it last on a phone. Keeps id="signup" so older
-               links still land here. */}
-            <div id="signup" className={event || formLast ? "order-1 mt-12 scroll-mt-8" : "mt-8 max-md:order-1 max-md:mt-12"}>
+               links still land here. A page that lifts a section above the
+               form (beforeSignup) keeps the form right after it on a phone
+               too: that section already did the selling. */}
+            <div
+              id="signup"
+              className={
+                event || formLast
+                  ? "order-1 mt-12 scroll-mt-8"
+                  : earlySections.length > 0
+                    ? "mt-8 scroll-mt-8"
+                    : "mt-8 max-md:order-1 max-md:mt-12"
+              }
+            >
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
