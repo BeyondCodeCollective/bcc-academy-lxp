@@ -21,6 +21,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
+import { loadExitSurveyCompletion } from "@/lib/exit-survey-results";
 import { examsForTrack } from "@/lib/exams";
 import { getLaunchReadinessMany, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { getCourseSidebar, type CourseSidebar } from "@/lib/course-needs";
@@ -697,6 +698,8 @@ export default async function AdminPage({
   let trackAnsweredSurveyIds: string[] | null = null;
   /** Enrolled LEARNERS in the open course — the denominator for response rate. */
   let trackEnrolledCount = 0;
+  // Latest session's pulse (exit survey) completion, for the Surveys tab row.
+  let trackPulseLatest: { week: number; session: number; answered: number; enrolled: number } | null = null;
   /** survey id → distinct learners from this course who answered it. */
   let trackSurveyRespondents: Record<string, number> = {};
   /** This course's practice exams + how many enrolled learners attempted. */
@@ -725,6 +728,10 @@ export default async function AdminPage({
         ),
       );
       trackEnrolledCount = trackStudentIds.length;
+      if (activeTrack.exitSurveyEnabled) {
+        const pulse = await loadExitSurveyCompletion(createServiceClient(), activeTrack.slug);
+        trackPulseLatest = pulse.at(-1) ?? null;
+      }
       const surveyIds = Array.from(new Set(surveyList.map((sv) => sv.id)));
       if (trackStudentIds.length > 0 && surveyIds.length > 0) {
         const { data: answered } = await createServiceClient()
@@ -983,6 +990,7 @@ export default async function AdminPage({
         trackPublicSurveys={trackPublicSurveys}
         trackAnsweredSurveyIds={trackAnsweredSurveyIds}
         trackEnrolledCount={trackEnrolledCount}
+        trackPulseLatest={trackPulseLatest}
         trackSurveyRespondents={trackSurveyRespondents}
         userRole={userRole}
         isMaster={isMasterEmail(actorEmail)}
