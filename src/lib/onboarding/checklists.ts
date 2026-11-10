@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SurveyQuestion } from "@/components/survey-fields";
 
-export type ChecklistItemKind = "survey" | "agreement";
+export type ChecklistItemKind = "survey" | "agreement" | "form";
 
 export type ChecklistItem = {
   id: string;
@@ -12,6 +13,8 @@ export type ChecklistItem = {
   kind: ChecklistItemKind;
   /** Where a survey item is completed (the agreement opens an in-page modal). */
   href?: string;
+  /** Custom form items only: the questions an admin built for this step. */
+  questions?: SurveyQuestion[];
 };
 
 /** Per-cohort details of the participation agreement the checklist collects. */
@@ -212,9 +215,36 @@ export function getOnboardingChecklist(trackSlug: string): TrackOnboarding | nul
  * every learner-facing surface: the dashboard layout confines a learner to an
  * incomplete checklist, and the track page renders it instead of the course.
  */
-export function getEnforcedOnboardingChecklist(trackSlug: string): TrackOnboarding | null {
-  const checklist = CHECKLISTS[trackSlug];
+export async function getEnforcedOnboardingChecklist(
+  svc: SupabaseClient,
+  trackSlug: string,
+): Promise<TrackOnboarding | null> {
+  const checklist = await loadOnboardingChecklist(svc, trackSlug);
   return checklist && !checklist.paused ? checklist : null;
+}
+
+/** What an admin edits and the table stores: a checklist minus its slug. */
+export type ChecklistConfig = Omit<TrackOnboarding, "trackSlug">;
+
+/** The checklist a course actually uses: the admin's saved one when there is
+ *  one, otherwise the hardcoded default. A missing table or a read error falls
+ *  back to the default, so this never blocks a learner. */
+export async function loadOnboardingChecklist(
+  svc: SupabaseClient,
+  trackSlug: string,
+): Promise<TrackOnboarding | null> {
+  const { data } = await svc
+    .from("onboarding_checklists")
+    .select("config")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ config: ChecklistConfig | null }>();
+  if (data?.config) return { ...data.config, trackSlug };
+  return getOnboardingChecklist(trackSlug);
+}
+
+/** survey_responses.survey_type that marks a custom form step complete. */
+export function customFormSurveyType(trackSlug: string, itemId: string): string {
+  return `custom:${trackSlug}:${itemId}`;
 }
 
 export type OnboardingStatus = {
@@ -230,7 +260,7 @@ export async function getOnboardingStatus(
   studentId: string,
   trackSlug: string,
 ): Promise<OnboardingStatus | null> {
-  const checklist = getOnboardingChecklist(trackSlug);
+  const checklist = await loadOnboardingChecklist(svc, trackSlug);
   if (!checklist) return null;
 
   const types = checklist.items.map((i) => i.surveyType);

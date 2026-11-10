@@ -12,6 +12,7 @@ import { easternToUtc } from "@/lib/utils";
 import { sendAcceptanceEmail } from "@/lib/email";
 import type { SubmissionStatus } from "@/lib/applications";
 import type { SurveyQuestion } from "@/components/survey-fields";
+import { questionErrors } from "@/lib/application-questions";
 
 // Same tier as landing pages: every manager, bounded to their own program.
 // requireManager (actions-shared) also enforces the preview-as-student block
@@ -46,23 +47,6 @@ export type ApplicationInput = {
   closesAt: string; // YYYY-MM-DD or ""
   questions: SurveyQuestion[];
 };
-
-function questionErrors(questions: SurveyQuestion[]): string | null {
-  if (!questions.length) return "Add at least one question.";
-  const ids = new Set<string>();
-  for (const q of questions) {
-    if (!q.label?.trim()) return "Every question needs a label.";
-    if (ids.has(q.id)) return "Duplicate question ids — reload and try again.";
-    ids.add(q.id);
-    if (
-      (q.type === "radio" || q.type === "multi-select" || q.type === "select") &&
-      (!("options" in q) || q.options.length < 2)
-    ) {
-      return `"${q.label}" needs at least two options.`;
-    }
-  }
-  return null;
-}
 
 export async function createApplicationAction(
   input: ApplicationInput,

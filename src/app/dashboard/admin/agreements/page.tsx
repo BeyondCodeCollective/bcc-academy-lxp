@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { hasCapability, canManageRoles } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
-import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { loadOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
@@ -61,7 +62,7 @@ export default async function AgreementsPage() {
     byTrack.get(e.track_slug)!.push(e.student_id);
   }
   for (const [trackSlug, ids] of byTrack) {
-    const checklist = getOnboardingChecklist(trackSlug);
+    const checklist = await loadOnboardingChecklist(svc, trackSlug);
     const item = checklist?.items.find((i) => i.kind === "agreement");
     if (checklist && item) {
       groups.push({
@@ -150,7 +151,17 @@ export default async function AgreementsPage() {
             return (
               <section key={s.key} className="space-y-3">
                 <div className="flex items-baseline justify-between gap-3">
-                  <h2 className="text-sm font-semibold text-ink">{s.label}</h2>
+                  <h2 className="text-sm font-semibold text-ink">
+                    {s.label}
+                    {s.key !== "catalyst-atg" && (
+                      <Link
+                        href={`/dashboard/admin/onboarding/${s.key}`}
+                        className="ml-3 text-xs font-medium text-primary hover:underline"
+                      >
+                        Edit checklist
+                      </Link>
+                    )}
+                  </h2>
                   <span className="whitespace-nowrap text-xs text-ink-soft">
                     {signed}/{s.enrollees.length} signed
                     {outstanding > 0 && (

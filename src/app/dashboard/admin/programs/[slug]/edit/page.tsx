@@ -106,6 +106,12 @@ export default async function EditCoursePage({
             Edit landing page: {l.headline || l.slug}
           </Link>
         ))}
+        <Link
+          href={`/dashboard/admin/onboarding/${slug}`}
+          className="mt-2 block text-sm font-medium text-primary hover:underline"
+        >
+          Edit onboarding checklist
+        </Link>
       </div>
 
       <div className="rounded-lg border border-rule bg-white p-6">

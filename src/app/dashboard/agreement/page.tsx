@@ -3,7 +3,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getProgram } from "@/lib/programs/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CatalystAgreement } from "@/components/catalyst-agreement";
-import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { loadOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
 import { TrackAgreementView } from "./track-agreement-view";
 
@@ -35,7 +35,7 @@ export default async function AgreementPage() {
     .eq("student_id", ctx.userId);
 
   for (const row of (enrolled ?? []) as { track_slug: string }[]) {
-    const checklist = getOnboardingChecklist(row.track_slug);
+    const checklist = await loadOnboardingChecklist(svc, row.track_slug);
     const item = checklist?.items.find((i) => i.kind === "agreement");
     if (!checklist || !item) continue;
 
@@ -58,6 +58,8 @@ export default async function AgreementPage() {
         trackSlug={row.track_slug}
         programSlug={program.slug}
         cohort={checklist.cohort}
+        requireReleases={checklist.agreement.requireReleases}
+        timeCommitment={checklist.agreement.timeCommitment}
         defaultName={
           person ? `${person.first_name ?? ""} ${person.last_name ?? ""}`.trim() : undefined
         }

@@ -10,7 +10,7 @@ export type ChecklistItemView = {
   id: string;
   label: string;
   description: string;
-  kind: "survey" | "agreement";
+  kind: "survey" | "agreement" | "form";
   href?: string;
   completed: boolean;
 };
@@ -27,6 +27,8 @@ export function OnboardingChecklist({
   footnote,
   completeTitle,
   defaultName,
+  requireReleases,
+  timeCommitment,
 }: {
   title: string;
   intro: string;
@@ -40,6 +42,8 @@ export function OnboardingChecklist({
   footnote?: string;
   completeTitle?: string;
   defaultName?: string;
+  requireReleases?: boolean;
+  timeCommitment?: string;
 }) {
   const [agreementOpen, setAgreementOpen] = useState(false);
 
@@ -118,7 +122,7 @@ export function OnboardingChecklist({
                         href={`${item.href}?return=${encodeURIComponent(`/dashboard/track/${trackSlug}`)}`}
                         className={buttonClass("primary", "md")}
                       >
-                        {item.kind === "survey" ? "Start" : "Open"}
+                        Start
                         <ArrowRight size={15} weight="bold" />
                       </Link>
                     ) : null}
@@ -142,6 +146,8 @@ export function OnboardingChecklist({
         programSlug={programSlug}
         cohort={cohort}
         defaultName={defaultName}
+        requireReleases={requireReleases}
+        timeCommitment={timeCommitment}
       />
     </div>
   );

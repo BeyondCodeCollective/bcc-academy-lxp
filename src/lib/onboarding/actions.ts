@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
-import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { loadOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { RELEASES_VERSION } from "@/lib/onboarding/releases";
 import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext, bustProfileCache } from "@/lib/auth/session";
+import { answersSatisfyRequired } from "@/lib/applications";
 
 // Records the signed participation agreement as a survey_responses row so it
 // flows through the same completion + insights pipeline as every other item
@@ -66,7 +67,7 @@ export async function signParticipationAgreement(
   const name = fullName.trim();
   if (!name) throw new Error("Please type your full name to sign.");
 
-  const checklist = getOnboardingChecklist(trackSlug);
+  const checklist = await loadOnboardingChecklist(createServiceClient(), trackSlug);
   const item = checklist?.items.find((i) => i.kind === "agreement");
   if (!checklist || !item) {
     throw new Error("No participation agreement is configured for this course.");
@@ -127,4 +128,51 @@ async function adoptSignatureName(fullName: string): Promise<void> {
   } catch (e) {
     console.error("[signParticipationAgreement] adopting signature name failed:", e);
   }
+}
+
+/**
+ * Submit a custom form step of a course's onboarding checklist. Stored as a
+ * survey_responses row under the step's own survey_type, so the checklist
+ * ticks it off the same way it does the built-in steps. Enrollment, the
+ * question list and required answers are all re-checked here: the client
+ * checks are a courtesy, not the record.
+ */
+export async function submitChecklistForm(
+  trackSlug: string,
+  itemId: string,
+  answers: Record<string, unknown>,
+  programSlug: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const ctx = await getSessionContext();
+  if (!ctx?.userId) return { ok: false, error: "Please sign in again and retry." };
+
+  const svc = createServiceClient();
+  const { data: enrolled } = await svc
+    .from("student_tracks")
+    .select("track_slug")
+    .eq("student_id", ctx.userId)
+    .eq("track_slug", trackSlug)
+    .maybeSingle();
+  if (!enrolled) return { ok: false, error: "You aren't enrolled in this course." };
+
+  const checklist = await loadOnboardingChecklist(svc, trackSlug);
+  const item = checklist?.items.find((i) => i.id === itemId && i.kind === "form");
+  const questions = item?.questions ?? [];
+  if (!item || questions.length === 0) return { ok: false, error: "This form is no longer available." };
+
+  // Only answers to questions this step actually asks.
+  const validIds = new Set(questions.map((q) => q.id));
+  const clean = Object.fromEntries(Object.entries(answers).filter(([k]) => validIds.has(k)));
+  if (!answersSatisfyRequired(questions, clean)) {
+    return { ok: false, error: "Answer every required question before submitting." };
+  }
+
+  try {
+    await saveSurveyResponse(item.surveyType, clean, programSlug);
+  } catch (e) {
+    console.error("[submitChecklistForm] save failed:", e);
+    return { ok: false, error: "Could not save your answers. Please try again." };
+  }
+  revalidatePath(`/dashboard/track/${trackSlug}`);
+  return { ok: true };
 }

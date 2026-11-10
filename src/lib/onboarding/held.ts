@@ -22,7 +22,7 @@ export async function heldChecklistTrackSlug(studentId: string): Promise<string 
     .select("track_slug")
     .eq("student_id", studentId);
   for (const row of (data ?? []) as { track_slug: string }[]) {
-    if (!getEnforcedOnboardingChecklist(row.track_slug)) continue;
+    if (!(await getEnforcedOnboardingChecklist(svc, row.track_slug))) continue;
     const status = await getOnboardingStatus(svc, studentId, row.track_slug);
     if (!status) continue;
     if (!status.allComplete) return row.track_slug;

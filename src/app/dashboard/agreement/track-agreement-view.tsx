@@ -18,11 +18,15 @@ export function TrackAgreementView({
   programSlug,
   cohort,
   defaultName,
+  requireReleases,
+  timeCommitment,
 }: {
   trackSlug: string;
   programSlug: string;
   cohort: string;
   defaultName?: string;
+  requireReleases?: boolean;
+  timeCommitment?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -38,6 +42,8 @@ export function TrackAgreementView({
       programSlug={programSlug}
       cohort={cohort}
       defaultName={defaultName}
+      requireReleases={requireReleases}
+      timeCommitment={timeCommitment}
     />
   );
 }

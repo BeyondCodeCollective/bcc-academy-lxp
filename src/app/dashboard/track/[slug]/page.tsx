@@ -117,7 +117,7 @@ export default async function TrackOverviewPage({
   // Intake Form, Participation Agreement, Pre-Survey — before reaching the
   // course. Start-date independent; admins/previewers bypass. Items a learner
   // already completed (read from survey_responses) auto-check.
-  const checklist = getEnforcedOnboardingChecklist(slug);
+  const checklist = await getEnforcedOnboardingChecklist(createServiceClient(), slug);
   if (checklist && !isAdminViewer && ctx?.userId) {
     const status = await getOnboardingStatus(
       createServiceClient(),
@@ -137,7 +137,7 @@ export default async function TrackOverviewPage({
         label: it.label,
         description: it.description,
         kind: it.kind,
-        href: it.href,
+        href: it.kind === "form" ? `/dashboard/survey/checklist/${slug}/${it.id}` : it.href,
         completed: status.items.find((s) => s.id === it.id)?.completed ?? false,
       }));
       return (
@@ -153,6 +153,8 @@ export default async function TrackOverviewPage({
           footnote={checklist.footnote}
           completeTitle={checklist.completeTitle}
           defaultName={studentName || undefined}
+          requireReleases={checklist.agreement.requireReleases}
+          timeCommitment={checklist.agreement.timeCommitment}
         />
       );
     }

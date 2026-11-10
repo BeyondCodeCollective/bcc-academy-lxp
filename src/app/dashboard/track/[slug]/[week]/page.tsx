@@ -91,7 +91,11 @@ export default async function TrackWeekPage({
   // even by direct URL. The layout's confinement allows same-track paths (so
   // the checklist itself renders), which would otherwise leave week URLs as a
   // way past the track overview's gate once the course has started.
-  if (!gateIsAdmin && gateCtx?.userId && getEnforcedOnboardingChecklist(trackSlug)) {
+  if (
+    !gateIsAdmin &&
+    gateCtx?.userId &&
+    (await getEnforcedOnboardingChecklist(createServiceClient(), trackSlug))
+  ) {
     const status = await getOnboardingStatus(createServiceClient(), gateCtx.userId, trackSlug);
     if (status && !status.allComplete) redirect(`/dashboard/track/${trackSlug}`);
   }

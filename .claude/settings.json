@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"continue\": false, \"stopReason\": \"🛑 BLOCKED: Use the GitHub workflow instead.\\n\\n✅ Correct workflow:\\n  1. Create feature branch: git checkout -b fix/your-feature\\n  2. Make changes and commit\\n  3. Push: git push origin fix/your-feature\\n  4. Create PR on GitHub for review\\n  5. Merge via GitHub UI (not locally)\\n  6. Vercel auto-deploys within 30s\\n\\nWhy: Deploying locally from non-main branches causes code mismatches. GitHub is your source of truth.\"}'",
+            "command": "python3 -c 'import json,re,sys; d=json.load(sys.stdin); c=d.get(\"tool_input\",{}).get(\"command\",\"\"); m=re.search(r\"\\bvercel\\b.*--prod\\b\", c); print(json.dumps({\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BLOCKED: use the GitHub workflow. Create a feature branch, commit, push the branch, open a PR and merge on GitHub; Vercel auto-deploys main within 30s. Deploying locally from non-main branches causes code mismatches.\"}})) if m else None'",
             "shell": "bash"
           }
         ]

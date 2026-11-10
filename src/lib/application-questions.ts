@@ -89,3 +89,22 @@ export function toDraftQuestion(q: SurveyQuestion): DraftQuestion | null {
       return null;
   }
 }
+
+/** Why a question list can't be saved, or null when it can. Shared by the
+ *  application and onboarding-checklist editors. */
+export function questionErrors(questions: SurveyQuestion[]): string | null {
+  if (!questions.length) return "Add at least one question.";
+  const ids = new Set<string>();
+  for (const q of questions) {
+    if (!q.label?.trim()) return "Every question needs a label.";
+    if (ids.has(q.id)) return "Duplicate question ids — reload and try again.";
+    ids.add(q.id);
+    if (
+      (q.type === "radio" || q.type === "multi-select" || q.type === "select") &&
+      (!("options" in q) || q.options.length < 2)
+    ) {
+      return `"${q.label}" needs at least two options.`;
+    }
+  }
+  return null;
+}

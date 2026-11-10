@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { X, CaretDown } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/ui";
 import { signParticipationAgreement } from "@/lib/onboarding/actions";
-import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { RELEASE_DOCUMENTS } from "@/lib/onboarding/releases";
 
 // Catalyst Program Participation Agreement. Section 1's duration/hours line is
@@ -102,6 +101,8 @@ export function ParticipationAgreementModal({
   programSlug,
   cohort,
   defaultName,
+  requireReleases,
+  timeCommitment,
 }: {
   open: boolean;
   onClose: () => void;
@@ -109,6 +110,10 @@ export function ParticipationAgreementModal({
   programSlug: string;
   cohort: string;
   defaultName?: string;
+  /** The cohort's agreement also collects the liability and media releases. */
+  requireReleases?: boolean;
+  /** Section 1's duration and weekly-load bullet for this cohort. */
+  timeCommitment?: string;
 }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
@@ -119,8 +124,7 @@ export function ParticipationAgreementModal({
 
   if (!open) return null;
 
-  const config = getOnboardingChecklist(trackSlug)?.agreement;
-  const requiredReleases = config?.requireReleases ? RELEASE_DOCUMENTS : [];
+  const requiredReleases = requireReleases ? RELEASE_DOCUMENTS : [];
   const releasesAccepted = requiredReleases.every((r) => releases[r.id]);
   const canSubmit = agreed && releasesAccepted && name.trim().length > 1 && !pending;
 
@@ -176,7 +180,7 @@ export function ParticipationAgreementModal({
           </p>
 
           <div className="mt-5 space-y-5">
-            {buildSections(config?.timeCommitment ?? "").map((s) => (
+            {buildSections(timeCommitment ?? "").map((s) => (
               <section key={s.n}>
                 <h3 className="text-sm font-bold text-ink">
                   <span className="text-primary">{s.n} —</span> {s.heading}
