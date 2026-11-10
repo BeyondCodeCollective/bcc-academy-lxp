@@ -17,6 +17,10 @@ type Props = {
   respondentsBySurvey?: Record<string, number>;
   /** Practice exams for this course — peer rows at the end of the list. */
   exams?: { id: string; title: string; attempted: number }[];
+  /** Per-session pulse (exit survey), when the course has it on. */
+  pulse?: { latest: { week: number; session: number; answered: number; enrolled: number } | null };
+  /** Staff cohort: staff ARE the learners, so they count in the denominator. */
+  staffCohort?: boolean;
 };
 
 // This is a follow-up list, so the color marks what needs chasing. Under half
@@ -35,6 +39,8 @@ export function TrackInsightsSection({
   enrolledCount = 0,
   respondentsBySurvey = {},
   exams = [],
+  pulse,
+  staffCohort = false,
 }: Props) {
   // If this track has its own public surveys, skip the program-level auth
   // surveys — they're usually duplicates (e.g. Catalyst Post Survey showing
@@ -51,7 +57,7 @@ export function TrackInsightsSection({
     })),
   ];
 
-  if (all.length === 0 && exams.length === 0) {
+  if (all.length === 0 && exams.length === 0 && !pulse) {
     return (
       <p className="text-sm text-ink-faint py-8 text-center">
         No surveys configured for this track.
@@ -154,10 +160,42 @@ export function TrackInsightsSection({
             </Link>
           );
         })}
+        {pulse && (
+          <Link
+            href={`/dashboard/admin/exit-surveys?track=${encodeURIComponent(trackSlug)}`}
+            className="group flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-paper-tint-soft"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-ink">Session pulse</p>
+              <p className="mt-0.5 text-xs text-ink-faint">
+                {pulse.latest ? (
+                  <>
+                    Week {pulse.latest.week}: {pulse.latest.answered} of {pulse.latest.enrolled} answered
+                    {pulse.latest.enrolled > 0 && (
+                      <span
+                        className={`ml-1.5 font-semibold ${rateTone(Math.round((pulse.latest.answered / pulse.latest.enrolled) * 100))}`}
+                      >
+                        {Math.round((pulse.latest.answered / pulse.latest.enrolled) * 100)}%
+                      </span>
+                    )}
+                    <span> · anonymous, after every live session</span>
+                  </>
+                ) : (
+                  "Anonymous check-in after every live session. Nobody has answered yet"
+                )}
+              </p>
+            </div>
+            <ArrowRight
+              size={14}
+              className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
+            />
+          </Link>
+        )}
       </div>
       <p className="px-1 text-micro leading-relaxed text-ink-faint">
-        Response rate counts enrolled learners only — staff on the course roster
-        aren&apos;t in the denominator.
+        {staffCohort
+          ? "Response rate counts everyone enrolled. This is a staff cohort, so staff are the learners."
+          : "Response rate counts enrolled learners only. Staff on the course roster aren't in the denominator."}
       </p>
     </div>
   );

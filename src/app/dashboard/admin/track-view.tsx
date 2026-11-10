@@ -62,6 +62,7 @@ type TrackViewProps = {
   toggleTrackEnrollment: (studentId: string, trackSlug: string) => Promise<void>;
   trackAnsweredSurveyIds: string[] | null;
   trackEnrolledCount: number;
+  trackPulseLatest?: { week: number; session: number; answered: number; enrolled: number } | null;
   trackExams: { id: string; title: string; attempted: number; }[];
   trackPublicSurveys: { id: string; title: string; count: number; }[];
   trackSurveyRespondents: { [x: string]: number; };
@@ -106,6 +107,7 @@ export function TrackView({
   toggleTrackEnrollment,
   trackAnsweredSurveyIds,
   trackEnrolledCount,
+  trackPulseLatest,
   trackExams,
   trackPublicSurveys,
   trackSurveyRespondents,
@@ -737,6 +739,8 @@ export function TrackView({
             })}
             trackPublicSurveys={trackPublicSurveys}
             enrolledCount={trackEnrolledCount}
+            pulse={activeTrack.exitSurveyEnabled ? { latest: trackPulseLatest ?? null } : undefined}
+            staffCohort={!!activeTrack.staffCohort}
             respondentsBySurvey={trackSurveyRespondents}
             exams={trackExams}
           />

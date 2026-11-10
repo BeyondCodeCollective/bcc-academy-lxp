@@ -1,11 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CaretLeft, Download, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import { requireAdmin, allowedTrackSlugsForActor } from "@/app/dashboard/admin/actions-shared";
 import { PageHeader } from "@/components/page-header";
-import { loadExitSurveyCompletion, loadExitSurveyResults, summarizeBySession } from "@/lib/exit-survey-results";
-import { UNCLEAR_PROMPT } from "@/lib/exit-survey";
+import { buttonClass } from "@/components/ui";
+import {
+  loadExitSurveyCompletion,
+  loadExitSurveyResults,
+  summarizeBySession,
+} from "@/lib/exit-survey-results";
+import { SessionReport } from "./session-report";
 
 export const dynamic = "force-dynamic";
+
+type Unit = { week: number; date?: string; topic?: string };
+
+function formatUnitDate(date?: string): string | null {
+  if (!date) return null;
+  const d = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
 
 export default async function ExitSurveyResultsPage({
   searchParams,
@@ -18,105 +33,92 @@ export default async function ExitSurveyResultsPage({
   const allowed = await allowedTrackSlugsForActor(actor, actor.svc);
   if (allowed && !allowed.has(track)) notFound();
 
-  const [rows, completion] = await Promise.all([
+  const [rows, completion, { data: course }] = await Promise.all([
     loadExitSurveyResults(actor.svc, track),
     loadExitSurveyCompletion(actor.svc, track),
+    actor.svc
+      .from("track_overrides")
+      .select("name, week_summaries")
+      .eq("track_slug", track)
+      .limit(1)
+      .maybeSingle(),
   ]);
+  const courseName = (course?.name as string | null) ?? track;
+  const units = ((course?.week_summaries as Unit[] | null) ?? []).reduce<Record<number, Unit>>(
+    (acc, u) => ((acc[u.week] = u), acc),
+    {},
+  );
+
   const summary = summarizeBySession(rows);
+  // Every session that has any answer, newest first: the latest session is the
+  // one someone opens this page to debrief.
+  const sessionKeys = [...new Set(rows.map((r) => `${r.week_number}:${r.session_number}`))]
+    .map((k) => k.split(":").map(Number) as [number, number])
+    .sort((a, b) => b[0] - a[0] || b[1] - a[1]);
   const csvHref = `/api/admin/exit-surveys/csv?track=${encodeURIComponent(track)}`;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 sm:px-5">
+      <Link
+        href="/dashboard/admin"
+        className="inline-flex items-center gap-1 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline"
+      >
+        <CaretLeft size={14} aria-hidden />
+        Admin panel
+      </Link>
+
       <PageHeader
-        title="Exit survey results"
-        subtitle={track}
+        title={`Session pulse: ${courseName}`}
+        subtitle="How each live session landed, from the short survey learners answer afterwards."
         noWrap
         actions={
-          <a href={csvHref} className="text-sm text-ink underline">
-            Download CSV
-          </a>
+          rows.length > 0 ? (
+            <a href={csvHref} className={buttonClass("secondary", "sm")}>
+              <Download size={12} aria-hidden />
+              Download CSV
+            </a>
+          ) : undefined
         }
       />
-      <p className="text-sm text-ink-soft">
-        Answers are anonymous: no names, codes or times, so no one can tell who said what. Back to the{" "}
-        <Link href="/dashboard/admin" className="text-ink underline">
-          admin panel
-        </Link>
-        .
+
+      <p className="flex items-start gap-2 text-sm text-ink-soft">
+        <LockSimple size={16} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden />
+        <span>
+          Anonymous by design. No names, codes or times are stored with an answer, and answers are listed by
+          rating, not by when they came in.
+        </span>
       </p>
 
-      {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">No responses yet.</p>
+      {sessionKeys.length === 0 ? (
+        <div className="panel px-6 py-12 text-center">
+          <p className="font-medium text-ink">No answers yet</p>
+          <p className="mx-auto mt-1 max-w-[46ch] text-sm text-ink-soft">
+            Learners see the survey under each session&apos;s recording. Results show up here as soon as the
+            first one is in.
+          </p>
+        </div>
       ) : (
-        <>
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Average rating by session
-            </h2>
-            <table className="mt-2 w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 text-left text-xs text-ink-faint">
-                  <th className="py-2 pr-4 font-medium">Week</th>
-                  <th className="py-2 pr-4 font-medium">Session</th>
-                  <th className="py-2 pr-4 font-medium">Responses</th>
-                  <th className="py-2 font-medium">Average (1 to 5)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.map((s) => (
-                  <tr key={`${s.week}:${s.session}`} className="border-b border-neutral-100">
-                    <td className="py-2 pr-4">{s.week}</td>
-                    <td className="py-2 pr-4">{s.session}</td>
-                    <td className="py-2 pr-4">{s.responses}</td>
-                    <td className="py-2">{s.average}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Completion
-            </h2>
-            <ul className="mt-2 divide-y divide-neutral-100">
-              {completion.map((c) => (
-                <li key={`${c.week}:${c.session}`} className="py-2 text-sm">
-                  <span className="font-medium text-ink">
-                    Week {c.week}, session {c.session}
-                  </span>
-                  <span className="text-ink-faint">
-                    {" "}
-                    · {c.answered} of {c.enrolled} answered
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">All responses</h2>
-            <ul className="mt-2 divide-y divide-neutral-100">
-              {rows.map((r, i) => (
-                <li key={i} className="py-3 text-sm">
-                  <p className="font-medium text-ink">
-                    <span className="font-normal text-ink-faint">
-                      Week {r.week_number}, session {r.session_number}
-                      {r.understanding !== null ? ` · rated ${r.understanding}` : ""}
-                      {r.hours_text ? ` · ${r.hours_text} hrs` : ""}
-                    </span>
-                  </p>
-                  {r.unclear_text && (
-                    <p className="mt-1 whitespace-pre-line text-ink-soft">
-                      <span className="text-ink-faint">{UNCLEAR_PROMPT} </span>
-                      {r.unclear_text}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </>
+        sessionKeys.map(([week, session]) => {
+          const sessionRows = rows.filter((r) => r.week_number === week && r.session_number === session);
+          const s = summary.find((x) => x.week === week && x.session === session);
+          const c = completion.find((x) => x.week === week && x.session === session);
+          const unit = units[week];
+          return (
+            <SessionReport
+              key={`${week}:${session}`}
+              week={week}
+              session={session}
+              showSession={sessionKeys.some(([w, n]) => w === week && n !== session)}
+              dateLabel={formatUnitDate(unit?.date)}
+              topic={unit?.topic}
+              rows={sessionRows}
+              average={s?.average ?? null}
+              rated={s?.responses ?? 0}
+              answered={c?.answered ?? null}
+              enrolled={c?.enrolled ?? null}
+            />
+          );
+        })
       )}
     </div>
   );

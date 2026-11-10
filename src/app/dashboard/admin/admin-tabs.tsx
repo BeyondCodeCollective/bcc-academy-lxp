@@ -60,6 +60,7 @@ export function AdminTabs({
   attendanceRates = null,
   trackAnsweredSurveyIds = null,
   trackEnrolledCount = 0,
+  trackPulseLatest = null,
   trackSurveyRespondents = {},
   pendingPeople = [],
   alumniEnrollments = [],
@@ -117,6 +118,7 @@ export function AdminTabs({
   trackAnsweredSurveyIds?: string[] | null;
   /** Enrolled learners in the open course — response-rate denominator. */
   trackEnrolledCount?: number;
+  trackPulseLatest?: { week: number; session: number; answered: number; enrolled: number } | null;
   /** survey id → distinct learners from this course who answered it. */
   trackSurveyRespondents?: Record<string, number>;
   pendingPeople?: PendingPerson[];
@@ -696,6 +698,7 @@ export function AdminTabs({
           toggleTrackEnrollment={toggleTrackEnrollment}
           trackAnsweredSurveyIds={trackAnsweredSurveyIds}
           trackEnrolledCount={trackEnrolledCount}
+          trackPulseLatest={trackPulseLatest}
           trackExams={trackExams}
           trackPublicSurveys={trackPublicSurveys}
           trackSurveyRespondents={trackSurveyRespondents}
