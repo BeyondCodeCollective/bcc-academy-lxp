@@ -125,21 +125,34 @@ export async function LandingView({
   // left-aligned in it opened a dead gap between the copy and the picture.
   // Header, partner and footer rows share the same column so they stay lined
   // up with the copy. Pages without a hero keep the full-width layout.
-  const column = page.heroImageUrl ? "w-full max-w-[460px] md:ml-auto" : "";
+  //
+  // 'framed' (per page, hero_layout) is the text-led variant: the page centers
+  // at ~1200px, the copy column widens and the headline scales up, and the
+  // hero becomes a framed 4:5 picture that sticks beside it instead of an
+  // edge-to-edge half of the screen. The copy is what converts; the picture
+  // supports it.
+  const framed = page.heroLayout === "framed" && !!page.heroImageUrl;
+  const column = framed ? "w-full" : page.heroImageUrl ? "w-full max-w-[460px] md:ml-auto" : "";
+  const padX = framed ? "px-6 md:px-0" : "px-6 md:px-12";
   return (
+    // Outer ground spans the full window so a centered framed page has no
+    // bare body color either side of it.
+    <div className="min-h-[100dvh]" style={{ backgroundColor: BG }}>
     <div
-      className="min-h-[100dvh] flex flex-col md:flex-row"
+      className={`min-h-[100dvh] flex flex-col md:flex-row ${
+        framed ? "md:mx-auto md:max-w-[1240px] md:items-start md:gap-12 md:px-10 lg:gap-20" : ""
+      }`}
       style={{ backgroundColor: BG, color: INK }}
     >
       {/* ── Left: content panel ── */}
-      <div className={`flex flex-col flex-1 md:min-h-[100dvh] ${stickyCta ? "max-md:pb-24" : ""}`}>
+      <div className={`flex flex-col flex-1 md:min-h-[100dvh] ${framed ? "min-w-0" : ""} ${stickyCta ? "max-md:pb-24" : ""}`}>
         {/* Header. On a phone the hero banner above already carries the
            program lockup, so this label row would be a third identity line
            between the art and the headline; it returns at md, where the
            banner moves to the side. */}
         <header
-          className={`px-6 py-5 md:block md:px-12 ${page.heroImageUrl ? "hidden" : "block"}`}
-          style={{ borderBottom: `1px solid ${INK}0d` }}
+          className={`${padX} py-5 md:block ${page.heroImageUrl ? "hidden" : "block"}`}
+          style={framed ? undefined : { borderBottom: `1px solid ${INK}0d` }}
         >
           <div className={`flex items-center justify-between ${column}`}>
             <span
@@ -153,10 +166,10 @@ export async function LandingView({
         </header>
 
         {/* Main content */}
-        <main className="flex flex-1 flex-col justify-center px-6 py-10 md:px-12 md:py-12">
+        <main className={`flex flex-1 flex-col ${framed ? "" : "justify-center"} ${padX} py-10 md:py-12`}>
           {/* A flex column so a phone can reorder it: pitch first, form last
              (see the signup block). Desktop keeps source order. */}
-          <div className={`flex flex-col ${column}`} style={{ maxWidth: "460px" }}>
+          <div className={`flex flex-col ${column}`} style={{ maxWidth: framed ? "620px" : "460px" }}>
             {page.logoUrl && !page.heroImageUrl && (
               // The program's own lockup, for pages with no hero. When there
               // is a hero it lives ON the art at every width (see below),
@@ -182,7 +195,7 @@ export async function LandingView({
             <h1
               className="font-bold leading-[1.0] tracking-tight"
               style={{
-                fontSize: "clamp(34px, 4vw, 48px)",
+                fontSize: framed ? "clamp(36px, 4.6vw, 62px)" : "clamp(34px, 4vw, 48px)",
                 color: `${INK}`,
               }}
             >
@@ -197,8 +210,8 @@ export async function LandingView({
             {page.subhead && (
               <RichText
                 text={page.subhead}
-                className="mt-4 text-sm leading-relaxed"
-                style={{ color: `${INK}b3`, maxWidth: "42ch" }}
+                className={`leading-relaxed ${framed ? "mt-5 text-base md:text-[17px]" : "mt-4 text-sm"}`}
+                style={{ color: `${INK}b3`, maxWidth: framed ? "52ch" : "42ch" }}
               />
             )}
 
@@ -463,7 +476,7 @@ export async function LandingView({
 
         {/* Partner logos */}
         {page.partners.length > 0 && (
-          <div className="px-6 py-6 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
+          <div className={`${padX} py-6`} style={{ borderTop: `1px solid ${INK}0d` }}>
             <p
               className={`mb-4 text-[10px] font-medium uppercase tracking-[0.18em] ${column}`}
               style={{ color: `${INK}99` }}
@@ -502,7 +515,7 @@ export async function LandingView({
 
         {/* Footer */}
         {page.footerText && (
-          <footer className="px-6 py-4 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
+          <footer className={`${padX} py-4`} style={{ borderTop: `1px solid ${INK}0d` }}>
             <p className={`text-[11px] ${column}`} style={{ color: `${INK}99` }}>
               {page.footerText}
             </p>
@@ -516,7 +529,14 @@ export async function LandingView({
          sticks for the whole scroll. ── */}
       {page.heroImageUrl && (
         <div
-          className="relative overflow-hidden max-md:order-first max-md:w-full max-md:aspect-[4/3] sm:max-md:aspect-[2/1] md:sticky md:top-0 md:h-[100dvh] md:w-[52%] md:min-w-[52%] md:max-w-[52%]"
+          className={
+            framed
+              ? // A picture in a frame: inset from the gutters on a phone (and
+                // shorter, so the headline stays high), a 4:5 portrait that
+                // sticks beside the copy from md, aligned with the eyebrow.
+                "relative overflow-hidden rounded-xl max-md:order-first max-md:mx-6 max-md:mt-6 max-md:aspect-[16/9] md:sticky md:top-10 md:mt-[104px] md:aspect-[4/5] md:w-[38%] md:max-w-[480px] md:shrink-0"
+              : "relative overflow-hidden max-md:order-first max-md:w-full max-md:aspect-[4/3] sm:max-md:aspect-[2/1] md:sticky md:top-0 md:h-[100dvh] md:w-[52%] md:min-w-[52%] md:max-w-[52%]"
+          }
           style={{ background: page.heroBg ?? undefined }}
         >
           {/* Hero media: video formats get a silent looping player (muted +
@@ -585,6 +605,7 @@ export async function LandingView({
       {stickyCta && (
         <MobileRegisterBar label={stickyCta.label} href={stickyCta.href} accent={accent} ink={INK} bg={BG} />
       )}
+    </div>
     </div>
   );
 }
