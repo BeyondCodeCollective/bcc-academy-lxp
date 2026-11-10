@@ -120,6 +120,12 @@ export async function LandingView({
     if (page.nativeEnroll) return { label: page.enrollCtaLabel ?? "Enroll" };
     return { label: "Sign up" };
   })();
+  // Beside a hero, the copy column sits against the image instead of the
+  // panel's far edge: on a wide screen the panel is ~1000px and a 460px column
+  // left-aligned in it opened a dead gap between the copy and the picture.
+  // Header, partner and footer rows share the same column so they stay lined
+  // up with the copy. Pages without a hero keep the full-width layout.
+  const column = page.heroImageUrl ? "w-full max-w-[460px] md:ml-auto" : "";
   return (
     <div
       className="min-h-[100dvh] flex flex-col md:flex-row"
@@ -132,23 +138,25 @@ export async function LandingView({
            between the art and the headline; it returns at md, where the
            banner moves to the side. */}
         <header
-          className={`items-center justify-between px-6 py-5 md:flex md:px-12 ${page.heroImageUrl ? "hidden" : "flex"}`}
+          className={`px-6 py-5 md:block md:px-12 ${page.heroImageUrl ? "hidden" : "block"}`}
           style={{ borderBottom: `1px solid ${INK}0d` }}
         >
-          <span
-            className="text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: `${INK}a6` }}
-          >
-            {page.headerLabel}
-          </span>
-          <CampHeaderCta ink={INK} />
+          <div className={`flex items-center justify-between ${column}`}>
+            <span
+              className="text-[11px] font-bold uppercase tracking-[0.2em]"
+              style={{ color: `${INK}a6` }}
+            >
+              {page.headerLabel}
+            </span>
+            <CampHeaderCta ink={INK} />
+          </div>
         </header>
 
         {/* Main content */}
         <main className="flex flex-1 flex-col justify-center px-6 py-10 md:px-12 md:py-12">
           {/* A flex column so a phone can reorder it: pitch first, form last
              (see the signup block). Desktop keeps source order. */}
-          <div className="flex flex-col" style={{ maxWidth: "460px" }}>
+          <div className={`flex flex-col ${column}`} style={{ maxWidth: "460px" }}>
             {page.logoUrl && !page.heroImageUrl && (
               // The program's own lockup, for pages with no hero. When there
               // is a hero it lives ON the art at every width (see below),
@@ -457,12 +465,12 @@ export async function LandingView({
         {page.partners.length > 0 && (
           <div className="px-6 py-6 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
             <p
-              className="mb-4 text-[10px] font-medium uppercase tracking-[0.18em]"
+              className={`mb-4 text-[10px] font-medium uppercase tracking-[0.18em] ${column}`}
               style={{ color: `${INK}99` }}
             >
               Presented in partnership with
             </p>
-            <div className="flex items-center gap-6">
+            <div className={`flex items-center gap-6 ${column}`}>
               {page.partners.map((p, i) => (
                 <span key={i} className="flex items-center gap-6">
                   {i > 0 && <span style={{ color: `${INK}18`, fontSize: "18px" }}>×</span>}
@@ -495,7 +503,7 @@ export async function LandingView({
         {/* Footer */}
         {page.footerText && (
           <footer className="px-6 py-4 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
-            <p className="text-[11px]" style={{ color: `${INK}99` }}>
+            <p className={`text-[11px] ${column}`} style={{ color: `${INK}99` }}>
               {page.footerText}
             </p>
           </footer>
