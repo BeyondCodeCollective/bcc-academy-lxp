@@ -307,6 +307,13 @@ Lucide imports to migrate.
 - Date/time: Plus Jakarta Sans, 14px, `#6b7280`
 - Title: Archivo, 20px, Semi-bold
 
+### Component Libraries
+- **Never hand-build a component a library already does well.** Before writing any toast, dialog, dropdown, command menu, animated number, chart, long list or drag and drop, invoke the `pick-ui-library` skill (Emil Kowalski's curated list) and use its pick.
+- Standing picks: Sonner (toasts), Vaul (drawers), cmdk (command menus), base-ui (primitives), NumberFlow (numbers), motion (animation; already installed as `framer-motion`, reuse it).
+- Install through the library's CLI or registry so the code lives in the repo and can be restyled to these tokens.
+- Never ship a library's default styling: restyle to the cobalt palette, Archivo headings and radii in this file.
+- One standout animated moment per page at most. Ten glowing, moving effects is the AI look.
+
 ## Do's and Don'ts
 
 - **Do** use `#1D59FF` for the single most important action on each screen
