@@ -87,7 +87,7 @@ describe("computeCurrentWeek", () => {
     expect(computeCurrentWeek(start, 3, 6, new Date("2026-10-01T00:00:00Z"))).toBe(1);
   });
 
-  it("honours a short lastSessionDayOffset (Wed start, Fri last session)", () => {
+  it("honors a short lastSessionDayOffset (Wed start, Fri last session)", () => {
     expect(computeCurrentWeek("2026-11-11T00:00:00Z", 8, 2, new Date("2026-11-13T12:00:00Z"))).toBe(1);
     expect(computeCurrentWeek("2026-11-11T00:00:00Z", 8, 2, new Date("2026-11-14T12:00:00Z"))).toBe(2);
   });
@@ -129,7 +129,7 @@ describe("track end and phase", () => {
     expect(resolveTrackEndDayKey(track({ totalWeeks: 4, lastSessionDayOffset: 3 }))).toBe("2026-12-03");
   });
 
-  it("day-labelled camps end totalWeeks-1 days after the start", () => {
+  it("day-labeled camps end totalWeeks-1 days after the start", () => {
     expect(resolveTrackEndDayKey(track({ totalWeeks: 3, unitLabel: "Day" }))).toBe("2026-11-11");
   });
 
