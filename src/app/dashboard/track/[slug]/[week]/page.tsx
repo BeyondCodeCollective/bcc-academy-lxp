@@ -498,13 +498,21 @@ export default async function TrackWeekPage({
   // students out of Endless Bootcamp's Presentation Day for two hours
   // (2026-08-06). Current unit → Join stays up unless an admin explicitly
   // marks the session completed or the unit's calendar day is over.
-  const liveGateOpen = (i: number) =>
-    sessionStatuses[i] !== "completed" &&
-    !weekIsPast &&
-    !sessionWindowPassed &&
-    !sessionDayFuture &&
-    !sessionDayPassed &&
-    (weekNum === currentWeek || !recordingUrls[i]);
+  // The clock gates above describe the week's FIRST session. A later session
+  // with its own scheduled day (Field Ready: Mon kickoff, Thu workshop) is
+  // gated on that day instead, or Monday being over would hide Thursday's join.
+  const liveGateOpen = (i: number) => {
+    const ownDate = i > 0 ? sessionDateList[i] : null;
+    const dayOpen = ownDate
+      ? ownDate === todayET
+      : !sessionWindowPassed && !sessionDayFuture && !sessionDayPassed;
+    return (
+      sessionStatuses[i] !== "completed" &&
+      !weekIsPast &&
+      dayOpen &&
+      (weekNum === currentWeek || !recordingUrls[i])
+    );
+  };
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
