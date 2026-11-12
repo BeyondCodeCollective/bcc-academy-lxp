@@ -1,0 +1,25 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Progress: resolved 117, reused 30, downloaded 80, added 0
+Packages: +135
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 135, reused 36, downloaded 99, added 91
+Progress: resolved 135, reused 36, downloaded 99, added 135, done
+- Finding files
+Processed 801 files (1.6s) (2 warnings)
+
+✖ Found 13 circular dependencies!
+
+1) lib/mvp/privacy.ts > lib/mvp/survey-queries.ts
+2) lib/mvp/types.ts > lib/mvp/check-ins.ts > lib/mvp/attendance-verification.ts > lib/mvp/attention.ts
+3) lib/mvp/types.ts > lib/mvp/event-queries.ts
+4) lib/mvp/survey-queries.ts > lib/mvp/survey-outcomes.ts > lib/mvp/types.ts > lib/mvp/overview-participation.ts
+5) lib/mvp/types.ts > lib/mvp/overview-participation.ts
+6) lib/mvp/types.ts > lib/mvp/participant-queries.ts
+7) lib/mvp/types.ts > lib/mvp/staff-review.ts
+8) lib/mvp/survey-queries.ts > lib/mvp/survey-outcomes.ts > lib/mvp/types.ts
+9) app/dashboard/admin/admin-tabs.tsx > app/dashboard/admin/insights-tab.tsx > app/dashboard/admin/page.tsx
+10) app/dashboard/admin/mvp/mvp-components/learner-directory.tsx > app/dashboard/admin/mvp/mvp-components/learner-evidence.tsx
+11) app/dashboard/admin/mvp/mvp-components/learner-filters.tsx > app/dashboard/admin/mvp/mvp-components/learner-directory.tsx
+12) lib/mvp/learner-options.ts > lib/mvp/learner-queries.ts
+13) lib/mvp/learner-options.ts > lib/mvp/learner-queries.ts > lib/mvp/learner-roster.ts
+

@@ -1,0 +1,192 @@
+
+> afterthegame@0.1.0 prebuild /Users/fonz.morris/dev/bcc/lxp-audit
+> node scripts/copy-zoom-sdk.mjs
+
+✓ Zoom SDK assets copied to public/zoom/
+
+> afterthegame@0.1.0 build /Users/fonz.morris/dev/bcc/lxp-audit
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.8s
+  Running TypeScript ...
+  Finished TypeScript in 10.3s ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/57) ...
+  Generating static pages using 9 workers (14/57) 
+  Generating static pages using 9 workers (28/57) 
+  Generating static pages using 9 workers (42/57) 
+✓ Generating static pages using 9 workers (57/57) in 926ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /[program]/[slug]
+├ ƒ /api/admin/exit-surveys/csv
+├ ƒ /api/attendance
+├ ƒ /api/auth/account-exists
+├ ƒ /api/auth/check-email
+├ ƒ /api/calendar/[token]
+├ ƒ /api/calendar/event
+├ ƒ /api/certificates/[id]/pdf
+├ ƒ /api/cron/certificates
+├ ƒ /api/cron/daily-snapshot
+├ ƒ /api/cron/events-comms
+├ ƒ /api/cron/events-waitlist
+├ ƒ /api/cron/sentinel
+├ ƒ /api/cron/signup-reminders
+├ ƒ /api/cron/ta-digest
+├ ƒ /api/cron/zoom-attendance
+├ ƒ /api/cron/zoom-recordings
+├ ƒ /api/csp-report
+├ ƒ /api/dev-login
+├ ƒ /api/eventbrite/claim
+├ ƒ /api/eventbrite/webhook
+├ ƒ /api/events
+├ ƒ /api/events/[id]/csv
+├ ƒ /api/events/[id]/survey-csv
+├ ƒ /api/fde/voice
+├ ƒ /api/hooks/deploy-check
+├ ƒ /api/insights/csv
+├ ƒ /api/insights/pdf
+├ ƒ /api/instructor
+├ ƒ /api/locations/csv
+├ ƒ /api/mvp/export
+├ ƒ /api/push/subscribe
+├ ƒ /api/quiz/results
+├ ƒ /api/session-content
+├ ƒ /api/switch-program
+├ ƒ /api/tutor
+├ ƒ /api/upload
+├ ƒ /api/video
+├ ƒ /api/warm
+├ ƒ /api/warm-eu
+├ ƒ /api/week-progress
+├ ƒ /api/zoom-frame
+├ ƒ /api/zoom-signature
+├ ○ /apple-icon
+├ ƒ /apply/[slug]
+├ ƒ /apply/home-for-summer
+├ ƒ /apply/sbft
+├ ƒ /apply/security-plus
+├ ○ /assessment-preview
+├ ƒ /auth/callback
+├ ƒ /auth/confirm
+├ ƒ /bcc/[slug]
+├ ƒ /certificate/[id]
+├ ƒ /dashboard
+├ ƒ /dashboard/admin
+├ ƒ /dashboard/admin/access
+├ ƒ /dashboard/admin/agreements
+├ ƒ /dashboard/admin/allowlist
+├ ƒ /dashboard/admin/announcements
+├ ƒ /dashboard/admin/applications
+├ ƒ /dashboard/admin/applications/[slug]
+├ ƒ /dashboard/admin/applications/[slug]/edit
+├ ƒ /dashboard/admin/applications/new
+├ ƒ /dashboard/admin/assessments
+├ ƒ /dashboard/admin/assessments/[studentId]
+├ ƒ /dashboard/admin/events
+├ ƒ /dashboard/admin/events/[id]
+├ ƒ /dashboard/admin/events/[id]/check-in
+├ ƒ /dashboard/admin/events/[id]/edit
+├ ƒ /dashboard/admin/events/[id]/import
+├ ƒ /dashboard/admin/events/[id]/qr
+├ ƒ /dashboard/admin/events/[id]/survey
+├ ƒ /dashboard/admin/events/learner/[studentId]
+├ ƒ /dashboard/admin/events/new
+├ ƒ /dashboard/admin/exams
+├ ƒ /dashboard/admin/exams/[studentId]
+├ ƒ /dashboard/admin/exit-surveys
+├ ƒ /dashboard/admin/features
+├ ƒ /dashboard/admin/health
+├ ƒ /dashboard/admin/insights
+├ ƒ /dashboard/admin/instructor
+├ ƒ /dashboard/admin/invites
+├ ƒ /dashboard/admin/landing
+├ ƒ /dashboard/admin/landing-signups
+├ ƒ /dashboard/admin/landing/[slug]
+├ ƒ /dashboard/admin/landing/new
+├ ƒ /dashboard/admin/locations
+├ ƒ /dashboard/admin/media
+├ ƒ /dashboard/admin/mvp
+├ ƒ /dashboard/admin/organizations
+├ ƒ /dashboard/admin/platform-analytics
+├ ƒ /dashboard/admin/programs
+├ ƒ /dashboard/admin/programs/[slug]/edit
+├ ƒ /dashboard/admin/programs/new
+├ ƒ /dashboard/admin/registrations
+├ ƒ /dashboard/admin/resources
+├ ƒ /dashboard/admin/staff
+├ ƒ /dashboard/admin/surveys
+├ ƒ /dashboard/admin/surveys/[surveyId]
+├ ƒ /dashboard/admin/surveys/all
+├ ƒ /dashboard/agreement
+├ ƒ /dashboard/assessment
+├ ƒ /dashboard/assessment/exit
+├ ƒ /dashboard/assessment/results
+├ ƒ /dashboard/courses
+├ ƒ /dashboard/exam/[examId]
+├ ƒ /dashboard/guide
+├ ƒ /dashboard/help
+├ ƒ /dashboard/insights
+├ ƒ /dashboard/lunch-learn
+├ ƒ /dashboard/lunch-learn/[id]
+├ ƒ /dashboard/lunch-learn/admin
+├ ƒ /dashboard/mass/[week]
+├ ƒ /dashboard/resources
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/staff-welcome
+├ ƒ /dashboard/start
+├ ƒ /dashboard/survey/[id]
+├ ƒ /dashboard/switch-program
+├ ƒ /dashboard/techplus/[week]
+├ ƒ /dashboard/track/[slug]
+├ ƒ /dashboard/track/[slug]/[week]
+├ ƒ /dashboard/track/[slug]/[week]/exit
+├ ƒ /dashboard/track/[slug]/[week]/live
+├ ƒ /dashboard/tutor
+├ ƒ /dashboard/workshops
+├ ƒ /dashboard/workshops/[slug]
+├ ƒ /events
+├ ƒ /events/[slug]
+├ ƒ /events/[slug]/register
+├ ƒ /events/cancel/[token]
+├ ƒ /events/check-in/[id]
+├ ƒ /events/confirm/[token]
+├ ƒ /events/survey/[token]
+├ ƒ /help
+├ ○ /icon
+├ ƒ /invite/[token]
+├ ƒ /join/[slug]
+├ ○ /login
+├ ○ /opengraph-image
+├ ƒ /pathways/[slug]
+├ ƒ /platform
+├ ƒ /platform-atlas
+├ ƒ /platform-brief
+├ ƒ /platform-features
+├ ƒ /platform-map
+├ ○ /privacy
+├ ƒ /privacy/withdraw
+├ ƒ /privacy/withdraw/confirm
+├ ƒ /quiz
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+├ ƒ /survey/[id]
+└ ○ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+real 26.37
+user 58.42
+sys 4.93
