@@ -784,7 +784,9 @@ export default async function TrackWeekPage({
               // embed, so repeating it next to LIVE NOW reads as clutter.
               sessionTitle={
                 weekContent.sessions.length > 1
-                  ? `Session ${index + 1}: ${session.title}`
+                  ? session.title === `Session ${index + 1}`
+                    ? sessionLabels[index]
+                    : `${sessionLabels[index]}: ${session.title}`
                   : undefined
               }
             />
@@ -829,98 +831,22 @@ export default async function TrackWeekPage({
         />
       )}
 
-      {/* Sessions list — only for multi-session weeks (single-session weeks
-         fold their metadata into the header above). */}
-      {weekContent.sessions.length > 1 && (
-        <section className="mb-8 border-t border-rule pt-6">
-          <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            {sessionsLabel}
-          </h2>
-          <div className="space-y-4">
-            {weekContent.sessions.map((session, i) => {
-              // Same rule as the Zoom embed above: a session that already
-              // happened shows "Session Ended", not a Join button. Without the
-              // recording/past-week test this offered a live join to a Google
-              // Meet link for a class held two weeks ago.
-              // A later session with its own date (Field Ready's Thursday) ends
-              // on its own day, not when Monday's window passes, and offers no
-              // join before that day.
-              const ownDate = i > 0 ? sessionDateList[i] : null;
-              const windowPassed = ownDate ? ownDate < todayET : sessionWindowPassed;
-              const notYet = !!ownDate && ownDate > todayET;
-              const action = sessionStatuses[i] === "completed" ||
-                recordingUrls[i] ||
-                weekIsPast ||
-                windowPassed ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  <CheckCircle size={14} />
-                  Session Ended
-                </span>
-              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) && !notYet ? (
-                <a
-                  href={meetingLinks[i]!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-                >
-                  <Video size={14} />
-                  Join Session
-                </a>
-              ) : null;
-
-              return (
-                <div
-                  key={i}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
-                >
-                  <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink">
-                        {/* Builder courses title sessions "Session N", which
-                           read "Session 1: Session 1"; show the day instead. */}
-                        {session.title === `Session ${i + 1}`
-                          ? sessionLabels[i]
-                          : `${sessionLabels[i]}: ${session.title}`}
-                      </p>
-                      <p className="text-xs text-ink-faint mt-0.5">
-                        {session.time}
-                      </p>
-                    </div>
-                  </div>
-                  {action && <div className="shrink-0 ml-11 sm:ml-0">{action}</div>}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Session survey: once a session is live or has a replay, its survey
-         sits right under the sessions list, above the recording, so the
-         full-height player doesn't push it out of sight. */}
+      {/* Session survey, single-session weeks: once the session is live or
+         has a replay, its survey sits above the recording so the full-height
+         player doesn't push it out of sight. Multi-session weeks keep each
+         session's survey inside that session's row (below the tabs). */}
       {exitSurvey &&
-        weekContent.sessions.map((_, i) => {
-          if (!liveNow.has(i) && !playbackUrls[i]) return null;
-          const row = exitSurvey[i + 1];
-          return (
-            <ExitSurveyForm
-              key={`exit-${i}`}
-              trackSlug={trackSlug}
-              weekNumber={weekNum}
-              sessionNumber={i + 1}
-              title={
-                weekContent.sessions.length > 1
-                  ? `${sessionLabels[i]} · Session survey`
-                  : "Session survey"
-              }
-              initialRating={row?.understanding ?? null}
-              initialUnclear={row?.unclear_text ?? null}
-            />
-          );
-        })}
+        weekContent.sessions.length === 1 &&
+        (liveNow.has(0) || playbackUrls[0]) && (
+          <ExitSurveyForm
+            trackSlug={trackSlug}
+            weekNumber={weekNum}
+            sessionNumber={1}
+            title="Session survey"
+            initialRating={exitSurvey[1]?.understanding ?? null}
+            initialUnclear={exitSurvey[1]?.unclear_text ?? null}
+          />
+        )}
 
       {/* Config-level recording (e.g. Google Drive link set in the program
          config). Skipped when any session has an admin-uploaded recording —
@@ -940,36 +866,21 @@ export default async function TrackWeekPage({
           />
         )}
 
-      {/* Admin-uploaded session recordings, plus the ones the Zoom cron
-         imported. */}
-      {weekContent.sessions.map((session, i) => {
-        const url = playbackUrls[i];
-        if (!url) return null;
+      {/* Admin-uploaded session recording, plus the one the Zoom cron
+         imported. Single-session weeks only: the replay is the page's stage.
+         Multi-session weeks keep each recording inside its session's row. */}
+      {weekContent.sessions.length === 1 && playbackUrls[0] && !liveNow.has(0) && (
         // Never a replay under a live join for the same session.
-        if (liveNow.has(i)) return null;
-
-        const recordingLabel = weekContent.sessions.length > 1
-          ? `Session ${i + 1} Recording`
-          : "Session Recording";
-        const recordingSubtitle = weekContent.sessions.length > 1
-          ? session.title === `Session ${i + 1}` ? sessionLabels[i] : session.title
-          : `${unitName} replay`;
-
-        const showWatchButton = isSupabaseConfigured() && unlocked;
-
-        return (
-          <RecordingCard
-            key={i}
-            url={url}
-            title={recordingLabel}
-            subtitle={recordingSubtitle}
-            trackSlug={trackSlug}
-            weekNumber={weekNum}
-            showWatchButton={showWatchButton}
-            initialWatched={weekProgress?.videoWatched ?? false}
-          />
-        );
-      })}
+        <RecordingCard
+          url={playbackUrls[0]}
+          title="Session Recording"
+          subtitle={`${unitName} replay`}
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          showWatchButton={isSupabaseConfigured() && unlocked}
+          initialWatched={weekProgress?.videoWatched ?? false}
+        />
+      )}
 
       {/* The lab itself. Idle, this renders AS the stage (the dark slab that
          anchors the page); once the learner starts, it becomes the live
@@ -1142,6 +1053,124 @@ export default async function TrackWeekPage({
           },
         ]}
       />
+
+      {/* Sessions, multi-session weeks only (single-session weeks fold their
+         metadata into the header above). One row per session, and everything
+         that belongs to a session lives in its row: status or join, its
+         recording, its survey. These used to be three separate stacks above
+         the tabs, which split each session across the page and pushed the
+         brief and the work about two screens down. */}
+      {weekContent.sessions.length > 1 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+            {sessionsLabel}
+          </h2>
+          <div className="panel divide-y divide-rule">
+            {weekContent.sessions.map((session, i) => {
+              // Same rule as the Zoom embed above: a session that already
+              // happened shows "Session ended", not a Join button. Without the
+              // recording/past-week test this offered a live join to a Google
+              // Meet link for a class held two weeks ago.
+              // A later session with its own date (Field Ready's Thursday) ends
+              // on its own day, not when Monday's window passes, and offers no
+              // join before that day.
+              const ownDate = i > 0 ? sessionDateList[i] : null;
+              const windowPassed = ownDate ? ownDate < todayET : sessionWindowPassed;
+              const notYet = !!ownDate && ownDate > todayET;
+              const live = liveNow.has(i);
+              const ended =
+                sessionStatuses[i] === "completed" ||
+                !!recordingUrls[i] ||
+                weekIsPast ||
+                windowPassed;
+              const status = live ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
+                  <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden />
+                  Live now
+                </span>
+              ) : ended ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-success-text">
+                  <CheckCircle size={14} />
+                  Session ended
+                </span>
+              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) && !notYet ? (
+                <a
+                  href={meetingLinks[i]!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                >
+                  <Video size={14} />
+                  Join Session
+                </a>
+              ) : notYet ? (
+                <span className="text-xs text-ink-faint">Upcoming</span>
+              ) : null;
+
+              const replayUrl = live ? null : playbackUrls[i];
+              const showSurvey = !!exitSurvey && (live || !!playbackUrls[i]);
+              const surveyRow = exitSurvey?.[i + 1];
+              // Open by default only on the newest session that has a replay,
+              // and only while nothing is live: one player and at most one
+              // unanswered form on screen, never the old stack.
+              const isLatestReplay =
+                liveNow.size === 0 && !!replayUrl && !playbackUrls.slice(i + 1).some(Boolean);
+
+              return (
+                <div key={i} className="px-4 py-3 sm:px-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3.5">
+                    <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-ink">
+                          {/* Builder courses title sessions "Session N", which
+                             read "Session 1: Session 1"; show the day instead. */}
+                          {session.title === `Session ${i + 1}`
+                            ? sessionLabels[i]
+                            : `${sessionLabels[i]}: ${session.title}`}
+                        </p>
+                        <p className="mt-0.5 text-xs text-ink-faint">{session.time}</p>
+                      </div>
+                    </div>
+                    {status && <div className="ml-[46px] shrink-0 sm:ml-0">{status}</div>}
+                  </div>
+
+                  {(replayUrl || showSurvey) && (
+                    <div className="mt-1 sm:ml-[46px]">
+                      {replayUrl && (
+                        <RecordingCard
+                          variant="row"
+                          defaultOpen={isLatestReplay}
+                          url={replayUrl}
+                          title={`Session ${i + 1} Recording`}
+                          trackSlug={trackSlug}
+                          weekNumber={weekNum}
+                          showWatchButton={isSupabaseConfigured() && unlocked}
+                          initialWatched={weekProgress?.videoWatched ?? false}
+                        />
+                      )}
+                      {showSurvey && (
+                        <ExitSurveyForm
+                          variant="row"
+                          defaultOpen={isLatestReplay && surveyRow?.understanding == null}
+                          trackSlug={trackSlug}
+                          weekNumber={weekNum}
+                          sessionNumber={i + 1}
+                          title="Session survey"
+                          initialRating={surveyRow?.understanding ?? null}
+                          initialUnclear={surveyRow?.unclear_text ?? null}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

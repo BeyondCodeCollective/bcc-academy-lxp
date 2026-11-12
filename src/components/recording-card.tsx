@@ -4,6 +4,7 @@ import { Video } from "lucide-react";
 import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import { getYouTubeEmbedUrl, VIDEO_EXTENSIONS } from "@/lib/storage-utils";
 import { toDriveEmbedUrl } from "@/lib/lunch-learns/drive";
+import { SessionDisclosure } from "@/components/session-disclosure";
 
 // Class recordings open on black (Zoom's first frames), so the player showed a
 // large black box until someone pressed play. A plain ink frame with a play
@@ -26,6 +27,11 @@ type Props = {
   weekNumber: number;
   showWatchButton: boolean;
   initialWatched: boolean;
+  /** "row" renders as an expandable line inside a session row on the week
+   *  page instead of a full-width card. */
+  variant?: "card" | "row";
+  /** Row variant only: start expanded. */
+  defaultOpen?: boolean;
 };
 
 export function RecordingCard({
@@ -36,6 +42,8 @@ export function RecordingCard({
   weekNumber,
   showWatchButton,
   initialWatched,
+  variant = "card",
+  defaultOpen = false,
 }: Props) {
   const youtubeEmbed = getYouTubeEmbedUrl(url);
   const driveEmbed = toDriveEmbedUrl(url);
@@ -54,28 +62,8 @@ export function RecordingCard({
     !youtubeEmbed && !driveEmbed &&
     VIDEO_EXTENSIONS.some((ext) => pathname.endsWith(ext));
 
-  return (
-    <div className="mb-4 overflow-hidden panel">
-      <div className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 min-h-[52px]">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink">
-            <Video size={16} className="text-white" />
-          </div>
-          <div className="min-w-0 text-left">
-            <p className="text-sm font-semibold text-ink truncate">{title}</p>
-            {subtitle && <p className="text-xs text-ink-soft truncate">{subtitle}</p>}
-          </div>
-        </div>
-        {showWatchButton && (
-          <MarkVideoWatchedButton
-            trackSlug={trackSlug}
-            weekNumber={weekNumber}
-            initialWatched={initialWatched}
-          />
-        )}
-      </div>
-
-      <div className="border-t border-rule">
+  const player = (
+    <>
         {youtubeEmbed ? (
           <div className="relative w-full aspect-video bg-ink">
             <iframe
@@ -117,7 +105,47 @@ export function RecordingCard({
             </a>
           </div>
         )}
+    </>
+  );
+  const watchButton = (
+    <>
+        {showWatchButton && (
+          <MarkVideoWatchedButton
+            trackSlug={trackSlug}
+            weekNumber={weekNumber}
+            initialWatched={initialWatched}
+          />
+        )}
+    </>
+  );
+
+  if (variant === "row") {
+    return (
+      <SessionDisclosure label="Recording" defaultOpen={defaultOpen}>
+        <div className="max-w-3xl">
+          <div className="overflow-hidden rounded-lg border border-rule">{player}</div>
+          {showWatchButton && <div className="mt-3 flex justify-end">{watchButton}</div>}
+        </div>
+      </SessionDisclosure>
+    );
+  }
+
+  return (
+    <div className="mb-4 overflow-hidden panel">
+      <div className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 min-h-[52px]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink">
+            <Video size={16} className="text-white" />
+          </div>
+          <div className="min-w-0 text-left">
+            <p className="text-sm font-semibold text-ink truncate">{title}</p>
+            {subtitle && <p className="text-xs text-ink-soft truncate">{subtitle}</p>}
+          </div>
+        </div>
+        {watchButton}
       </div>
+
+      <div className="border-t border-rule">{player}</div>
     </div>
   );
 }
