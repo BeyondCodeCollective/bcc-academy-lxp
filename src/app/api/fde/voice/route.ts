@@ -34,6 +34,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { signRecordingUrl } from "@/lib/blob-recordings";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 /** Brooklyn — American, warm and confident. Override per environment. */
 const DEFAULT_VOICE = "zWoalRDt5TZrmW4ROIA7";
@@ -60,12 +61,27 @@ function remember(key: string, buf: ArrayBuffer) {
  * why. A same-origin GET is playable directly by `new Audio(url)`, needs no
  * CSP change, and lets the browser cache the audio for free.
  */
+/** The session stage only renders inside the dashboard, so every legitimate
+ *  caller is signed in. Checked before anything else is looked at. */
+async function requireSession(): Promise<NextResponse | null> {
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return null;
+  }
+  return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+}
+
 export async function GET(req: Request) {
+  const denied = await requireSession();
+  if (denied) return denied;
   const params = new URL(req.url).searchParams;
   return synthesise(params.get("text") ?? "", params.get("p") === "1");
 }
 
 export async function POST(req: Request) {
+  const denied = await requireSession();
+  if (denied) return denied;
   let text: string;
   let personal = false;
   try {
