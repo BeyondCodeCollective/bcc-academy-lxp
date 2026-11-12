@@ -5,6 +5,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { submitExitSurvey } from "@/app/dashboard/track/exit-survey-actions";
 import { buttonClass } from "@/components/ui";
 import { MAX_UNCLEAR_LENGTH, UNCLEAR_PROMPT, UNDERSTANDING_PROMPT } from "@/lib/exit-survey";
+import { SessionDisclosure } from "@/components/session-disclosure";
 
 export function ExitSurveyForm({
   trackSlug,
@@ -13,6 +14,8 @@ export function ExitSurveyForm({
   title,
   initialRating,
   initialUnclear,
+  variant = "card",
+  defaultOpen = false,
 }: {
   trackSlug: string;
   weekNumber: number;
@@ -21,6 +24,11 @@ export function ExitSurveyForm({
   title: string;
   initialRating: number | null;
   initialUnclear: string | null;
+  /** "row" renders as an expandable line inside a session row on the week
+   *  page, so an answered survey takes one line instead of a full form. */
+  variant?: "card" | "row";
+  /** Row variant only: start expanded. */
+  defaultOpen?: boolean;
 }) {
   const [rating, setRating] = useState<number | null>(initialRating);
   const [unclear, setUnclear] = useState(initialUnclear ?? "");
@@ -46,15 +54,13 @@ export function ExitSurveyForm({
     }
   }
 
-  return (
-    <section className="mb-8 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">{title}</p>
-
-      <p id={labelId} className="mt-3 text-sm font-medium text-ink">
+  const form = (
+    <>
+      <p id={labelId} className="text-sm font-medium text-ink">
         {UNDERSTANDING_PROMPT}
       </p>
       <div role="radiogroup" aria-labelledby={labelId} className="mt-2 flex items-center gap-2">
-        <span className="text-xs text-ink-faint">Strongly disagree</span>
+        <span className="hidden text-xs text-ink-faint sm:inline">Strongly disagree</span>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
@@ -74,8 +80,12 @@ export function ExitSurveyForm({
             {n}
           </button>
         ))}
-        <span className="text-xs text-ink-faint">Strongly agree</span>
+        <span className="hidden text-xs text-ink-faint sm:inline">Strongly agree</span>
       </div>
+      {/* Phones: the end labels beside five 44px buttons ran off the screen. */}
+      <p className="mt-1.5 text-xs text-ink-faint sm:hidden">
+        1 = Strongly disagree, 5 = Strongly agree
+      </p>
 
       <label className="mt-4 block text-sm font-medium text-ink" htmlFor={`${labelId}-unclear`}>
         {UNCLEAR_PROMPT}
@@ -104,6 +114,33 @@ export function ExitSurveyForm({
         )}
         {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
+    </>
+  );
+
+  if (variant === "row") {
+    return (
+      <SessionDisclosure
+        label="Session survey"
+        defaultOpen={defaultOpen}
+        meta={
+          saved ? (
+            <>
+              <CheckCircle size={14} className="text-success" /> Answered
+            </>
+          ) : (
+            "2 questions"
+          )
+        }
+      >
+        {form}
+      </SessionDisclosure>
+    );
+  }
+
+  return (
+    <section className="mb-8 panel p-4 sm:p-5">
+      <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">{title}</p>
+      {form}
     </section>
   );
 }
