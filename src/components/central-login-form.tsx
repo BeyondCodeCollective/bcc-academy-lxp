@@ -52,7 +52,6 @@ export function CentralLoginForm({
   const isDemoMode =
     process.env.NODE_ENV === "development" &&
     !process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const isLocalDev = process.env.NODE_ENV === "development";
 
   const headingCls = compact
     ? "font-display text-lg font-bold text-white uppercase mb-1"
@@ -88,11 +87,8 @@ export function CentralLoginForm({
     // direct supabase.signInWithOtp), which stalled iCloud/Bahamas
     // users on "Sending…" for 5–10s. Now: one short hop to Vercel,
     // server-to-server to Supabase, done.
-    const origin = isLocalDev
-      ? "http://localhost:3000"
-      : window.location.origin;
     const next = new URLSearchParams(window.location.search).get("next") ?? undefined;
-    const result = await sendLoginLink({ email: trimmedEmail, origin, next });
+    const result = await sendLoginLink({ email: trimmedEmail, next });
 
     if (result.ok) {
       setSent(true);

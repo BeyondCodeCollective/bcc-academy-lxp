@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { sendSignInEmail } from "@/lib/email";
 import { isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { getLinkOrigin } from "@/lib/link-origin";
 
 type SendLoginLinkResult =
   | { ok: true }
@@ -60,12 +61,12 @@ async function resolveIntendedJoin(
  */
 export async function sendLoginLink({
   email,
-  origin,
   next,
   joinTrack,
 }: {
   email: string;
-  origin: string;
+  /** Ignored. Still accepted so cached clients that send it keep working. */
+  origin?: string;
   next?: string;
   /**
    * Explicit track the user is signing up for, from the page they're on
@@ -75,7 +76,7 @@ export async function sendLoginLink({
   joinTrack?: string;
 }): Promise<SendLoginLinkResult> {
   const trimmed = email.trim().toLowerCase();
-  const redirectTo = `${origin}/auth/callback`;
+  const redirectTo = `${await getLinkOrigin()}/auth/callback`;
   const svc = createServiceClient();
 
   let callbackJoinSlug: string | null = null;

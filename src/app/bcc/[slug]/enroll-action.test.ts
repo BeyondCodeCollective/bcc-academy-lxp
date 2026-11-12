@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   upserts: [] as Record<string, unknown>[],
 }));
 
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "bccacademy.io" }) }));
 vi.mock("@/lib/email", () => ({ sendEventConfirmationEmail: mocks.send }));
 vi.mock("@/lib/enroll", () => ({
   enrollEmailInTrack: async () => ({ inviteToken: "tok", programSlug: "catalyst", isNew: false }),
