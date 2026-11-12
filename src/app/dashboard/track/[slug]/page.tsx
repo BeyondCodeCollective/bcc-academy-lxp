@@ -29,6 +29,9 @@ import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
 import { takesCourseAsLearner } from "@/lib/auth/learner-first";
+import { isStaffResolved } from "@/lib/auth/staff";
+import { openTimedSurveyForTrack } from "@/lib/surveys/course-gate";
+import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { type AgendaRow } from "@/components/course-agenda";
 import { type CalendarEvent, type CalendarFocus } from "@/components/track-calendar";
 import { ScheduleTabs } from "@/components/schedule-tabs";
@@ -93,6 +96,27 @@ export default async function TrackOverviewPage({
       .eq("track_slug", slug)
       .maybeSingle();
     if (!enr) redirect("/dashboard");
+  }
+
+  // Timed course survey (Catalyst Labs post): once it opens, an enrolled
+  // learner on the course page goes to it, same as on the dashboard home.
+  // Same opt-in (survey_enabled) and staff exemption as that redirect.
+  const timedSurveyId = openTimedSurveyForTrack(slug);
+  if (
+    timedSurveyId &&
+    ctx?.userId &&
+    !canAccessAdminPanel(role) &&
+    !isStaffResolved(ctx.student?.is_staff, ctx.student?.email) &&
+    (await isSurveyEnabledForLearner(program.slug, [slug]))
+  ) {
+    const { data: done } = await createServiceClient()
+      .from("survey_responses")
+      .select("completed_at")
+      .eq("student_id", ctx.userId)
+      .eq("survey_type", timedSurveyId)
+      .not("completed_at", "is", null)
+      .maybeSingle();
+    if (!done) redirect(`/dashboard/survey/${timedSurveyId}`);
   }
 
   // Ladder gate: a phase stays shut until the one before it is finished.
