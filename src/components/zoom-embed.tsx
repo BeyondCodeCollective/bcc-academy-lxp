@@ -48,20 +48,10 @@ export function ZoomEmbed({
   const src = `/api/zoom-frame?${params.toString()}`;
 
   return (
-    <div className="mb-8">
-      {/* Live indicator */}
-      <div className="mb-3 flex items-center gap-2">
-        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-sm font-bold uppercase tracking-[0.14em] text-red-600">
-          Live Now
-        </span>
-        {sessionTitle && (
-          <span className="text-sm text-ink-faint">&middot; {sessionTitle}</span>
-        )}
-      </div>
-
-      {/* Zoom embed — isolated iframe */}
-      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[220px] sm:min-h-[440px]">
+    <div>
+      {/* Zoom embed — isolated iframe. The page names the live state (the
+         session picker and the block heading), so the frame carries no label. */}
+      <div className="relative w-full overflow-hidden rounded-lg bg-ink aspect-video min-h-[220px] sm:min-h-[380px]">
         <iframe
           src={src}
           title={sessionTitle ? `Live session: ${sessionTitle}` : "Live session"}

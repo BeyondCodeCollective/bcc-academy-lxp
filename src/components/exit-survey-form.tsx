@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { submitExitSurvey } from "@/app/dashboard/track/exit-survey-actions";
-import { buttonClass } from "@/components/ui";
+import { weekBtnPrimary, weekHeading, weekState, weekStateDone } from "@/components/week-page-ui";
 import { MAX_UNCLEAR_LENGTH, UNCLEAR_PROMPT, UNDERSTANDING_PROMPT } from "@/lib/exit-survey";
-import { SessionDisclosure } from "@/components/session-disclosure";
 
 export function ExitSurveyForm({
   trackSlug,
@@ -15,7 +14,6 @@ export function ExitSurveyForm({
   initialRating,
   initialUnclear,
   variant = "card",
-  defaultOpen = false,
 }: {
   trackSlug: string;
   weekNumber: number;
@@ -24,11 +22,9 @@ export function ExitSurveyForm({
   title: string;
   initialRating: number | null;
   initialUnclear: string | null;
-  /** "row" renders as an expandable line inside a session row on the week
-   *  page, so an answered survey takes one line instead of a full form. */
-  variant?: "card" | "row";
-  /** Row variant only: start expanded. */
-  defaultOpen?: boolean;
+  /** "plain" is the week page's Survey block: the title becomes the block
+   *  heading, with "Sent" or "Not sent yet" beside it, and no card chrome. */
+  variant?: "card" | "plain";
 }) {
   const [rating, setRating] = useState<number | null>(initialRating);
   const [unclear, setUnclear] = useState(initialUnclear ?? "");
@@ -56,38 +52,40 @@ export function ExitSurveyForm({
 
   const form = (
     <>
-      <p id={labelId} className="text-sm font-medium text-ink">
+      <p id={labelId} className="mb-2.5 font-medium text-ink">
         {UNDERSTANDING_PROMPT}
       </p>
-      <div role="radiogroup" aria-labelledby={labelId} className="mt-2 flex items-center gap-2">
-        <span className="hidden text-xs text-ink-faint sm:inline">Strongly disagree</span>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={rating === n}
-            onClick={() => {
-              setRating(n);
-              setSaved(false);
-            }}
-            className={`min-h-[44px] min-w-[44px] rounded-lg border text-sm font-semibold transition-colors ${
-              rating === n
-                ? "border-primary bg-primary text-white"
-                : "border-neutral-200 bg-white text-ink hover:border-ink"
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-        <span className="hidden text-xs text-ink-faint sm:inline">Strongly agree</span>
+      {/* The end labels sit under the scale, at its width: beside five 48px
+         buttons they ran off a phone screen. */}
+      <div className="w-fit max-w-full">
+        <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap items-center gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={rating === n}
+              onClick={() => {
+                setRating(n);
+                setSaved(false);
+              }}
+              className={`h-12 w-12 rounded-lg border font-medium tabular-nums transition-colors ${
+                rating === n
+                  ? "border-ink bg-ink text-white"
+                  : "border-rule bg-surface-elevated text-ink hover:border-ink"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1.5 flex justify-between gap-4 text-[13px] text-ink-faint">
+          <span>Strongly disagree</span>
+          <span>Strongly agree</span>
+        </div>
       </div>
-      {/* Phones: the end labels beside five 44px buttons ran off the screen. */}
-      <p className="mt-1.5 text-xs text-ink-faint sm:hidden">
-        1 = Strongly disagree, 5 = Strongly agree
-      </p>
 
-      <label className="mt-4 block text-sm font-medium text-ink" htmlFor={`${labelId}-unclear`}>
+      <label className="mb-2.5 mt-6 block font-medium text-ink" htmlFor={`${labelId}-unclear`}>
         {UNCLEAR_PROMPT}
       </label>
       <textarea
@@ -99,41 +97,46 @@ export function ExitSurveyForm({
         }}
         maxLength={MAX_UNCLEAR_LENGTH}
         rows={3}
-        className="mt-1 w-full resize-y rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-ink"
+        className="block min-h-24 w-full resize-y rounded-lg border border-rule bg-surface-elevated p-3 text-ink caret-primary"
       />
 
-      <div className="mt-3 flex items-center gap-3">
-        <button type="button" onClick={save} disabled={saving} className={buttonClass("primary", "sm")}>
-          {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-          {saved ? "Update" : "Submit"}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className={`${weekBtnPrimary} w-full sm:w-auto`}
+        >
+          {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+          {saved ? "Update survey" : "Send survey"}
         </button>
-        {saved && !saving && (
-          <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-            <CheckCircle size={14} /> Thanks, saved
-          </span>
-        )}
-        {error && <span className="text-xs text-red-600">{error}</span>}
+        <span role="status" className="text-sm">
+          {saved && !saving && !error && (
+            <span className="inline-flex items-center gap-1.5 text-ink-soft">
+              <CheckCircle size={16} /> Thanks, saved
+            </span>
+          )}
+          {error && <span className="text-red-600">{error}</span>}
+        </span>
       </div>
     </>
   );
 
-  if (variant === "row") {
+  if (variant === "plain") {
     return (
-      <SessionDisclosure
-        label="Session survey"
-        defaultOpen={defaultOpen}
-        meta={
-          saved ? (
-            <>
-              <CheckCircle size={14} className="text-success" /> Answered
-            </>
+      <>
+        <h2 className={weekHeading}>
+          {title}
+          {saved ? (
+            <span className={weekStateDone}>
+              <CheckCircle size={14} /> Sent
+            </span>
           ) : (
-            "2 questions"
-          )
-        }
-      >
+            <span className={weekState}>Not sent yet</span>
+          )}
+        </h2>
         {form}
-      </SessionDisclosure>
+      </>
     );
   }
 
