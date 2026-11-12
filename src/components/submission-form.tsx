@@ -6,6 +6,7 @@ import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from 
 import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { buttonClass } from "@/components/ui";
+import { weekBtnQuiet } from "@/components/week-page-ui";
 
 export function SubmissionForm({
   trackSlug,
@@ -13,6 +14,7 @@ export function SubmissionForm({
   prompts,
   existing,
   feedback,
+  variant = "panel",
 }: {
   trackSlug: string;
   weekNumber: number;
@@ -25,7 +27,11 @@ export function SubmissionForm({
   prompts?: string[];
   existing: SubmissionRow | null;
   feedback: FeedbackRow[];
+  /** "plain" is the week page's Your work block: a quiet button that opens
+   *  the form in place, with no panel or heading of its own. */
+  variant?: "panel" | "plain";
 }) {
+  const plain = variant === "plain";
   const activePrompts = prompts ?? [];
   const hasPrompts = activePrompts.length > 0;
   const existingPromptResponses = existing?.prompt_responses ?? {};
@@ -142,34 +148,47 @@ export function SubmissionForm({
   const header = hasPrompts ? "Submit Your Project" : "Submit Your Work";
 
   return (
-    <div className="panel">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Upload size={14} className="text-ink-faint" />
-          <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
-            {header}
-          </h2>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-              <CheckCircle size={14} />
-              Submitted
-            </span>
-          )}
-          <ChevronDown
-            size={16}
-            className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
-          />
-        </div>
-      </button>
+    <div className={plain ? undefined : "panel"}>
+      {plain ? (
+        !open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className={`${weekBtnQuiet} w-full sm:w-auto`}
+          >
+            <Upload size={18} />
+            {saved ? "Edit your work" : "Upload your work"}
+          </button>
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Upload size={14} className="text-ink-faint" />
+            <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
+              {header}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            {saved && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                <CheckCircle size={14} />
+                Submitted
+              </span>
+            )}
+            <ChevronDown
+              size={16}
+              className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </div>
+        </button>
+      )}
 
       {!open ? null : (
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className={plain ? undefined : "px-4 sm:px-6 pb-4 sm:pb-6"}>
 
       {/* Per-prompt structured answers (Forte's Written Artifact). */}
       {hasPrompts && (

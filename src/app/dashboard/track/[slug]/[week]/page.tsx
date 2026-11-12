@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
-import { ArrowLeft, Video, CheckCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft as ArrowLeftIcon,
+  ArrowRight,
+  CalendarPlus,
+  Check,
+} from "@phosphor-icons/react/dist/ssr";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { resolveTrackProgram } from "@/lib/programs/server";
@@ -14,7 +20,6 @@ import { isSequentialGated, isDateGated, highestUnlockedWeek } from "@/lib/track
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
-import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
 import { ExitSurveyForm } from "@/components/exit-survey-form";
 import { ExitHoursPopup } from "@/components/exit-hours-popup";
@@ -24,20 +29,23 @@ import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
 import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
-import { WeekNavPortal } from "@/components/week-nav-portal";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { getSurveyStatus } from "@/app/dashboard/actions";
-import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { ResourceLink } from "@/components/resource-link";
-import { sessionDates, sessionLabel } from "@/lib/session-days";
+import { sessionDates } from "@/lib/session-days";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 import { signRecordingUrl } from "@/lib/blob-recordings";
 import { InstructorPanel } from "@/components/instructor-panel";
-import { SessionStage } from "@/components/session-stage";
-import { SessionTabs } from "@/components/session-tabs";
+import {
+  weekBtnPrimary,
+  weekBtnQuiet,
+  weekHeading,
+  weekState,
+  weekStateDone,
+} from "@/components/week-page-ui";
 import { takesCourseAsLearner } from "@/lib/auth/learner-first";
 
 /**
@@ -56,8 +64,10 @@ const TYPED_TRAILING_DATE =
 
 export default async function TrackWeekPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; week: string }>;
+  searchParams: Promise<{ session?: string }>;
 }) {
   const { slug: trackSlug, week: weekStr } = await params;
   const weekNum = parseInt(weekStr, 10);
@@ -355,8 +365,6 @@ export default async function TrackWeekPage({
     comingSoonPassed ||
     (isDateGated(track) && weekNum === 1);
 
-  const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
-
   // Exit survey: only for courses that turned it on, only for an enrolled
   // learner on an unlocked week. null = show nothing.
   const exitSurvey =
@@ -375,32 +383,11 @@ export default async function TrackWeekPage({
     weekContent.sessions.length,
     track.officeHours,
   );
-  const sessionLabels = sessionDateList.map((d, i) => sessionLabel(i, d));
   const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const groupMaterialsBySession =
     weekContent.sessions.length > 1 && resources.some((r) => (r.session ?? 1) > 1);
 
-  // Header data, hoisted so both the normal header and the merged staged-
-  // session stage below can use it — one subtitle line, computed once.
   const isSingleSession = weekContent.sessions.length === 1;
-  const headerSession = isSingleSession ? weekContent.sessions[0] : null;
-  const headerAction =
-    isSingleSession
-      ? // A completed session already carries the "Session Ended" badge in
-        // the header — repeating it here said it twice on one card.
-        sessionStatuses[0] === "completed" ? null
-        : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
-          <a
-            href={meetingLinks[0]!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-          >
-            <Video size={14} />
-            Join Session
-          </a>
-        ) : null
-      : null;
   // The date on this line comes from the schedule, never from the subtitle
   // text. Sessions were authored with the day typed in ("Domain 4 · Sep 3"),
   // which freezes on the day it was written: Security+ moved its back half two
@@ -413,7 +400,15 @@ export default async function TrackWeekPage({
   const subtitleSansDate = scheduledDay
     ? (displaySubtitle ?? "").replace(TYPED_TRAILING_DATE, "").trim()
     : displaySubtitle;
-  const headerSubtitle = [track.instructor, subtitleSansDate, scheduledDay, headerSession?.time]
+  // Multi-session weeks print each session's day in the session picker, so
+  // only a single-session week carries its day and time on this line.
+  const headerMeta = [
+    unitName,
+    track.instructor,
+    subtitleSansDate,
+    isSingleSession ? scheduledDay : null,
+    isSingleSession ? weekContent.sessions[0].time : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -474,14 +469,6 @@ export default async function TrackWeekPage({
     const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     return weekClock.date > todayET;
   })();
-  // A staged session folds the page header into its own pre-launch stage
-  // (below) instead of showing both — same title and byline stated once.
-  const mergedStageHeader =
-    hasStage &&
-    sessionDayFuture &&
-    !weekIsPast &&
-    (meetingLinks.some(Boolean) || hasInstructor) &&
-    !!weekClock?.date;
   // Mirror gate for a day that's fully over: a dated session must not offer a
   // live join AFTER its calendar day either, even when the schedule carries no
   // time. Security+'s Aug 27 study session (dated, untimed) kept a live Zoom
@@ -543,7 +530,7 @@ export default async function TrackWeekPage({
   // ─── Stage copy ──────────────────────────────────────────────────────
   // The first paragraph of the session description is the hook — the thing
   // worth reading before anything else on the page. It moves onto the stage;
-  // the rest of the description stays in the Brief tab, which picks up right
+  // the rest of the description stays in Notes, which picks up right
   // where the hook left off. A description with no leading <p> just leaves the
   // stage without a blurb; nothing breaks.
   const { lede: stageBlurb, rest: briefHtml } = splitLede(displayDescription);
@@ -564,11 +551,13 @@ export default async function TrackWeekPage({
 
   // "Add to calendar" reuses the .ics endpoint the registration emails already
   // link to (/api/calendar/event) — no auth, no DB, it only describes an event.
-  const calendarHref = (() => {
-    if (!weekClock?.date) return undefined;
-    const [y, mo, d] = weekClock.date.split("-").map(Number);
-    const [h, mi] = (weekClock.time ?? "18:30").split(":").map(Number);
-    const noonUtc = new Date(`${weekClock.date}T12:00:00Z`);
+  // A later session in the week has its own day; the schedule holds one clock
+  // per week, so it borrows the week's start time.
+  const calendarHrefFor = (date: string | null | undefined, session: number) => {
+    if (!date) return undefined;
+    const [y, mo, d] = date.split("-").map(Number);
+    const [h, mi] = (weekClock?.time ?? "18:30").split(":").map(Number);
+    const noonUtc = new Date(`${date}T12:00:00Z`);
     const etHourAtNoonUtc = Number(
       new Intl.DateTimeFormat("en-US", {
         timeZone: "America/New_York",
@@ -578,119 +567,212 @@ export default async function TrackWeekPage({
     );
     const offsetHours = 12 - etHourAtNoonUtc;
     const startMs = Date.UTC(y, mo - 1, d, (h ?? 18) + offsetHours, mi ?? 30);
-    const endMs = startMs + (weekClock.durationMinutes ?? 90) * 60_000;
+    const endMs = startMs + (weekClock?.durationMinutes ?? 90) * 60_000;
     const q = new URLSearchParams({
       title: `${track.shortName}: ${displayTitle}`,
       start: new Date(startMs).toISOString(),
       end: new Date(endMs).toISOString(),
       details: `${unitName} — ${track.name}`,
-      uid: `${trackSlug}-${weekNum}@bccacademy.io`,
+      uid:
+        session === 0
+          ? `${trackSlug}-${weekNum}@bccacademy.io`
+          : `${trackSlug}-${weekNum}-${session + 1}@bccacademy.io`,
     });
     return `/api/calendar/event?${q.toString()}`;
-  })();
+  };
+  const calendarHref = calendarHrefFor(weekClock?.date, 0);
 
-  // Rendered server-side, so it is a snapshot rather than a ticking clock —
-  // days and hours are what a learner actually needs, and both survive the
-  // page being open for a while.
-  const countdown = (() => {
-    if (!weekClock?.date) return undefined;
-    const [y, mo, d] = weekClock.date.split("-").map(Number);
-    const [h, mi] = (weekClock.time ?? "18:30").split(":").map(Number);
-    const target = Date.UTC(y, mo - 1, d, (h ?? 18) + 4, mi ?? 30);
-    const ms = target - now.getTime();
-    if (ms <= 0) return undefined;
-    const days = Math.floor(ms / 86_400_000);
-    const hours = Math.floor((ms % 86_400_000) / 3_600_000);
-    const mins = Math.floor((ms % 3_600_000) / 60_000);
-    return [
-      { value: String(days).padStart(2, "0"), unit: "Days" },
-      { value: String(hours).padStart(2, "0"), unit: "Hours" },
-      { value: String(mins).padStart(2, "0"), unit: "Min" },
-    ];
+  // ─── One session at a time ───────────────────────────────────────────
+  // The page shows a single session: the same blocks in the same order every
+  // time (Session, Notes, Your work, Survey), and only what is inside the
+  // first block changes with the session's state. A multi-session week picks
+  // the session from `?session=N`; the picker above the blocks is plain links.
+  const sessionCount = weekContent.sessions.length;
+  type SessionState = "live" | "ended" | "upcoming" | "open";
+  const sessionStates: SessionState[] = weekContent.sessions.map((_, i) => {
+    // A later session with its own date (Field Ready's Thursday) ends on its
+    // own day, not when Monday's window passes, and is upcoming until then.
+    const ownDate = i > 0 ? sessionDateList[i] : null;
+    const windowPassed = ownDate
+      ? ownDate < todayET
+      : sessionWindowPassed || (i === 0 && sessionDayPassed);
+    const notYet = ownDate ? ownDate > todayET : i === 0 && sessionDayFuture;
+    if (liveNow.has(i)) return "live";
+    if (
+      sessionStatuses[i] === "completed" ||
+      !!recordingUrls[i] ||
+      weekIsPast ||
+      windowPassed
+    ) {
+      return "ended";
+    }
+    return notYet ? "upcoming" : "open";
+  });
+  // Default: whatever is live, else the newest session that has started, so
+  // the page opens on the thing a learner can act on right now.
+  const { session: sessionParam } = await searchParams;
+  const asked = Number(sessionParam);
+  const defaultSession = (() => {
+    const live = sessionStates.indexOf("live");
+    if (live >= 0) return live;
+    for (let i = sessionCount - 1; i >= 0; i--) {
+      if (sessionStates[i] !== "upcoming") return i;
+    }
+    return 0;
   })();
+  const sel =
+    Number.isInteger(asked) && asked >= 1 && asked <= sessionCount
+      ? asked - 1
+      : defaultSession;
+  const selState = sessionStates[sel];
+  const selSession = weekContent.sessions[sel];
+  const selDate = sessionDateList[sel];
+  const dayText = (date: string | null) =>
+    date
+      ? formatCohortDate(date, { weekday: "short", month: "short", day: "numeric" })
+      : null;
 
-  // The checklist stopped being its own section at the bottom of the page and
-  // became one line on the tab rail. Same two signals, counted.
-  const checklistTotal = showChecklist
-    ? (weekContent.videoUrl || hasRecording ? 1 : 0) + 1
-    : 0;
-  const checklistDone = showChecklist
-    ? (weekContent.videoUrl || hasRecording
-        ? weekProgress?.videoWatched
-          ? 1
-          : 0
-        : 0) + (weekProgress?.homeworkSubmitted ? 1 : 0)
-    : 0;
+  // Session block: exactly one of live join, replay, "ended" note or
+  // "starts on" card, plus the hosted lab on courses that run one.
+  const selZoom =
+    selState === "live" && meetingLinks[sel] ? parseZoomLink(meetingLinks[sel]!) : null;
+  // Teams and Meet links open in a new tab. Offered while the session is live,
+  // and on an undated session that has not ended (nothing else gates it).
+  const selExternalJoin =
+    !selZoom &&
+    !!meetingLinks[sel] &&
+    !isZoomLink(meetingLinks[sel]) &&
+    (selState === "live" || selState === "open")
+      ? meetingLinks[sel]!
+      : null;
+  // Never a replay under a live join for the same session. The config-level
+  // video (a Drive link in the program config) stands in only when no session
+  // has an uploaded recording, and belongs to the first session.
+  const selReplay =
+    selState === "live"
+      ? null
+      : (playbackUrls[sel] ??
+        (sel === 0 && liveNow.size === 0 && !recordingUrls.some((u) => !!u)
+          ? (weekContent.videoUrl ?? null)
+          : null));
+  const showLabStart = sel === 0 && hasStage && !sessionDayFuture;
+  const showInstructor = sel === 0 && hasInstructor && !hasStage && !sessionDayFuture;
+  const showEndedNote = selState === "ended" && !selReplay && !showLabStart && !showInstructor;
+  const showUpcoming = selState === "upcoming" && !!selDate;
+  const hasSessionBlock =
+    !!selZoom ||
+    !!selExternalJoin ||
+    !!selReplay ||
+    showLabStart ||
+    showInstructor ||
+    showEndedNote ||
+    showUpcoming;
+  // A builder course titles its sessions "Session N", which says nothing the
+  // picker has not already said.
+  const selTitle =
+    !isSingleSession && selSession.title !== `Session ${sel + 1}` ? selSession.title : null;
+
+  // Notes: what the instructor wrote for the session. The lab's stage already
+  // prints the description's first paragraph, so Notes picks up after it.
+  const notesHtml = showInstructor ? briefHtml : (displayDescription ?? "");
+  const selResources = groupMaterialsBySession
+    ? resources.filter((r) => Math.min(r.session ?? 1, sessionCount) === sel + 1)
+    : resources;
+  const hasNotes = !!notesHtml || displayObjectives.length > 0 || selResources.length > 0;
+
+  // Your work: the week has one submission and one reflection, so both show
+  // under whichever session is open, with that session's homework above them.
+  const reflectionPrompts = weekContent.reflectionPrompts ?? track.defaultReflectionPrompts ?? [];
+  const showReflection = track.reflectionsEnabled !== false && reflectionPrompts.length > 0;
+  const hasWork =
+    unlocked && isSupabaseConfigured() && (weekSubmissionsEnabled || showReflection);
+  const selHomework =
+    (homeworkInstructions.length > 1 ? homeworkInstructions[sel] : homeworkInstructions[0]) ||
+    "";
+
+  // Survey: open from the moment the session starts, live included.
+  const hasSurvey = !!exitSurvey;
+  const surveyOpen = selState === "live" || selState === "ended";
+  const surveyRow = exitSurvey?.[sel + 1];
+
+  // The rail: the open session's blocks, as jump links. A filled dot means
+  // done, a dashed one means not available yet.
+  const watched = weekProgress?.videoWatched ?? false;
+  const turnedIn = weekProgress?.homeworkSubmitted ?? false;
+  const rail: { href: string; label: string; dot: "todo" | "done" | "na" | "none" }[] = [
+    ...(hasSessionBlock
+      ? [
+          {
+            href: "#session",
+            label: "Session",
+            dot: showUpcoming
+              ? ("na" as const)
+              : selReplay && showChecklist
+                ? watched
+                  ? ("done" as const)
+                  : ("todo" as const)
+                : ("none" as const),
+          },
+        ]
+      : []),
+    ...(hasNotes ? [{ href: "#notes", label: "Notes", dot: "none" as const }] : []),
+    ...(hasWork
+      ? [
+          {
+            href: "#work",
+            label: "Your work",
+            dot: !weekSubmissionsEnabled
+              ? ("none" as const)
+              : turnedIn
+                ? ("done" as const)
+                : ("todo" as const),
+          },
+        ]
+      : []),
+    ...(hasSurvey
+      ? [
+          {
+            href: "#survey",
+            label: "Survey",
+            dot: !surveyOpen
+              ? ("na" as const)
+              : surveyRow?.understanding != null
+                ? ("done" as const)
+                : ("todo" as const),
+          },
+        ]
+      : []),
+  ];
+
+  const weekHref = (n: number) => `/dashboard/track/${trackSlug}/${n}`;
+  const weekLinkLabel = (n: number) => {
+    const name = display.get(n)?.text ?? `${unit} ${n}`;
+    const title = track.weeks.find((w) => w.week === n)?.title;
+    return title && title !== name ? `${name}: ${title}` : name;
+  };
+  const blockClass = "scroll-mt-24 py-7 first:pt-6 lg:py-9 lg:first:pt-8";
+  const cardClass =
+    "flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg border border-rule bg-surface-elevated px-5 py-[18px]";
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 pt-4 pb-8">
+    <div className="mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5 xl:max-w-[980px]">
       <WeekKeyboardNav
-        prevHref={prevWeek ? `/dashboard/track/${trackSlug}/${prevWeek}` : null}
-        nextHref={nextWeek ? `/dashboard/track/${trackSlug}/${nextWeek}` : null}
-      />
-      {/* Prev/next week nav renders into the breadcrumb row (#breadcrumb-actions)
-         so it shares that line instead of stacking below. The "up to course"
-         path is the breadcrumb's course crumb. */}
-      <WeekNavPortal
-        trackSlug={trackSlug}
-        weekNum={weekNum}
-        totalWeeks={track.totalWeeks}
-        unitLabel={unit}
-        prevLabel={display.get(weekNum - 1)?.text}
-        nextLabel={display.get(weekNum + 1)?.text}
+        prevHref={prevWeek ? weekHref(prevWeek) : null}
+        nextHref={nextWeek ? weekHref(nextWeek) : null}
       />
 
-      {/* Compact header. For single-session weeks the session title equals
-         the week title, so we fold session metadata (time + Join action)
-         into the header instead of repeating the title below. Multi-session
-         weeks still render the dedicated Sessions list further down.
-
-         Skipped when the merged staged-session stage renders instead (below):
-         that stage carries this same title/subtitle on its own field, so
-         showing both stacked the session's name and byline twice. */}
-      {!mergedStageHeader && (
-        <div className="mb-6">
-          {/* The session's header sits on the field, always. It was a plain
-             ink PageHeader with the field appearing only in three gated
-             states (a future date, an idle AI instructor, a passed window),
-             so most sessions never showed it and the product read as half
-             redesigned. Same ground as the course page and the admin home. */}
-          <PageHeader
-            onField
-            // The STUDENT-FACING number, not the internal week number. On a
-            // course with a kickoff, internal week 2 is "Session 1" — the
-            // recording card, the prev/next nav and the breadcrumb all said
-            // Session 1 while this printed a big "02" beside them. An extra
-            // (kickoff, exam day) carries no number, so it shows none.
-            index={(() => {
-              const n = display.get(weekNum)?.number;
-              return n ? String(n).padStart(2, "0") : undefined;
-            })()}
-            badge={
-              isCompleted || isCurrent ? (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                    isCompleted
-                      ? "bg-green-50 text-green-600"
-                      : "bg-primary/[0.08] text-primary"
-                  }`}
-                >
-                  {isCompleted
-                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                    : unit.toLowerCase() === "day" ? "Today" : `This ${unit}`}
-                </span>
-              ) : undefined
-            }
-            title={displayTitle}
-            subtitle={headerSubtitle}
-          />
-          {headerAction && <div className="mt-4">{headerAction}</div>}
-        </div>
-      )}
+      {/* Plain header. The course is the breadcrumb above; the week's field
+         banner is gone from this page so the session's work starts at the top. */}
+      <header>
+        <h1 className="text-balance text-[26px] font-bold leading-[1.15] text-ink lg:text-[32px]">
+          {displayTitle}
+        </h1>
+        {headerMeta && <p className="mt-2 text-[15px] text-ink-soft">{headerMeta}</p>}
+      </header>
 
       {/* Admin-only empty-state callout. Admins bypass the pre-start and
          coming-soon gates to prep future sessions, which means a contentless
-         session renders as a silent blank page — indistinguishable from a bug
+         session renders as a silent blank page, indistinguishable from a bug
          (HFS Day 2, 2026-08-08). Name the state instead. Learners never see
          this: the gates redirect them or show the "opens on" placeholder. */}
       {isAdminViewer &&
@@ -698,9 +780,9 @@ export default async function TrackWeekPage({
         !(displayObjectives?.length) &&
         resources.length === 0 &&
         !hasRecording && (
-          <div className="mb-8 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
             <p className="text-sm font-semibold text-amber-800">
-              Nothing here yet — admin preview
+              Nothing here yet (admin preview)
             </p>
             <p className="mt-1 text-xs text-amber-800">
               This session has no description, objectives, resources, or recording, so
@@ -710,495 +792,400 @@ export default async function TrackWeekPage({
           </div>
         )}
 
-      {/* Before the session's day: the stage in its "not open yet" state. This
-         replaced a quiet white card that sat in the player's slot — same job
-         (name the state, don't leave a blank page), but it holds the top of
-         the page instead of being one more panel in a stack, and it offers a
-         countdown and a calendar link rather than nothing to do.
-
-         A staged session (hasStage) folds the page header into this same
-         field instead of stacking a second one above it — same title, same
-         byline, same date, said once. Its own "Your session" card also skips
-         the pre-launch state now (below), so a staff preview gets one field
-         with a "Staff preview: start session" link, not three stacked blocks
-         all naming the same session. */}
-      {mergedStageHeader ? (
-        <SessionStage
-          state="before"
-          headline={displayTitle}
-          meta={headerSubtitle}
-          blurb={stageBlurb || undefined}
-          liveLabel={liveLabel}
-          countdown={countdown}
-          calendarHref={calendarHref}
-          secondaryAction={
-            isAdminViewer
-              ? {
-                  label: "Staff preview: start session",
-                  href: `/dashboard/track/${trackSlug}/${weekNum}/live`,
-                }
-              : undefined
-          }
-        />
-      ) : (
-        sessionDayFuture &&
-        !weekIsPast &&
-        (meetingLinks.some(Boolean) || hasInstructor) &&
-        weekClock?.date && (
-          <SessionStage
-            state="before"
-            headline={`${unitName} opens ${formatCohortDate(weekClock.date, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}`}
-            blurb={stageBlurb || undefined}
-            liveLabel={liveLabel}
-            countdown={countdown}
-            calendarHref={calendarHref}
-          />
-        )
-      )}
-
       {/* Monday hours question: before the first session of a week after week 1,
          once, until answered. */}
       {exitSurvey && asksHours(weekNum, 1) && weekNum === currentWeek && !exitSurvey[1]?.hours_text && (
         <ExitHoursPopup trackSlug={trackSlug} weekNumber={weekNum} />
       )}
 
-      {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
-         The meeting ID never appears in the DOM; students join through the SDK. */}
-      {zoomSessions.length > 0 && (
-        <div className="mb-8 space-y-6">
-          {zoomSessions.map(({ index, session, parsed }) => (
-            <ZoomEmbed
-              key={index}
-              meetingNumber={parsed!.meetingNumber}
-              password={parsed!.password}
-              userName={zoomUserName}
-              userEmail={zoomUserEmail}
-              trackSlug={trackSlug}
-              weekNumber={weekNum}
-              sessionNumber={index + 1}
-              // Single-session weeks: the week title sits directly above the
-              // embed, so repeating it next to LIVE NOW reads as clutter.
-              sessionTitle={
-                weekContent.sessions.length > 1
-                  ? session.title === `Session ${index + 1}`
-                    ? sessionLabels[index]
-                    : `${sessionLabels[index]}: ${session.title}`
-                  : undefined
-              }
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Non-Zoom live sessions (Teams, Meet): single-session weeks have no
-         sessions list below, so without this an external meeting link rendered
-         NO join control at all. Same activity rules as the Zoom embed. Added
-         for HFS camp week's Teams-hosted mock-interview days (2026-08-07). */}
-      {nonZoomLive && meetingLinks[0] && (
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-3 panel px-4 py-4">
-            <div>
-              <p className="text-sm font-semibold text-ink">Live session</p>
-              <p className="mt-0.5 text-xs text-ink-faint">
-                {weekContent.sessions[0].time}
-              </p>
-            </div>
-            <a
-              href={meetingLinks[0]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors"
+      {/* Session picker, multi-session weeks only. Links, not tabs: each
+         session is its own view of the page, and the state word tells a
+         learner which one to open before they open it. */}
+      {!isSingleSession && (
+        <nav
+          aria-label={`Sessions this ${unit.toLowerCase()}`}
+          className="mt-5 grid gap-2 sm:gap-3 lg:mt-7"
+          style={{ gridTemplateColumns: `repeat(${sessionCount}, minmax(0, 1fr))` }}
+        >
+          {weekContent.sessions.map((session, i) => (
+            <Link
+              key={i}
+              href={`${weekHref(weekNum)}?session=${i + 1}`}
+              scroll={false}
+              aria-current={i === sel ? "true" : undefined}
+              className={`flex min-h-16 flex-col items-start gap-1.5 rounded-lg border bg-surface-elevated p-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 ${
+                i === sel
+                  ? "border-ink shadow-[inset_0_0_0_1px_var(--ink)]"
+                  : "border-rule hover:border-ink-faint"
+              }`}
             >
-              <Video size={14} />
-              Join Session
-            </a>
-          </div>
-        )}
-
-      {/* Between "session over" and "recording imported" the page would
-         otherwise be empty — no embed, no replay — which reads as broken
-         (welcome day, 2026-08-07). Say what's actually happening, in the
-         stage's completed state so the top of the page still has an anchor. */}
-      {sessionWindowPassed && !hasRecording && weekNum === currentWeek && (
-        <SessionStage
-          state="after"
-          headline="Today's session has ended"
-          blurb="The recording is processing and will appear right here — usually within an hour or two of the session wrapping up."
-          completedNote={liveLabel}
-        />
+              <span className="min-w-0">
+                <span className="block text-[15px] font-semibold leading-snug text-ink">
+                  Session {i + 1}
+                </span>
+                <span className="block text-[13px] leading-snug text-ink-faint">
+                  {[dayText(sessionDateList[i]), session.time].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <SessionStateWord state={sessionStates[i]} />
+            </Link>
+          ))}
+        </nav>
       )}
 
-      {/* Session survey, single-session weeks: once the session is live or
-         has a replay, its survey sits above the recording so the full-height
-         player doesn't push it out of sight. Multi-session weeks keep each
-         session's survey inside that session's row (below the tabs). */}
-      {exitSurvey &&
-        weekContent.sessions.length === 1 &&
-        (liveNow.has(0) || playbackUrls[0]) && (
-          <ExitSurveyForm
-            trackSlug={trackSlug}
-            weekNumber={weekNum}
-            sessionNumber={1}
-            title="Session survey"
-            initialRating={exitSurvey[1]?.understanding ?? null}
-            initialUnclear={exitSurvey[1]?.unclear_text ?? null}
-          />
-        )}
-
-      {/* Config-level recording (e.g. Google Drive link set in the program
-         config). Skipped when any session has an admin-uploaded recording —
-         those are intentional overrides for this cohort and rendering both
-         stacks duplicate cards on the page. */}
-      {weekContent.videoUrl &&
-        !recordingUrls.some((u) => !!u) &&
-        liveNow.size === 0 && (
-          <RecordingCard
-            url={weekContent.videoUrl}
-            title="Session Recording"
-            subtitle={`${unitName} replay`}
-            trackSlug={trackSlug}
-            weekNumber={weekNum}
-            showWatchButton={isSupabaseConfigured() && unlocked}
-            initialWatched={weekProgress?.videoWatched ?? false}
-          />
-        )}
-
-      {/* Admin-uploaded session recording, plus the one the Zoom cron
-         imported. Single-session weeks only: the replay is the page's stage.
-         Multi-session weeks keep each recording inside its session's row. */}
-      {weekContent.sessions.length === 1 && playbackUrls[0] && !liveNow.has(0) && (
-        // Never a replay under a live join for the same session.
-        <RecordingCard
-          url={playbackUrls[0]}
-          title="Session Recording"
-          subtitle={`${unitName} replay`}
-          trackSlug={trackSlug}
-          weekNumber={weekNum}
-          showWatchButton={isSupabaseConfigured() && unlocked}
-          initialWatched={weekProgress?.videoWatched ?? false}
-        />
-      )}
-
-      {/* The lab itself. Idle, this renders AS the stage (the dark slab that
-         anchors the page); once the learner starts, it becomes the live
-         conversation exactly as before.
-
-         !sessionDayFuture matters: the stage has a BEFORE state that renders
-         above (countdown, add-to-calendar), and without this gate both drew
-         at once — "Session 1 opens Monday" stacked on top of "Open now ·
-         Start Session 1", offering a lab that isn't open yet. One session,
-         one stage, exactly one state. */}
-      {/* A session with a built stage opens INTO it. Without this the route
-         existed but nothing in the platform led to it — `hasStage` was
-         computed and then never read, so the only way in was typing the URL,
-         which is not a way in at all.
-
-         Staff preview before session day is now the merged stage's own
-         "Staff preview: start session" link (above), not this card — a
-         facilitator still gets in early to rehearse, just from one object
-         instead of two stacked ones naming the same session. */}
-      {hasStage && !sessionDayFuture && (
-        <section className="mb-8 overflow-hidden rounded-2xl border border-rule bg-surface-elevated">
-          <div className="border-b border-rule px-6 py-4">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Your session
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-ink">{displayTitle}</h2>
-          </div>
-          <div className="px-6 py-6">
-            <p className="mb-5 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
-              Ninety minutes, four parts, and an instructor who talks you through it.
-              You answer as you go — nothing to install, and you never write code.
-              Turn your sound on before you start.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/dashboard/track/${trackSlug}/${weekNum}/live`}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              >
-                Start {unitName}
-                <span aria-hidden>&rarr;</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {hasInstructor && !hasStage && !sessionDayFuture && (
-        <InstructorPanel
-          trackSlug={trackSlug}
-          weekNumber={weekNum}
-          unitName={unitName}
-          sessionTitle={displayTitle}
-          firstName={gateCtx?.student?.first_name ?? null}
-          initiallyComplete={weekProgress?.videoWatched ?? false}
-          stage={{
-            headline: stageBlurb ? undefined : displayTitle,
-            blurb: stageBlurb || undefined,
-            liveLabel,
-            calendarHref,
-            startNote: "You can stop and pick it up later.",
-          }}
-        />
-      )}
-
-      {/* Everything that used to stack as its own full-width panel down the
-         page — brief, materials, reflection — is one tab strip under the
-         stage. Nothing about how these render changed; only where they live. */}
-      <SessionTabs
-        progressLabel={
-          checklistTotal > 0
-            ? `${checklistDone} of ${checklistTotal} complete`
-            : undefined
-        }
-        progressComplete={checklistTotal > 0 && checklistDone === checklistTotal}
-        tabs={[
-          {
-            id: "brief",
-            label: "Brief",
-            content:
-              briefHtml || displayObjectives.length > 0 ? (
-                <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-11">
-                  {briefHtml ? (
-                    <div
-                      className="prose prose-sm max-w-[640px] leading-relaxed text-ink-soft prose-headings:text-ink prose-a:text-accent prose-strong:text-ink"
-                      dangerouslySetInnerHTML={{ __html: briefHtml }}
+      <div className="mt-2 xl:grid xl:grid-cols-[minmax(0,680px)_180px] xl:gap-20">
+        <div className="min-w-0">
+          <div className="divide-y divide-rule">
+            {hasSessionBlock && (
+              <section id="session" className={blockClass}>
+                <h2 className={weekHeading}>
+                  Session
+                  {isSingleSession && <SessionStateWord state={selState} />}
+                </h2>
+                {selTitle && <p className="-mt-1.5 mb-3.5 text-ink-soft">{selTitle}</p>}
+                <div className="space-y-4">
+                  {/* The meeting ID never appears in the DOM; learners join
+                     through the SDK inside the frame. */}
+                  {selZoom && (
+                    <ZoomEmbed
+                      meetingNumber={selZoom.meetingNumber}
+                      password={selZoom.password}
+                      userName={zoomUserName}
+                      userEmail={zoomUserEmail}
+                      trackSlug={trackSlug}
+                      weekNumber={weekNum}
+                      sessionNumber={sel + 1}
+                      sessionTitle={selTitle ?? undefined}
                     />
-                  ) : (
-                    <div />
                   )}
-                  {displayObjectives.length > 0 && (
-                    <div className="panel flex flex-col gap-4 px-5 py-5">
-                      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                        What you&apos;ll cover
-                      </h2>
-                      <ul className="flex flex-col gap-3.5">
-                        {displayObjectives.map((obj, i) => (
-                          <li key={i} className="flex items-start gap-3.5">
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border border-rule text-[11px] font-bold tabular-nums text-ink-faint">
-                              {i + 1}
-                            </span>
-                            <span className="text-[14.5px] leading-relaxed text-ink">
-                              {obj}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ) : null,
-          },
-          {
-            id: "materials",
-            label: "Materials",
-            count: resources.length,
-            content:
-              resources.length > 0 && groupMaterialsBySession ? (
-                // Multi-session week with materials assigned to later sessions:
-                // group them under each session's day so learners see what's
-                // due before Thursday's class and what comes after it.
-                <div className="max-w-4xl space-y-8">
-                  {sessionLabels.map((label, s) => {
-                    const items = resources.filter(
-                      (r) => Math.min(r.session ?? 1, sessionLabels.length) === s + 1,
-                    );
-                    return items.length > 0 ? (
-                      <section key={s}>
-                        <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-                          {label}
-                        </h3>
-                        <ul className="grid gap-3 sm:grid-cols-2">
-                          {items.map((r, i) => (
-                            <li key={i} className={r.embed ? "sm:col-span-2" : undefined}>
-                              <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ) : null;
-                  })}
-                </div>
-              ) : resources.length > 0 ? (
-                <ul className="grid max-w-4xl gap-3 sm:grid-cols-2">
-                  {resources.map((r, i) => (
-                    <li key={i} className={r.embed ? "sm:col-span-2" : undefined}>
-                      <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
-                    </li>
-                  ))}
-                </ul>
-              ) : null,
-          },
-          {
-            id: "reflection",
-            label: weekSubmissionsEnabled ? "Submit" : "Reflection",
-            content:
-              unlocked &&
-              isSupabaseConfigured() &&
-              (weekSubmissionsEnabled || track.reflectionsEnabled !== false) ? (
-                <SubmissionsReflectionsSection
-                  trackSlug={trackSlug}
-                  weekNum={weekNum}
-                  weekContent={weekContent}
-                  homeworkInstructions={homeworkInstructions}
-                  sessionLabels={sessionLabels}
-                  showSubmissions={weekSubmissionsEnabled}
-                  showReflections={track.reflectionsEnabled !== false}
-                  defaultReflectionPrompts={track.defaultReflectionPrompts}
-                />
-              ) : null,
-          },
-        ]}
-      />
 
-      {/* Sessions, multi-session weeks only (single-session weeks fold their
-         metadata into the header above). One row per session, and everything
-         that belongs to a session lives in its row: status or join, its
-         recording, its survey. These used to be three separate stacks above
-         the tabs, which split each session across the page and pushed the
-         brief and the work about two screens down. */}
-      {weekContent.sessions.length > 1 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            {sessionsLabel}
-          </h2>
-          <div className="panel divide-y divide-rule">
-            {weekContent.sessions.map((session, i) => {
-              // Same rule as the Zoom embed above: a session that already
-              // happened shows "Session ended", not a Join button. Without the
-              // recording/past-week test this offered a live join to a Google
-              // Meet link for a class held two weeks ago.
-              // A later session with its own date (Field Ready's Thursday) ends
-              // on its own day, not when Monday's window passes, and offers no
-              // join before that day.
-              const ownDate = i > 0 ? sessionDateList[i] : null;
-              const windowPassed = ownDate ? ownDate < todayET : sessionWindowPassed;
-              const notYet = !!ownDate && ownDate > todayET;
-              const live = liveNow.has(i);
-              const ended =
-                sessionStatuses[i] === "completed" ||
-                !!recordingUrls[i] ||
-                weekIsPast ||
-                windowPassed;
-              const status = live ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden />
-                  Live now
-                </span>
-              ) : ended ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-success-text">
-                  <CheckCircle size={14} />
-                  Session ended
-                </span>
-              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) && !notYet ? (
-                <a
-                  href={meetingLinks[i]!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-                >
-                  <Video size={14} />
-                  Join Session
-                </a>
-              ) : notYet ? (
-                <span className="text-xs text-ink-faint">Upcoming</span>
-              ) : null;
-
-              const replayUrl = live ? null : playbackUrls[i];
-              const showSurvey = !!exitSurvey && (live || !!playbackUrls[i]);
-              const surveyRow = exitSurvey?.[i + 1];
-              // Open by default only on the newest session that has a replay,
-              // and only while nothing is live: one player and at most one
-              // unanswered form on screen, never the old stack.
-              const isLatestReplay =
-                liveNow.size === 0 && !!replayUrl && !playbackUrls.slice(i + 1).some(Boolean);
-
-              return (
-                <div key={i} className="px-4 py-3 sm:px-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3.5">
-                    <div className="flex min-w-0 flex-1 items-center gap-3.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink">
-                          {/* Builder courses title sessions "Session N", which
-                             read "Session 1: Session 1"; show the day instead. */}
-                          {session.title === `Session ${i + 1}`
-                            ? sessionLabels[i]
-                            : `${sessionLabels[i]}: ${session.title}`}
-                        </p>
-                        <p className="mt-0.5 text-xs text-ink-faint">{session.time}</p>
+                  {selExternalJoin && (
+                    <div className="grid aspect-video place-items-center rounded-lg bg-ink px-6 text-center">
+                      <div>
+                        <a
+                          href={selExternalJoin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={weekBtnPrimary}
+                        >
+                          Join the live session
+                        </a>
+                        <p className="mt-3.5 text-sm text-[#c8c8cc]">Opens in a new tab</p>
                       </div>
                     </div>
-                    {status && <div className="ml-[46px] shrink-0 sm:ml-0">{status}</div>}
-                  </div>
+                  )}
 
-                  {(replayUrl || showSurvey) && (
-                    <div className="mt-1 sm:ml-[46px]">
-                      {replayUrl && (
-                        <RecordingCard
-                          variant="row"
-                          defaultOpen={isLatestReplay}
-                          url={replayUrl}
-                          title={`Session ${i + 1} Recording`}
-                          trackSlug={trackSlug}
-                          weekNumber={weekNum}
-                          showWatchButton={isSupabaseConfigured() && unlocked}
-                          initialWatched={weekProgress?.videoWatched ?? false}
-                        />
-                      )}
-                      {showSurvey && (
-                        <ExitSurveyForm
-                          variant="row"
-                          defaultOpen={isLatestReplay && surveyRow?.understanding == null}
-                          trackSlug={trackSlug}
-                          weekNumber={weekNum}
-                          sessionNumber={i + 1}
-                          title="Session survey"
-                          initialRating={surveyRow?.understanding ?? null}
-                          initialUnclear={surveyRow?.unclear_text ?? null}
-                        />
-                      )}
+                  {selReplay && (
+                    <RecordingCard
+                      variant="plain"
+                      url={selReplay}
+                      title={isSingleSession ? "Session recording" : `Session ${sel + 1} recording`}
+                      trackSlug={trackSlug}
+                      weekNumber={weekNum}
+                      showWatchButton={isSupabaseConfigured() && unlocked}
+                      initialWatched={watched}
+                    />
+                  )}
+
+                  {/* Between "session over" and "recording imported" this block
+                     would otherwise be empty, which reads as broken (welcome
+                     day, 2026-08-07). Say what is actually happening. */}
+                  {showEndedNote && (
+                    <div className={cardClass}>
+                      <div>
+                        <strong className="block font-semibold text-ink">This session has ended</strong>
+                        <span className="text-[15px] text-ink-soft">
+                          {weekNum === currentWeek && meetingLinks[sel]
+                            ? "The recording is processing and will appear right here, usually within an hour or two."
+                            : "No recording has been posted for it."}
+                        </span>
+                      </div>
                     </div>
                   )}
+
+                  {showUpcoming && (
+                    <div className={cardClass}>
+                      <div>
+                        <strong className="block font-semibold text-ink">
+                          Starts {[dayText(selDate), selSession.time].filter(Boolean).join(" · ")}
+                        </strong>
+                        {(meetingLinks[sel] || (sel === 0 && hasInstructor)) && (
+                          <span className="text-[15px] text-ink-soft">
+                            {meetingLinks[sel]
+                              ? "The join button appears here that morning."
+                              : "Your session opens here that morning."}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                        {calendarHrefFor(selDate, sel) && (
+                          <a href={calendarHrefFor(selDate, sel)} className={weekBtnQuiet}>
+                            <CalendarPlus size={18} aria-hidden />
+                            Add to calendar
+                          </a>
+                        )}
+                        {/* A facilitator gets into a staged session early to rehearse. */}
+                        {sel === 0 && hasStage && isAdminViewer && (
+                          <Link
+                            href={`${weekHref(weekNum)}/live`}
+                            className={weekBtnQuiet}
+                          >
+                            Staff preview: start session
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* A session with a built stage opens INTO it: this is the
+                     only way in that is not typing the URL. */}
+                  {showLabStart && (
+                    <div className={cardClass}>
+                      <div className="max-w-[52ch]">
+                        <strong className="block font-semibold text-ink">{displayTitle}</strong>
+                        <span className="text-[15px] text-ink-soft">
+                          Ninety minutes, four parts, and an instructor who talks you through
+                          it. You answer as you go: nothing to install, and you never write
+                          code. Turn your sound on before you start.
+                        </span>
+                      </div>
+                      <Link href={`${weekHref(weekNum)}/live`} className={weekBtnPrimary}>
+                        Start {unitName}
+                        <ArrowRight size={16} aria-hidden />
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* The hosted lab. Idle, it renders as its own stage; once
+                     the learner starts, it becomes the live conversation. */}
+                  {showInstructor && (
+                    <InstructorPanel
+                      trackSlug={trackSlug}
+                      weekNumber={weekNum}
+                      unitName={unitName}
+                      sessionTitle={displayTitle}
+                      firstName={gateCtx?.student?.first_name ?? null}
+                      initiallyComplete={watched}
+                      stage={{
+                        headline: stageBlurb ? undefined : displayTitle,
+                        blurb: stageBlurb || undefined,
+                        liveLabel,
+                        calendarHref,
+                        startNote: "You can stop and pick it up later.",
+                      }}
+                    />
+                  )}
                 </div>
-              );
-            })}
+              </section>
+            )}
+
+            {hasNotes && (
+              <section id="notes" className={blockClass}>
+                <h2 className={weekHeading}>Notes</h2>
+                {notesHtml && (
+                  <div
+                    className="prose max-w-[68ch] leading-relaxed text-ink prose-headings:text-ink prose-a:text-primary prose-strong:text-ink"
+                    dangerouslySetInnerHTML={{ __html: notesHtml }}
+                  />
+                )}
+                {displayObjectives.length > 0 && (
+                  <div className={notesHtml ? "mt-5" : undefined}>
+                    <p className="mb-1.5 font-medium text-ink">What you&apos;ll cover</p>
+                    <ol className="max-w-[68ch] list-decimal pl-5 text-ink marker:text-ink-faint">
+                      {displayObjectives.map((obj, i) => (
+                        <li key={i} className="py-0.5 pl-1">
+                          {obj}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {selResources.length > 0 && (
+                  <ul
+                    className={`divide-y divide-rule border-y border-rule ${
+                      notesHtml || displayObjectives.length > 0 ? "mt-5" : ""
+                    }`}
+                  >
+                    {selResources.map((r, i) => (
+                      <li key={i}>
+                        <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {hasWork && (
+              <section id="work" className={blockClass}>
+                <h2 className={weekHeading}>
+                  Your work
+                  {weekSubmissionsEnabled &&
+                    (turnedIn ? (
+                      <span className={weekStateDone}>
+                        <Check size={14} weight="bold" aria-hidden />
+                        Turned in
+                      </span>
+                    ) : (
+                      <span className={weekState}>Not turned in yet</span>
+                    ))}
+                </h2>
+                {weekSubmissionsEnabled && selHomework && (
+                  <p className="mb-4 max-w-[68ch] whitespace-pre-line text-ink">{selHomework}</p>
+                )}
+                <WorkForms
+                  trackSlug={trackSlug}
+                  weekNum={weekNum}
+                  submissionPrompts={weekContent.submissionPrompts}
+                  showSubmissions={weekSubmissionsEnabled}
+                  reflectionPrompts={showReflection ? reflectionPrompts : null}
+                />
+              </section>
+            )}
+
+            {hasSurvey && (
+              <section id="survey" className={blockClass}>
+                {surveyOpen ? (
+                  <ExitSurveyForm
+                    // Remount per session so one session's answers never show
+                    // under another's.
+                    key={sel}
+                    variant="plain"
+                    trackSlug={trackSlug}
+                    weekNumber={weekNum}
+                    sessionNumber={sel + 1}
+                    title="Survey"
+                    initialRating={surveyRow?.understanding ?? null}
+                    initialUnclear={surveyRow?.unclear_text ?? null}
+                  />
+                ) : (
+                  <>
+                    <h2 className={weekHeading}>Survey</h2>
+                    <p className="text-ink-faint">
+                      Two quick questions. Opens when the session starts.
+                    </p>
+                  </>
+                )}
+              </section>
+            )}
           </div>
-        </section>
-      )}
+
+          {/* Previous and next live at the foot of the page, where a learner
+             is when they have finished the session. */}
+          <nav
+            aria-label={`${unit}s`}
+            className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-rule pt-5 text-sm sm:text-[15px] lg:mt-10"
+          >
+            {prevWeek ? (
+              <Link
+                href={weekHref(prevWeek)}
+                className="inline-flex min-h-[44px] items-center gap-1.5 font-medium text-primary underline-offset-[3px] hover:underline"
+              >
+                <ArrowLeftIcon size={16} aria-hidden className="shrink-0" />
+                {weekLinkLabel(prevWeek)}
+              </Link>
+            ) : (
+              <span className="text-ink-faint">Start of course</span>
+            )}
+            {nextWeek ? (
+              <Link
+                href={weekHref(nextWeek)}
+                className="ml-auto inline-flex min-h-[44px] items-center gap-1.5 text-right font-medium text-primary underline-offset-[3px] hover:underline"
+              >
+                {weekLinkLabel(nextWeek)}
+                <ArrowRight size={16} aria-hidden className="shrink-0" />
+              </Link>
+            ) : (
+              <span className="ml-auto text-ink-faint">End of course</span>
+            )}
+          </nav>
+        </div>
+
+        {rail.length > 1 && (
+          <aside aria-label="On this page" className="hidden pt-11 xl:block">
+            <div className="sticky top-24">
+              <p className="mb-2.5 text-[13px] text-ink-faint">
+                {isSingleSession ? "Checklist" : `Session ${sel + 1} checklist`}
+              </p>
+              {rail.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2.5 py-[7px] text-sm text-ink-soft transition-colors hover:text-ink"
+                >
+                  <span
+                    aria-hidden
+                    className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] ${
+                      item.dot === "done"
+                        ? "border-success-text bg-success-text text-white"
+                        : item.dot === "na"
+                          ? "border-dashed border-[#b9b9c0]"
+                          : item.dot === "none"
+                            ? "border-transparent"
+                            : "border-[#b9b9c0]"
+                    }`}
+                  >
+                    {item.dot === "done" ? (
+                      <Check size={9} weight="bold" />
+                    ) : item.dot === "none" ? (
+                      <span className="h-1 w-1 rounded-full bg-[#b9b9c0]" />
+                    ) : null}
+                  </span>
+                  {item.label}
+                  {item.dot === "done" && <span className="sr-only">(done)</span>}
+                  {item.dot === "na" && <span className="sr-only">(not open yet)</span>}
+                </a>
+              ))}
+            </div>
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
 
-async function SubmissionsReflectionsSection({
+/** The one word that says where a session stands. Live uses the program's
+ *  signal color as a filled chip; the others are quiet text. */
+function SessionStateWord({ state }: { state: "live" | "ended" | "upcoming" | "open" }) {
+  if (state === "live") {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-signal px-2.5 py-[3px] font-sans text-[13px] font-semibold tracking-normal text-ink">
+        <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-ink" />
+        Live now
+      </span>
+    );
+  }
+  if (state === "ended") {
+    return (
+      <span className={weekStateDone}>
+        <Check size={14} weight="bold" aria-hidden />
+        Done
+      </span>
+    );
+  }
+  if (state === "upcoming") return <span className={weekState}>Upcoming</span>;
+  return null;
+}
+
+async function WorkForms({
   trackSlug,
   weekNum,
-  weekContent,
-  homeworkInstructions,
-  sessionLabels,
+  submissionPrompts,
   showSubmissions,
-  showReflections,
-  defaultReflectionPrompts,
+  reflectionPrompts,
 }: {
   trackSlug: string;
   weekNum: number;
-  weekContent: WeekConfig;
-  homeworkInstructions: string[];
-  sessionLabels: string[];
+  submissionPrompts?: string[];
   showSubmissions: boolean;
-  showReflections: boolean;
-  defaultReflectionPrompts?: string[];
+  /** null when the week takes no reflection. */
+  reflectionPrompts: string[] | null;
 }) {
   const [existingSubmission, existingReflection] = await Promise.all([
     showSubmissions
       ? getSubmission(trackSlug, weekNum).catch(() => null)
       : null,
-    showReflections
+    reflectionPrompts
       ? getReflection(trackSlug, weekNum).catch(() => null)
       : null,
   ]);
@@ -1214,38 +1201,21 @@ async function SubmissionsReflectionsSection({
       : [],
   ]);
 
-  const reflectionPrompts =
-    weekContent.reflectionPrompts ?? defaultReflectionPrompts ?? [];
-
   return (
-    <div className="mt-6 space-y-4">
-      {showSubmissions &&
-        homeworkInstructions.map((text, i) =>
-          text ? (
-            <p
-              key={`hw-${i}`}
-              className="whitespace-pre-line rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-ink"
-            >
-              {homeworkInstructions.length > 1 && (
-                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-                  {sessionLabels[i] ?? `Session ${i + 1}`} homework
-                </span>
-              )}
-              {text}
-            </p>
-          ) : null,
-        )}
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
       {showSubmissions && (
         <SubmissionForm
+          variant="plain"
           trackSlug={trackSlug}
           weekNumber={weekNum}
-          prompts={weekContent.submissionPrompts}
+          prompts={submissionPrompts}
           existing={existingSubmission}
           feedback={submissionFeedback}
         />
       )}
-      {showReflections && reflectionPrompts.length > 0 && (
+      {reflectionPrompts && (
         <ReflectionForm
+          variant="plain"
           trackSlug={trackSlug}
           weekNumber={weekNum}
           prompts={reflectionPrompts}
@@ -1259,7 +1229,7 @@ async function SubmissionsReflectionsSection({
 
 /**
  * Pull the first paragraph off a rich-text description. It becomes the stage's
- * blurb; the remainder stays in the Brief tab so nothing is duplicated and
+ * blurb; the remainder stays in Notes so nothing is duplicated and
  * nothing is lost. Tag-stripped because the stage renders it as text, not HTML.
  */
 function splitLede(html: string | undefined | null): { lede: string; rest: string } {

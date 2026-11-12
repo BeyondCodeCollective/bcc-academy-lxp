@@ -5,6 +5,7 @@ import { submitReflection } from "@/app/dashboard/track/actions";
 import type { ReflectionRow, FeedbackRow } from "@/app/dashboard/track/actions";
 import { PenLine, CheckCircle, Loader2, MessageSquare, ChevronDown } from "lucide-react";
 import { buttonClass } from "@/components/ui";
+import { weekBtnQuiet } from "@/components/week-page-ui";
 
 const DEFAULT_PROMPTS = [
   "What did you learn this week?",
@@ -18,13 +19,18 @@ export function ReflectionForm({
   prompts,
   existing,
   feedback,
+  variant = "panel",
 }: {
   trackSlug: string;
   weekNumber: number;
   prompts: string[];
   existing: ReflectionRow | null;
   feedback: FeedbackRow[];
+  /** "plain" is the week page's Your work block: a quiet button that opens
+   *  the form in place, with no panel or heading of its own. */
+  variant?: "panel" | "plain";
 }) {
+  const plain = variant === "plain";
   const activePrompts = prompts.length > 0 ? prompts : DEFAULT_PROMPTS;
   const existingResponses = existing?.responses ?? {};
 
@@ -67,34 +73,47 @@ export function ReflectionForm({
   const hasContent = Object.values(responses).some((v) => v.trim());
 
   return (
-    <div className="panel">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <PenLine size={14} className="text-ink-faint" />
-          <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
-            Weekly Reflection
-          </h2>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-              <CheckCircle size={14} />
-              Submitted
-            </span>
-          )}
-          <ChevronDown
-            size={16}
-            className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
-          />
-        </div>
-      </button>
+    <div className={plain ? undefined : "panel"}>
+      {plain ? (
+        !open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className={`${weekBtnQuiet} w-full sm:w-auto`}
+          >
+            <PenLine size={18} />
+            {saved ? "Edit your reflection" : "Write your reflection"}
+          </button>
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <PenLine size={14} className="text-ink-faint" />
+            <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
+              Weekly Reflection
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            {saved && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                <CheckCircle size={14} />
+                Submitted
+              </span>
+            )}
+            <ChevronDown
+              size={16}
+              className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </div>
+        </button>
+      )}
 
       {!open ? null : (
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className={plain ? undefined : "px-4 sm:px-6 pb-4 sm:pb-6"}>
       {/* Structured prompts */}
       <div className="space-y-4 mb-4">
         {activePrompts.map((prompt) => (
