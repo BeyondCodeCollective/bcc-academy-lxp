@@ -5,9 +5,9 @@ import { surveyNotOpenYet } from "@/lib/onboarding/survey-timing";
 import { CATALYST_LABS_POST_SURVEY, CATALYST_LABS_POST_SURVEY_ID } from "./catalyst-labs-post";
 
 describe("catalyst-labs-post", () => {
-  it("has the three approved questions", () => {
+  it("has the four approved questions", () => {
     const schema = getSurveySchema(CATALYST_LABS_POST_SURVEY_ID)!;
-    expect(schema.map((q) => q.id)).toEqual(["lab_rating", "try_this_week", "field_ready_interest"]);
+    expect(schema.map((q) => q.id)).toEqual(["session_value", "apply_likelihood", "return_likelihood", "keep_change_add"]);
   });
 
   it("is a required Catalyst survey for the Nov 19 Labs learners only", () => {
