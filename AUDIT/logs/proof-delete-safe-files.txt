@@ -1,0 +1,3 @@
+# proof: cluster refs from outside src/components/marketing (excluding BrandWordmark)
+src/app/dashboard/admin/allowlist/track-picker.tsx:17:      id="track-picker"
+hits above (expected none)

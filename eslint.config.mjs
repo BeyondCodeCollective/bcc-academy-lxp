@@ -12,6 +12,16 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Not application source. Walking these (public/zoom alone is ~96M of
+    // vendored JS) is what crashed the heap on a bare `eslint`.
+    "public/**",
+    "archive/**",
+    "demo/**",
+    "docs/**",
+    "supabase/**",
+    "learnerpathwayassessmenttoolbuildpacket/**",
+    "qr-codes/**",
+    "coverage/**",
   ]),
 ]);
 

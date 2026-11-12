@@ -703,7 +703,7 @@ export default async function AdminPage({
   /** survey id → distinct learners from this course who answered it. */
   let trackSurveyRespondents: Record<string, number> = {};
   /** This course's practice exams + how many enrolled learners attempted. */
-  let trackExams: { id: string; title: string; attempted: number }[] = [];
+  const trackExams: { id: string; title: string; attempted: number }[] = [];
 
   if (isSupabaseConfigured()) {
     activeTrack = isTrackTab

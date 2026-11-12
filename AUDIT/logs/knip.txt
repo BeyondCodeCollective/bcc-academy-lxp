@@ -1,0 +1,345 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Progress: resolved 59, reused 17, downloaded 23, added 0
+Packages: +36
+++++++++++++++++++++++++++++++++++++
+Progress: resolved 60, reused 17, downloaded 25, added 36, done
+Unused files (31)
+src/app/apply/home-for-summer/public-apply-form.tsx          
+src/app/apply/sbft/actions.ts                                
+src/app/apply/sbft/public-apply-form.tsx                     
+src/app/dashboard/admin/allowlist/allowlist-form.tsx         
+src/app/dashboard/admin/allowlist/track-picker.tsx           
+src/app/dashboard/admin/invites/invites-panel.tsx            
+src/app/dashboard/admin/surveys/unified-surveys-dashboard.tsx
+src/components/copy-invite-link.tsx                          
+src/components/marketing/ChatButton.tsx                      
+src/components/marketing/EventCard.tsx                       
+src/components/marketing/EventsSection.tsx                   
+src/components/marketing/FAQSection.tsx                      
+src/components/marketing/FinalCTA.tsx                        
+src/components/marketing/Footer.tsx                          
+src/components/marketing/Header.tsx                          
+src/components/marketing/Hero.tsx                            
+src/components/marketing/HubsSection.tsx                     
+src/components/marketing/HumanInTheLoop.tsx                  
+src/components/marketing/LiveSessionsSection.tsx             
+src/components/marketing/MarketingHome.tsx                   
+src/components/marketing/OurPeopleSection.tsx                
+src/components/marketing/PathwaysSection.tsx                 
+src/components/marketing/PhotoStrip.tsx                      
+src/components/marketing/ProgramsSection.tsx                 
+src/components/marketing/ProofSection.tsx                    
+src/components/marketing/VideoBackground.tsx                 
+src/data/marketing/facilitators.ts                           
+src/data/marketing/hubs.ts                                   
+src/data/marketing/sessions.ts                               
+src/lib/course-summary.ts                                    
+src/lib/marketing-motion.ts                                  
+Unused dependencies (2)
+@tailwindcss/typography  package.json:25:6
+@zoom/meetingsdk         package.json:36:6
+Unused devDependencies (2)
+@anthropic-ai/sdk  package.json:49:6
+tailwindcss        package.json:59:6
+Unlisted dependencies (41)
+postcss      postcss.config.mjs                                   
+playwright   scripts/shot-admin.mjs:2:27                          
+playwright   scripts/shot-sitemap.mjs:11:27                       
+server-only  src/app/dashboard/admin/insights/insights-pdf.tsx:1:9
+server-only  src/lib/analytics/insights-data.ts:1:9               
+server-only  src/lib/analytics/platform.ts:1:9                    
+server-only  src/lib/assessment/exit-confidence.ts:1:9            
+server-only  src/lib/auth/active-enrollment.ts:1:9                
+server-only  src/lib/blob-recordings.ts:17:9                      
+server-only  src/lib/certificates/auto.ts:1:9                     
+server-only  src/lib/certificates/data.ts:1:9                     
+server-only  src/lib/certificates/pdf.tsx:1:9                     
+server-only  src/lib/enroll.ts:1:9                                
+server-only  src/lib/eventbrite-funnel.ts:1:9                     
+server-only  src/lib/exams/index.ts:6:9                           
+server-only  src/lib/exams/network-plus-post-v2.ts:6:9            
+server-only  src/lib/exams/network-plus-post.ts:6:9               
+server-only  src/lib/exams/security-plus-practice.ts:6:9          
+server-only  src/lib/google-drive.ts:27:9                         
+server-only  src/lib/instructor/lab.ts:1:9                        
+server-only  src/lib/instructor/tools.ts:1:9                      
+server-only  src/lib/mvp/attendance-review-queries.ts:1:9         
+server-only  src/lib/mvp/attendance-review-server.ts:1:9          
+server-only  src/lib/mvp/check-in-signal-queries.ts:1:9           
+server-only  src/lib/mvp/cohort-queries.ts:1:9                    
+server-only  src/lib/mvp/detail-queries.ts:1:9                    
+server-only  src/lib/mvp/event-queries.ts:1:9                     
+server-only  src/lib/mvp/income-queries.ts:1:9                    
+server-only  src/lib/mvp/learner-activity.ts:1:9                  
+server-only  src/lib/mvp/learner-options.ts:1:9                   
+server-only  src/lib/mvp/learner-progress.ts:1:9                  
+server-only  src/lib/mvp/learner-queries.ts:1:9                   
+server-only  src/lib/mvp/learner-roster.ts:1:9                    
+server-only  src/lib/mvp/participant-queries.ts:1:9               
+server-only  src/lib/mvp/queries.ts:1:9                           
+server-only  src/lib/mvp/report-pdf.tsx:1:9                       
+server-only  src/lib/mvp/report-queries.ts:1:9                    
+server-only  src/lib/mvp/submission-queries.ts:1:9                
+server-only  src/lib/mvp/survey-queries.ts:1:9                    
+server-only  src/lib/tracks/completion.ts:1:9                     
+server-only  src/lib/zoom-recordings.ts:15:9                      
+Unused exports (109)
+savePublicApplication                  function  src/app/apply/home-for-summer/actions.ts:55:23                      
+HEARD_ABOUT_OPTIONS                              src/app/bcc/_components/camp-enroll-form.tsx:10:14                  
+getAllReflections                      function  src/app/dashboard/admin/actions-misc.ts:90:23                       
+getActiveAnnouncements                 function  src/app/dashboard/admin/actions-misc.ts:202:23                      
+grantCompletion                        function  src/app/dashboard/admin/actions-misc.ts:230:23                      
+programIdFromSlug                      function  src/app/dashboard/admin/actions-shared.ts:98:23                     
+updateCohortAction                     function  src/app/dashboard/admin/actions-students.ts:233:23                  
+createCohortAction                     function  src/app/dashboard/admin/actions-students.ts:243:23                  
+getSurveyStats                         function  src/app/dashboard/admin/actions-surveys.ts:34:23                    
+exportSurveyResponses                  function  src/app/dashboard/admin/actions-surveys.ts:55:23                    
+exportPublicSurveyResponsesByType      function  src/app/dashboard/admin/actions-surveys.ts:131:23                   
+exportPublicSurveyResponses            function  src/app/dashboard/admin/actions-surveys.ts:219:23                   
+listPublicSurveyResponses              function  src/app/dashboard/admin/actions-surveys.ts:277:23                   
+sendInviteAction                       function  src/app/dashboard/admin/actions-surveys.ts:300:23                   
+deleteSurveyResponse                   function  src/app/dashboard/admin/actions-surveys.ts:415:23                   
+deletePublicSurveyResponse             function  src/app/dashboard/admin/actions-surveys.ts:438:23                   
+getBCCSurveyStats                      function  src/app/dashboard/admin/actions-surveys.ts:487:23                   
+getBCCSurveyResponses                  function  src/app/dashboard/admin/actions-surveys.ts:543:23                   
+getStudentTracks                       function  src/app/dashboard/admin/actions-tracks.ts:28:23                     
+getInstructorTracks                    function  src/app/dashboard/admin/actions-tracks.ts:524:23                    
+PLATFORM_SURVEY_TITLES                           src/app/dashboard/admin/admin-shared.tsx:9:14                       
+trackLabel                             function  src/app/dashboard/admin/admin-shared.tsx:21:17                      
+anonymizeName                          function  src/app/dashboard/admin/admin-shared.tsx:191:17                     
+isStorageUrl                                     src/app/dashboard/admin/admin-tabs.tsx:804:10                       
+isUploadedVideo                                  src/app/dashboard/admin/admin-tabs.tsx:804:24                       
+parseEmailList                         function  src/app/dashboard/admin/allowlist/actions.ts:9:23                   
+SOURCE_LABEL                                     src/app/dashboard/admin/landing-signups/signups-panel.tsx:36:14     
+WORKSPACE_WIDTH                                  src/app/dashboard/admin/mvp/mvp-components/workspace-layout.tsx:5:14
+FILE_ACCEPT                                      src/app/dashboard/admin/resource-editor.tsx:97:14                   
+markAssessmentViewed                   function  src/app/dashboard/assessment/actions.ts:111:23                      
+CONSENT_VERSION                                  src/app/survey/[id]/public-bgc-participant-survey.tsx:15:14         
+CONSENT_VERSION                                  src/app/survey/[id]/public-cyberdeck-post.tsx:20:14                 
+CONSENT_VERSION                                  src/app/survey/[id]/public-cyberdeck-pre.tsx:22:14                  
+CONSENT_VERSION                                  src/app/survey/[id]/public-impact-survey.tsx:23:14                  
+CONSENT_VERSION                                  src/app/survey/[id]/public-learner-intake.tsx:10:14                 
+CONSENT_VERSION                                  src/app/survey/[id]/public-network-plus-survey.tsx:21:14            
+CONSENT_VERSION                                  src/app/survey/[id]/public-post-survey.tsx:13:14                    
+CONSENT_VERSION                                  src/app/survey/[id]/public-pre-survey.tsx:12:14                     
+CONSENT_VERSION                                  src/app/survey/[id]/public-workshop-survey.tsx:22:14                
+buildTrail                             function  src/components/breadcrumbs.tsx:44:17                                
+useToast                               function  src/components/motion/toast.tsx:63:17                               
+cobaltAt                               function  src/components/stats/palette.ts:17:17                               
+LIKERT_DIVERGING                                 src/components/stats/palette.ts:64:14                               
+CELL_BG                                          src/components/stats/streak-heatmap.tsx:21:14                       
+usingAnthropic                         function  src/lib/ai/model.ts:24:17                                           
+ENGAGEMENT_SIGNALS                               src/lib/analytics/engagement.ts:49:14                               
+DAY_MS                                           src/lib/analytics/engagement.ts:74:14                               
+primaryEngagementSignal                function  src/lib/analytics/modality.ts:29:17                                 
+showsVideoColumn                       function  src/lib/analytics/modality.ts:36:17                                 
+LIKERT_LABELS                                    src/lib/assessment/content.ts:6:14                                  
+WORK_STYLE_BALANCED                              src/lib/assessment/content.ts:372:14                                
+getProgramFeatures                     function  src/lib/assessment/features.ts:33:23                                
+setAssessmentEnabled                   function  src/lib/assessment/features.ts:43:23                                
+setTrackAssessmentEnabled              function  src/lib/assessment/features.ts:50:23                                
+getTrackFeatures                       function  src/lib/assessment/features.ts:57:23                                
+elapsedSessions                        function  src/lib/attendance/compute.ts:154:17                                
+SUPER_ADMIN_EMAILS                               src/lib/auth/admins.ts:9:14                                         
+ADMIN_EMAILS                                     src/lib/auth/admins.ts:19:14                                        
+MASTER_EMAILS                                    src/lib/auth/admins.ts:31:14                                        
+STAFF_EMAIL_DOMAINS                              src/lib/auth/admins.ts:63:14                                        
+STAFF_EMAILS                                     src/lib/auth/admins.ts:68:14                                        
+STAFF_DOMAIN_PROGRAMS                            src/lib/auth/admins.ts:89:14                                        
+fileCertificateToDrive                 function  src/lib/certificates/auto.ts:55:23                                  
+DEMO_USERS                                       src/lib/demo-users.ts:47:14                                         
+MAX_SURVEY_QUESTIONS                             src/lib/event-survey.ts:11:14                                       
+ORGANIZER_URL                                    src/lib/eventbrite.ts:4:14                                          
+getEvents                              function  src/lib/eventbrite.ts:220:23                                        
+mapHeaders                             function  src/lib/events-import.ts:36:17                                      
+SEAT_HOLDING                                     src/lib/events-waitlist.ts:9:14                                     
+driveToken                             function  src/lib/google-drive.ts:54:23                                       
+LAB_ROOT                                         src/lib/instructor/lab.ts:13:14                                     
+COMMAND_TIMEOUT_MS                               src/lib/instructor/lab.ts:26:14                                     
+labName                                function  src/lib/instructor/lab.ts:31:17                                     
+labPath                                function  src/lib/instructor/lab.ts:87:17                                     
+MAX_MESSAGE_CHARS                                src/lib/instructor/prompt.ts:12:14                                  
+PLATFORM_LANDING_PREFIX                          src/lib/landing-pages.ts:43:14                                      
+getLaunchReadiness                     function  src/lib/launch-readiness.ts:91:23                                   
+MVP_OFFERING_ACTIVE_CONFIGS                      src/lib/mvp/active-config.ts:35:14                                  
+MVP_SIGNAL_POLICIES                              src/lib/mvp/check-in-signals.ts:12:14                               
+MVP_INCOME_RANGES                                src/lib/mvp/household-income.ts:9:14                                
+MVP_PARTICIPANT_PROGRESS_POLICIES                src/lib/mvp/participant-progress.ts:20:14                           
+MVP_MINIMUM_GROUP_SIZE                           src/lib/mvp/privacy.ts:4:14                                         
+MVP_REPORT_METRICS                               src/lib/mvp/report-selection.ts:5:14                                
+FIELD_READY_PROGRAM_TRACK                        src/lib/programs/field-ready.ts:112:14                              
+TUTOR_DISABLED_PRELAUNCH                         src/lib/programs/index.ts:165:14                                    
+sendPushNotification                   function  src/lib/push.ts:4:23                                                
+ROLE_RANK                                        src/lib/roles.ts:78:14                                              
+autoFixEnabled                         function  src/lib/sentinel/auto-fix.ts:36:17                                  
+dismissalId                            function  src/lib/sentinel/dismissals.ts:30:17                                
+REMINDER_TOUCHES                                 src/lib/signup-reminders.ts:8:14                                    
+isSlackConfigured                      function  src/lib/slack.ts:7:17                                               
+isUploadedRecording                    function  src/lib/storage-utils.ts:26:17                                      
+toVideoProxyUrl                        function  src/lib/storage-utils.ts:39:17                                      
+getYouTubeThumbnailUrl                 function  src/lib/storage-utils.ts:96:17                                      
+likertValue                            function  src/lib/surveys/aggregate.ts:49:17                                  
+FIELD_READY_CONFIDENCE                           src/lib/surveys/field-ready-staff.ts:20:14                          
+surveyAppliesToPrograms                function  src/lib/surveys/platform.ts:83:17                                   
+surveyAppliesToTracks                  function  src/lib/surveys/platform.ts:97:17                                   
+HOME_FOR_SUMMER_APPLICATION_SURVEY_ID            src/lib/surveys/platform.ts:148:14                                  
+SBFT_APPLICATION_SURVEY_ID                       src/lib/surveys/platform.ts:149:14                                  
+BCC_PRE_SURVEY_SPRING_2026_ID                    src/lib/surveys/platform.ts:263:14                                  
+SHARED_DEMOGRAPHIC_IDS                           src/lib/surveys/schemas.ts:2344:14                                  
+DEMOGRAPHIC_ALIASES                              src/lib/surveys/schemas.ts:2358:14                                  
+isWeekComplete                         function  src/lib/track-gating.ts:29:17                                       
+completedTrackSlugs                    function  src/lib/tracks/completion.ts:52:23                                  
+US_ENGLISH_RULE                                  src/lib/tutor/prompt.ts:17:14                                       
+resolveTrackEndDayKey                  function  src/lib/utils.ts:216:17                                             
+CATEGORY_LABELS                                  src/lib/utils.ts:269:14                                             
+WORKSHOPS                                        src/lib/workshops.ts:53:14                                          
+Unused exported types (147)
+ApplyTheme                type       src/app/apply/[slug]/apply-form.tsx:14:13                           
+UploadResult              type       src/app/apply/upload-actions.ts:50:13                               
+EnrollActionResult        type       src/app/bcc/[slug]/enroll-action.ts:14:13                           
+AdminReflectionRow        type       src/app/dashboard/admin/actions-misc.ts:30:13                       
+IssueCertificateResult    type       src/app/dashboard/admin/actions-misc.ts:365:13                      
+CohortRow                 type       src/app/dashboard/admin/actions-students.ts:23:13                   
+PublicSurveyCountRow      type       src/app/dashboard/admin/actions-surveys.ts:104:13                   
+PublicSurveyResponseRow   type       src/app/dashboard/admin/actions-surveys.ts:269:13                   
+BCCSurveyStat             type       src/app/dashboard/admin/actions-surveys.ts:476:13                   
+SessionContentData        type       src/app/dashboard/admin/actions-tracks.ts:156:13                    
+ApplicationInput          type       src/app/dashboard/admin/applications/actions.ts:41:13               
+ApplicationUpdateInput    type       src/app/dashboard/admin/applications/actions.ts:119:13              
+StudentRow                type       src/app/dashboard/admin/attendance-tab.tsx:923:15                   
+AttendanceRecord          type       src/app/dashboard/admin/attendance-tab.tsx:923:32                   
+TrackLike                 type       src/app/dashboard/admin/attendance-tab.tsx:923:55                   
+FixResult                 type       src/app/dashboard/admin/health/actions.ts:15:15                     
+SendInvitesResult         type       src/app/dashboard/admin/invites/actions.ts:28:13                    
+Source                    type       src/app/dashboard/admin/landing-signups/signups-panel.tsx:16:13     
+Reg                       type       src/app/dashboard/admin/landing-signups/signups-panel.tsx:19:13     
+PageRow                   type       src/app/dashboard/admin/landing-signups/signups-panel.tsx:68:13     
+SignupsData               type       src/app/dashboard/admin/landing-signups/signups-panel.tsx:75:13     
+CourseSignups             type       src/app/dashboard/admin/landing-signups/signups-panel.tsx:278:13    
+SaveLandingResult         type       src/app/dashboard/admin/landing/actions.ts:70:13                    
+LearnerFilterOptions      type       src/app/dashboard/admin/mvp/mvp-components/learner-filters.tsx:16:13
+OrganizationRow           type       src/app/dashboard/admin/organizations/actions.ts:26:13              
+OutcomesDashboardData     type       src/app/dashboard/admin/outcomes/outcomes-dashboard.tsx:13:13       
+DeleteCourseResult        type       src/app/dashboard/admin/programs/actions.ts:231:13                  
+PreviewResult             type       src/app/dashboard/admin/programs/import-actions.ts:54:13            
+ImportResult              type       src/app/dashboard/admin/programs/import-actions.ts:150:13           
+UploadState               type       src/app/dashboard/admin/resource-editor.tsx:13:13                   
+WeekProgress              type       src/app/dashboard/track/actions.ts:201:13                           
+ExitSurveyRow             type       src/app/dashboard/track/exit-survey-actions.ts:14:13                
+RegisterResult            type       src/app/events/[slug]/register/actions.ts:33:13                     
+JoinResult                type       src/app/join/[slug]/actions.ts:18:13                                
+PublicSurveyWizardProps   interface  src/app/survey/[id]/public-survey-wizard.tsx:41:18                  
+FunnelStage               type       src/components/charts/funnel-chart.tsx:5:13                         
+PairedRow                 type       src/components/charts/paired-bar-chart.tsx:11:13                    
+BandStat                  type       src/components/home-band.tsx:16:13                                  
+ToastStatus               type       src/components/motion/toast.tsx:40:13                               
+Toast                     type       src/components/motion/toast.tsx:42:13                               
+PanelTodo                 type       src/components/next-up-panel.tsx:16:13                              
+PanelNotice               type       src/components/next-up-panel.tsx:27:13                              
+ChecklistItemView         type       src/components/onboarding-checklist.tsx:9:13                        
+SessionTab                type       src/components/session-tabs.tsx:16:13                               
+DataBarItem               type       src/components/stats/data-bar.tsx:9:13                              
+UploadedFile              type       src/components/survey-fields.tsx:830:13                             
+DataTableColumn           type       src/components/ui.tsx:93:13                                         
+Pathway                   interface  src/data/marketing/pathways.ts:1:18                                 
+CareerResult              interface  src/data/marketing/quiz.ts:17:18                                    
+AnswerMeta                interface  src/data/marketing/quiz.ts:29:18                                    
+QuestionData              interface  src/data/marketing/quiz.ts:34:18                                    
+ActivityRow               type       src/lib/analytics/activity.ts:15:13                                 
+DidWorkSignal             type       src/lib/analytics/engagement.ts:46:13                               
+EngagementSignals         type       src/lib/analytics/engagement.ts:56:13                               
+MetricKey                 type       src/lib/analytics/metric-defs.ts:32:13                              
+TrackModality             type       src/lib/analytics/modality.ts:15:13                                 
+ShiftRow                  type       src/lib/analytics/outcomes.ts:27:3                                  
+ShiftGroup                type       src/lib/analytics/outcomes.ts:28:3                                  
+CompositionSegment        type       src/lib/analytics/outcomes.ts:29:3                                  
+Application               type       src/lib/applications.ts:8:13                                        
+M1Item                    type       src/lib/assessment/content.ts:19:13                                 
+M2Scenario                type       src/lib/assessment/content.ts:62:13                                 
+M3Item                    type       src/lib/assessment/content.ts:150:13                                
+ArchetypeContent          type       src/lib/assessment/content.ts:184:13                                
+WorkStyleContent          type       src/lib/assessment/content.ts:357:13                                
+WorkStyleAxis             type       src/lib/assessment/content.ts:370:13                                
+PathwayContent            type       src/lib/assessment/content.ts:389:13                                
+Option                    type       src/lib/assessment/entry-flow.ts:6:13                               
+WorkStylePole             type       src/lib/assessment/types.ts:26:13                                   
+AssessmentResultRow       type       src/lib/assessment/types.ts:72:13                                   
+AssessmentProgressRow     type       src/lib/assessment/types.ts:83:13                                   
+ExpectedSession           type       src/lib/attendance/compute.ts:50:13                                 
+RiskStatus                type       src/lib/attendance/compute.ts:56:13                                 
+StudentSummary            type       src/lib/attendance/compute.ts:69:13                                 
+ZoomSyncResult            type       src/lib/attendance/zoom-sync.ts:25:13                               
+LearnerAccess             type       src/lib/auth/active-enrollment.ts:10:13                             
+PreviewScope              type       src/lib/auth/preview-scope.ts:19:13                                 
+SeededName                type       src/lib/auth/seed-name.ts:4:13                                      
+SessionStudent            type       src/lib/auth/session.ts:14:13                                       
+SessionContext            type       src/lib/auth/session.ts:29:13                                       
+AutoCertificateSweep      type       src/lib/certificates/auto.ts:142:13                                 
+CourseRosterStat          type       src/lib/course-engagement.ts:20:13                                  
+RosterSeed                type       src/lib/course-engagement.ts:50:13                                  
+TrackCapabilities         type       src/lib/course-engagement.ts:213:13                                 
+HeroPhotoResult           type       src/lib/course-import/hero.ts:50:13                                 
+ApplicationDraftQuestion  type       src/lib/course-import/parse.ts:39:13                                
+CurrentUser               type       src/lib/current-user.ts:6:13                                        
+DashboardIndex            type       src/lib/dashboard-index.ts:17:13                                    
+VisibilityInput           type       src/lib/dashboard-visibility.ts:8:13                                
+DemoUser                  type       src/lib/demo-users.ts:3:13                                          
+EnrollResult              type       src/lib/enroll.ts:7:13                                              
+ProcessOrderResult        type       src/lib/eventbrite-funnel.ts:11:13                                  
+EventbriteOrder           type       src/lib/eventbrite.ts:131:13                                        
+EventHistoryItem          type       src/lib/events-bridge.ts:83:13                                      
+ImportAttendee            type       src/lib/events-import.ts:93:13                                      
+ImportFamily              type       src/lib/events-import.ts:94:13                                      
+ImportPlan                type       src/lib/events-import.ts:96:13                                      
+EventWithProgram          type       src/lib/events-server.ts:5:13                                       
+Exam                      type       src/lib/exams/index.ts:11:13                                        
+ClientQuestion            type       src/lib/exams/index.ts:28:13                                        
+DomainScore               type       src/lib/exams/index.ts:47:13                                        
+MissedQuestion            type       src/lib/exams/index.ts:52:13                                        
+ReviewedQuestion          type       src/lib/exams/index.ts:64:13                                        
+SessionSummary            type       src/lib/exit-survey-results.ts:18:13                                
+SessionCompletion         type       src/lib/exit-survey-results.ts:77:13                                
+InstructorMessage         type       src/lib/instructor/prompt.ts:9:13                                   
+ParsedInstructorRequest   type       src/lib/instructor/prompt.ts:95:13                                  
+ToolContext               type       src/lib/instructor/tools.ts:19:13                                   
+LandingPage               type       src/lib/landing-pages.ts:74:13                                      
+MvpActiveResult           type       src/lib/mvp/active-learners.ts:17:13                                
+MvpSavedReview            type       src/lib/mvp/attendance-review-server.ts:10:13                       
+MvpLinkedCohort           type       src/lib/mvp/cohort-queries.ts:5:13                                  
+MvpCompletionResult       type       src/lib/mvp/completion.ts:9:13                                      
+MvpLocationSummary        type       src/lib/mvp/location-summary.ts:3:13                                
+MvpMetricCoverage         type       src/lib/mvp/metrics.ts:9:13                                         
+MvpAttendanceMilestone    type       src/lib/mvp/milestones.ts:36:13                                     
+MvpProgramSummary         type       src/lib/mvp/program-summary.ts:13:13                                
+MvpExportRecord           type       src/lib/mvp/report-export.ts:40:13                                  
+MvpSchedule               type       src/lib/mvp/schedule.ts:16:13                                       
+MvpProgramDetail          type       src/lib/mvp/types.ts:191:13                                         
+ChecklistItemKind         type       src/lib/onboarding/checklists.ts:3:13                               
+ChecklistItem             type       src/lib/onboarding/checklists.ts:5:13                               
+AgreementConfig           type       src/lib/onboarding/checklists.ts:18:13                              
+TrackOnboarding           type       src/lib/onboarding/checklists.ts:30:13                              
+OnboardingStatus          type       src/lib/onboarding/checklists.ts:296:13                             
+ReleaseDocument           type       src/lib/onboarding/releases.ts:12:13                                
+TrackConfig               type       src/lib/programs/index.ts:159:30                                    
+WeekConfig                type       src/lib/programs/index.ts:159:43                                    
+SessionInfo               type       src/lib/programs/index.ts:159:55                                    
+TrackLength               type       src/lib/programs/scope.ts:76:13                                     
+UnitDisplay               type       src/lib/programs/unit-display.ts:17:13                              
+RosterPerson              type       src/lib/roster-import.ts:15:13                                      
+RosterParse               type       src/lib/roster-import.ts:21:13                                      
+RosterResult              type       src/lib/roster-import.ts:29:13                                      
+JourneyResult             type       src/lib/sentinel/journeys.ts:6:13                                   
+ResolvedSession           type       src/lib/session-content.ts:4:13                                     
+DualLikertStat            type       src/lib/surveys/aggregate.ts:58:13                                  
+LikertMeanStat            type       src/lib/surveys/aggregate.ts:70:13                                  
+InstructorRole            type       src/lib/ta-changes.ts:13:13                                         
+CompletionResult          type       src/lib/tracks/completion.ts:68:13                                  
+TutorMessage              type       src/lib/tutor/prompt.ts:26:13                                       
+ParsedTutorRequest        type       src/lib/tutor/prompt.ts:77:13                                       
+Session                   type       src/lib/types.ts:35:13                                              
+Resource                  type       src/lib/types.ts:50:13                                              
+TrackPhase                type       src/lib/utils.ts:243:13                                             
+ZipPlace                  type       src/lib/zip-to-city.ts:8:13                                         
+ParsedZoomLink            type       src/lib/zoom.ts:1:13                                                
+Configuration hints (1)
+. (root)     …v-bcc-lxp-audit/c6b3a423-f5b8-4ad3-90f3-81f91bc82c88/scratchpad/knip.json  Add entry and/or refine projec…
