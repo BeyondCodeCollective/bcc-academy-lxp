@@ -186,7 +186,15 @@ export function Breadcrumbs({
             </li>
           ))}
         </ol>
-        <div id="breadcrumb-actions" className="flex shrink-0 items-center gap-1" />
+        <div
+          id="breadcrumb-actions"
+          // Marked once this bar has committed (so, hydrated): portals such as
+          // WeekNavPortal wait for it. Injecting earlier breaks hydration here.
+          ref={(el) => {
+            el?.setAttribute("data-ready", "");
+          }}
+          className="flex shrink-0 items-center gap-1"
+        />
       </div>
     </nav>
   );
