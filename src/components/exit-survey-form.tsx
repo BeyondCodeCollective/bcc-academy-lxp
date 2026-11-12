@@ -30,6 +30,8 @@ export function ExitSurveyForm({
   const [unclear, setUnclear] = useState(initialUnclear ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(initialRating !== null);
+  // True only after a save in this visit, so the confirmation is not shown on load.
+  const [savedThisVisit, setSavedThisVisit] = useState(false);
   const [error, setError] = useState("");
   const labelId = `exit-rating-${weekNumber}-${sessionNumber}`;
 
@@ -43,6 +45,7 @@ export function ExitSurveyForm({
     try {
       await submitExitSurvey(trackSlug, weekNumber, sessionNumber, rating, unclear);
       setSaved(true);
+      setSavedThisVisit(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save. Try again.");
     } finally {
@@ -111,7 +114,7 @@ export function ExitSurveyForm({
           {saved ? "Update survey" : "Send survey"}
         </button>
         <span role="status" className="text-sm">
-          {saved && !saving && !error && (
+          {saved && savedThisVisit && !saving && !error && (
             <span className="inline-flex items-center gap-1.5 text-ink-soft">
               <CheckCircle size={16} /> Thanks, saved
             </span>

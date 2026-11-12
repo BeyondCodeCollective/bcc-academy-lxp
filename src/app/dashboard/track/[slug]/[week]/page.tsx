@@ -84,7 +84,7 @@ export default async function TrackWeekPage({
 
   // Per-track unit label ("Week" default, "Day" for a bootcamp, …). Extras like
   // a kickoff render by name, so the displayed number can trail the internal one.
-  const unit = track.unitLabel || "Week";
+  const unit = track.unitLabel?.trim() || "Week";
   const { display } = trackUnitDisplay(track);
   const unitName = unitText(display, weekNum, unit);
 
@@ -748,7 +748,10 @@ export default async function TrackWeekPage({
   const weekLinkLabel = (n: number) => {
     const name = display.get(n)?.text ?? `${unit} ${n}`;
     const title = track.weeks.find((w) => w.week === n)?.title;
-    return title && title !== name ? `${name}: ${title}` : name;
+    // Compare loosely: a title that only repeats the unit name ("Week 2") adds nothing.
+    const same = (a: string, b: string) =>
+      a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
+    return title && !same(title, name) ? `${name}: ${title}` : name;
   };
   const blockClass = "scroll-mt-24 py-7 first:pt-6 lg:py-9 lg:first:pt-8";
   const cardClass =
