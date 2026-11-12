@@ -1,0 +1,659 @@
+
+/Users/fonz.morris/dev/bcc/lxp-audit/scripts/audit-data.mjs
+  60:9  warning  'idOf' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/api/insights/csv/route.ts
+  166:11  warning  'filtered' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/api/week-progress/route.ts
+  14:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/bcc/_components/camp-header-cta.tsx
+  22:5  error  Do not use an `<a>` element to navigate to `/dashboard/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/admin-tabs.tsx
+   15:10  warning  'TrackOverviewForm' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   18:15  warning  'Student' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   66:3   warning  'alumniEnrollments' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   67:3   warning  'unviewedAssessments' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  150:9   warning  'tabs' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  214:23  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/admin-tabs.tsx:214:23
+  212 |   useEffect(() => {
+  213 |     const next = normalizeTab(initialTab || defaultTab);
+> 214 |     if (next !== tab) setTab(next);
+      |                       ^^^^^^ Avoid calling setState() directly within an effect
+  215 |   }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  216 |
+  217 |   const [students, setStudents] = useState(initialStudents);                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  225:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/admin-tabs.tsx:225:5
+  223 |   // optimistic in-tab edits (add/remove/rename) aren't clobbered by ref churn.
+  224 |   useEffect(() => {
+> 225 |     setStudents((prev) => {
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  226 |       if (
+  227 |         prev.length === initialStudents.length &&
+  228 |         prev.every((s, i) => s.id === initialStudents[i]?.id)                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/set-state-in-effect
+  352:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `programSlug`, but the source dependencies were []. Inferred dependency not present in source.
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/admin-tabs.tsx:352:36
+  350 |   // ── Debounced save for any track ──────────────────────────────────────────
+  351 |
+> 352 |   const scheduleSave = useCallback((trackSlug: string, weekNum: number, weekData: AdminWeek) => {
+      |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 353 |     if (!saveTimers.current[trackSlug]) saveTimers.current[trackSlug] = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 354 |     clearTimeout(saveTimers.current[trackSlug][weekNum]);
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 388 |     }, 800);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 389 |   }, []);
+      | ^^^^ Could not preserve existing manual memoization
+  390 |
+  391 |   function updateSession(trackSlug: string, weekNum: number, sessionNum: number, patch: Partial<AdminSession>) {
+  392 |     setTrackData((prev) => {  react-hooks/preserve-manual-memoization
+  389:6   warning  React Hook useCallback has a missing dependency: 'programSlug'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  422:10  warning  'confirmDelete' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  423:10  warning  'showAddForm' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  423:23  warning  'setShowAddForm' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  424:10  warning  'addingStudent' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  424:25  warning  'setAddingStudent' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  425:10  warning  'addError' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  425:20  warning  'setAddError' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  436:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/admin-tabs.tsx:436:5
+  434 |   // enrollment edits aren't clobbered.
+  435 |   useEffect(() => {
+> 436 |     setEnrollments((prev) => {
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  437 |       if (
+  438 |         prev.length === initialStudentTracks.length &&
+  439 |         prev.every(                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/set-state-in-effect
+  453:10  warning  'enrollmentFilter' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  453:28  warning  'setEnrollmentFilter' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  454:21  warning  'setBulkTrack' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  456:10  warning  'bulkSaving' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  458:10  warning  'showBulkAssign' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  458:26  warning  'setShowBulkAssign' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  484:12  warning  'getStudentEnrollments' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  514:18  warning  'handleBulkAssign' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  538:12  warning  'getInstructorAssignments' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  618:15  error    Do not use an `<a>` element to navigate to `/dashboard/admin/programs/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @next/next/no-html-link-for-pages
+  622:15  error    Do not use an `<a>` element to navigate to `/dashboard/admin/programs/new/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/announcements-manager.tsx
+  31:10  warning  'isPending' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  31:21  warning  'startTransition' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/announcements/page.tsx
+  37:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/attendance-tab.tsx
+  164:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/error.tsx
+  39:11  error  Do not use an `<a>` element to navigate to `/dashboard/admin/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/organizations/page.tsx
+  42:79  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/page.tsx
+   11:32  warning  'SurveyStatsRow' is defined but never used              @typescript-eslint/no-unused-vars
+  488:5   warning  'publicSurveyStats' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/people-tab.tsx
+  19:3  warning  'cohorts' is defined but never used          @typescript-eslint/no-unused-vars
+  84:9  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/programs/[slug]/edit/edit-course-form.tsx
+  251:9  error  Do not use an `<a>` element to navigate to `/dashboard/admin/programs/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/programs/new/create-course-form.tsx
+  146:9  error  Do not use an `<a>` element to navigate to `/dashboard/admin/programs/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/progress-tab.tsx
+  33:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/progress-tab.tsx:33:5
+  31 |   useEffect(() => {
+  32 |     let cancelled = false;
+> 33 |     setData(null);
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  34 |     getTrackProgress(trackSlug)
+  35 |       .then((d) => {
+  36 |         if (!cancelled) setData(d);  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/track-overview-form.tsx
+  91:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/track-view.tsx
+  134:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/track-view.tsx:134:7
+  132 |     // whatever sub-tab was last visited (e.g. Surveys) on the NEW course.
+  133 |     useEffect(() => {
+> 134 |       setTrackView(
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  135 |         (initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ??
+  136 |           "overview",
+  137 |       );                                                                       react-hooks/set-state-in-effect
+  138:41  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  147:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/admin/track-view.tsx:147:7
+  145 |     // course's sub-view over, and a link that names one must win.
+  146 |     useEffect(() => {
+> 147 |       setStudentSubView(subViewFromUrl ?? "students");
+      |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  148 |     }, [initialTab, initialStudentSubView]); // eslint-disable-line react-hooks/exhaustive-deps
+  149 |
+  150 |     // Students enrolled in the active track (for track-scoped views)  react-hooks/set-state-in-effect
+  165:11  warning  'enrolledInTrack' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  169:11  warning  'currentWeek' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  177:11  warning  'startLabel' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/assessment/assessment-wizard.tsx
+  145:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/assessment/results/results-profile.tsx
+  219:3  warning  'id' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/error.tsx
+  36:11  error  Do not use an `<a>` element to navigate to `/dashboard/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/help/page.tsx
+  14:3  warning  'Envelope' is defined but never used       @typescript-eslint/no-unused-vars
+  15:3  warning  'CalendarBlank' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/insights/page.tsx
+  111:17  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/insights/page.tsx:111:17
+  109 |   // and filtered dates in JS. Now the database handles the date filter,
+  110 |   // so only matching rows are transferred.
+> 111 |   const nowMs = Date.now();
+      |                 ^^^^^^^^^^ Cannot call impure function
+  112 |   const activeIds = new Set<string>();
+  113 |   for (const r of activeAttendance) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
+  114 |   for (const r of activeSubmissions) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);  react-hooks/purity
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/layout.tsx
+   17:28  warning  'getAllPrograms' is defined but never used                                                                                                                     @typescript-eslint/no-unused-vars
+  252:19  error    Do not use an `<a>` element to navigate to `/privacy/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  255:19  error    Do not use an `<a>` element to navigate to `/terms/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages    @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/survey/[id]/page.tsx
+  55:29  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/survey/[id]/page.tsx:55:29
+  53 |       // screen used to show only within 60 seconds of submitting, which is the
+  54 |       // one moment the person already knows what happened.
+> 55 |       const justCompleted = Date.now() - new Date(data.completed_at).getTime() < 60_000;
+     |                             ^^^^^^^^^^ Cannot call impure function
+  56 |       return (
+  57 |         <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+  58 |           <SurveyComplete returning={!justCompleted} />  react-hooks/purity
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/track/[slug]/page.tsx
+  574:9  error  Do not use an `<a>` element to navigate to `/dashboard/assessment/exit/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/dashboard/workshops/page.tsx
+  3:8  warning  'Link' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/help/help-center.tsx
+   336:63   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   337:31   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   367:52   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   367:110  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   374:52   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   383:53   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   384:81   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   384:149  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   387:61   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   387:69   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   391:55   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   391:77   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   411:66   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   411:86   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   426:54   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   433:23   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   438:60   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   438:73   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   457:85   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   463:16   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   469:17   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   469:24   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   474:61   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   475:36   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   479:59   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   481:24   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   504:64   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   514:98   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   523:137  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   539:51   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   539:68   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   539:75   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   540:79   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   540:98   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   551:29   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   556:22   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   556:31   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   564:40   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   564:58   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   564:85   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   568:40   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   568:83   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   572:40   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   572:83   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   576:40   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   576:89   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   584:46   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   617:48   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   637:83   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   653:61   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   653:71   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   654:12   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   713:12   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   725:32   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   734:74   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   734:85   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   741:80   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   763:33   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   763:65   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   763:75   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   763:84   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   775:92   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   781:36   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   790:71   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   794:65   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   809:51   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   833:13   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   838:19   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   838:31   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   838:61   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   850:102  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   861:58   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   873:41   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   873:43   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   873:48   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   873:54   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   883:74   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   883:81   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   906:58   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   906:63   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   906:69   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   987:13   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   987:24   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1014:46   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1014:74   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1018:80   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1026:34   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1060:70   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1083:78   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1087:63   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1109:52   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1109:63   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1117:29   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1117:38   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1118:14   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1200:31   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1201:57   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1206:36   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1206:45   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1243:14   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1243:30   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1264:80   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1270:55   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1270:68   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1398:66   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1398:83   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1411:42   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1411:68   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1417:70   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1417:79   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1420:64   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1447:54   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1447:68   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1462:56   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1462:75   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1500:51   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1500:60   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1501:62   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1501:71   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1502:21   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1502:49   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1526:21   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1531:82   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1535:73   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1600:73   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1611:17   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1611:42   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1619:55   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1619:74   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1627:50   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1634:53   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1634:66   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  1644:14   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1656:13   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  1697:12   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/opengraph-image.tsx
+  23:9  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/page.tsx
+  72:13  error  Do not use an `<a>` element to navigate to `/privacy/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  75:13  error  Do not use an `<a>` element to navigate to `/terms/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages    @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/platform-brief/page.tsx
+  445:13  error  Do not use an `<a>` element to navigate to `/platform-map/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages       @next/next/no-html-link-for-pages
+  446:13  error  Do not use an `<a>` element to navigate to `/platform-features/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/platform-features/page.tsx
+  192:11  error  Do not use an `<a>` element to navigate to `/platform-map/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages    @next/next/no-html-link-for-pages
+  193:11  error  Do not use an `<a>` element to navigate to `/platform-brief/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/platform-map/page.tsx
+  229:11  error  Do not use an `<a>` element to navigate to `/platform-features/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  230:11  error  Do not use an `<a>` element to navigate to `/platform-brief/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages     @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/app/survey/[id]/public-survey-wizard.tsx
+  285:15  error  Do not use an `<a>` element to navigate to `/privacy/withdraw/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  429:7   error  Do not use an `<a>` element to navigate to `/privacy/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages           @next/next/no-html-link-for-pages
+  435:11  error  Do not use an `<a>` element to navigate to `/privacy/withdraw/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/auth-error-banner.tsx
+  60:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/auth-error-banner.tsx:60:5
+  58 |     const parsed = parseAuthError();
+  59 |     if (!parsed) return;
+> 60 |     setInfo(parsed);
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  61 |     // Strip the error from the URL so a refresh doesn't re-trigger the banner
+  62 |     // and a screenshot doesn't expose the error fragment.
+  63 |     const url = new URL(window.location.href);  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/command-palette.tsx
+  69:25  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `workshopsAvailable`, but the source dependencies were [query, content, confined, tutorAvailable]. Inferred different dependency than source.
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/command-palette.tsx:69:25
+  67 |   const inputRef = useRef<HTMLInputElement>(null);
+  68 |
+> 69 |   const items = useMemo(() => {
+     |                         ^^^^^^^
+> 70 |     // Confined learners can't reach Workshops / Tutor / Resources or the catalog.
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |     const destinations = (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 94 |       .slice(0, MAX_RESULTS);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 95 |   }, [query, content, confined, tutorAvailable]);
+     | ^^^^ Could not preserve existing manual memoization
+  96 |
+  97 |   const openPalette = () => {
+  98 |     setQuery("");  react-hooks/preserve-manual-memoization
+  69:25  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `workshopsAvailable`, but the source dependencies were [query, content, confined, tutorAvailable]. Inferred different dependency than source.
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/command-palette.tsx:69:25
+  67 |   const inputRef = useRef<HTMLInputElement>(null);
+  68 |
+> 69 |   const items = useMemo(() => {
+     |                         ^^^^^^^
+> 70 |     // Confined learners can't reach Workshops / Tutor / Resources or the catalog.
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |     const destinations = (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 94 |       .slice(0, MAX_RESULTS);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 95 |   }, [query, content, confined, tutorAvailable]);
+     | ^^^^ Could not preserve existing manual memoization
+  96 |
+  97 |   const openPalette = () => {
+  98 |     setQuery("");  react-hooks/preserve-manual-memoization
+  95:6   warning  React Hook useMemo has a missing dependency: 'workshopsAvailable'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/Header.tsx
+    6:8   warning  'Link' is defined but never used                                                                                                                             @typescript-eslint/no-unused-vars
+   58:11  error    Do not use an `<a>` element to navigate to `/login/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+   64:11  error    Do not use an `<a>` element to navigate to `/quiz/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages   @next/next/no-html-link-for-pages
+  102:15  error    Do not use an `<a>` element to navigate to `/login/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  109:15  error    Do not use an `<a>` element to navigate to `/quiz/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages   @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/Hero.tsx
+   53:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/Hero.tsx:53:7
+  51 |     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches && videoRef.current) {
+  52 |       videoRef.current.pause();
+> 53 |       setVideoPlaying(false);
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  54 |     }
+  55 |   }, []);
+  56 |  react-hooks/set-state-in-effect
+  179:13  error  Do not use an `<a>` element to navigate to `/quiz/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/HumanInTheLoop.tsx
+  68:54  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/PathwaysSection.tsx
+  51:11  error  Do not use an `<a>` element to navigate to `/quiz/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/VideoBackground.tsx
+  29:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/marketing/VideoBackground.tsx:29:5
+  27 |   useEffect(() => {
+  28 |     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+> 29 |     setPrefersReducedMotion(mq.matches);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+  31 |     mq.addEventListener("change", handler);
+  32 |     return () => mq.removeEventListener("change", handler);  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/nav.tsx
+  3:31  warning  'Suspense' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/push-toggle.tsx
+  26:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/push-toggle.tsx:26:7
+  24 |   useEffect(() => {
+  25 |     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+> 26 |       setState("unsupported");
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |       return;
+  28 |     }
+  29 |  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/read-aloud-button.tsx
+  109:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/read-aloud-button.tsx:109:5
+  107 |   useEffect(() => {
+  108 |     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+> 109 |     setSupported(true);
+      |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  110 |
+  111 |     // Voices load asynchronously — fire the event or poll until available.
+  112 |     const onVoicesChanged = () => {  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/text-scale-toggle.tsx
+  37:5  error  Error: This value cannot be modified
+
+Modifying a variable defined outside a component or hook is not allowed. Consider using an effect.
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/text-scale-toggle.tsx:37:5
+  35 |   function apply(next: TextScale) {
+  36 |     setScale(next);
+> 37 |     document.cookie =
+     |     ^^^^^^^^ value cannot be modified
+  38 |       `${TEXT_SCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  39 |     document.documentElement.style.fontSize = rootFontSizeFor(next);
+  40 |   }  react-hooks/immutability
+  39:5  error  Error: This value cannot be modified
+
+Modifying a variable defined outside a component or hook is not allowed. Consider using an effect.
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/text-scale-toggle.tsx:39:5
+  37 |     document.cookie =
+  38 |       `${TEXT_SCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+> 39 |     document.documentElement.style.fontSize = rootFontSizeFor(next);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ value cannot be modified
+  40 |   }
+  41 |
+  42 |   const baseBtn =                  react-hooks/immutability
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/ui.test.ts
+  7:61  error  Do not pass children as props. Instead, pass them as additional arguments to React.createElement  react/no-children-prop
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/user-menu.tsx
+   66:3   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/immutability')
+  258:13  error    Do not use an `<a>` element to navigate to `/dashboard/settings/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/week-nav-portal.tsx
+  29:19  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/components/week-nav-portal.tsx:29:19
+  27 | }) {
+  28 |   const [mounted, setMounted] = useState(false);
+> 29 |   useEffect(() => setMounted(true), []);
+     |                   ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |
+  31 |   const prevWeek = weekNum > 1 ? weekNum - 1 : null;
+  32 |   const nextWeek = weekNum < totalWeeks ? weekNum + 1 : null;  react-hooks/set-state-in-effect
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/lib/auth/learner-first.ts
+  2:10  warning  'trackHasStarted' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/lib/exams/index.ts
+  43:47  warning  '_correct' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/lib/marketing-motion.ts
+  5:7  warning  'quartOut' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/src/lib/programs/index.ts
+  52:36  warning  '_host' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/tests/qa/helpers.ts
+  7:29  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/tests/qa/writes.spec.ts
+  146:26   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:42   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  250:42   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:30   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  317:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  317:118  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/fonz.morris/dev/bcc/lxp-audit/tests/smoke/comprehensive-user-flows.spec.ts
+   19:7   warning  'TEST_USERS' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   51:7   warning  'USER_JOURNEYS' is assigned a value but never used          @typescript-eslint/no-unused-vars
+   70:7   warning  'PERMISSION_BOUNDARIES' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  112:55  warning  'context' is defined but never used                         @typescript-eslint/no-unused-vars
+
+/Users/fonz.morris/dev/bcc/lxp-audit/tests/smoke/production-readiness.spec.ts
+   51:53  warning  'page' is defined but never used                @typescript-eslint/no-unused-vars
+  102:11  warning  'response' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  110:11  warning  'response' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  117:11  warning  'response' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  150:11  warning  'response' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  158:11  warning  'response' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  214:11  warning  'response1' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  219:11  warning  'response2' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  269:13  warning  'alt' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  360:11  warning  'cookies1' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  414:49  warning  'page' is defined but never used                @typescript-eslint/no-unused-vars
+
+✖ 261 problems (193 errors, 68 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+
