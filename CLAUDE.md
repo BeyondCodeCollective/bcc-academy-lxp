@@ -2,6 +2,12 @@
 
 # BCC Academy — Learning Experience Platform
 
+## Where to work
+
+- Open sessions inside this repo folder (`/Users/fonz.morris/dev/bcc/bcc-academy-lxp`), never a parent folder like `~/dev`.
+- One feature, one branch. For a second session running in parallel, use a git worktree under `~/dev/bcc/worktrees`.
+- Never clone a second copy of this repo. Copies drift, strand commits that never reach GitHub, and get mistaken for the real repo.
+
 ## What This Is
 
 BCC Academy is a **Digital Learning Ecosystem**. BCC (Beyond Code Collective) is the infrastructure — programs, tracks, and learning experiences run on top of it.
