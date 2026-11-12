@@ -48,7 +48,6 @@ export function JoinForm({
       email: trimmedEmail,
       programSlug,
       trackSlug,
-      origin: window.location.origin,
     });
 
     // Same "check your inbox" page for both success AND rejection so the

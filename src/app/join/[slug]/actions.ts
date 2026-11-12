@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
 import { sendSignInEmail } from "@/lib/email";
 import { isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { getLinkOrigin } from "@/lib/link-origin";
 
 // Result shape for join attempts:
 //   ok        — magic-link email sent (Resend path when LOGIN_VIA_RESEND
@@ -24,13 +25,14 @@ export async function sendJoinLink({
   email,
   programSlug,
   trackSlug,
-  origin,
 }: {
   email: string;
   programSlug: string;
   trackSlug: string | null;
-  origin: string;
+  /** Ignored. Still accepted so cached clients that send it keep working. */
+  origin?: string;
 }): Promise<JoinResult> {
+  const origin = await getLinkOrigin();
   const program = getProgramBySlug(programSlug);
   const normalized = email.trim().toLowerCase();
 

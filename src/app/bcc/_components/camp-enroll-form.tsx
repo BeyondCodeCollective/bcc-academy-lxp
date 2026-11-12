@@ -83,7 +83,6 @@ export function CampEnrollForm({
       zipCode: hideAgeZip ? "" : zip.trim(),
       heardAbout,
       ageRange: hideAgeZip ? "" : ageRange,
-      origin: window.location.origin,
     };
     const programWanted = !companion || wantProgram;
 

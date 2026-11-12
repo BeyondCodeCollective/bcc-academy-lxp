@@ -45,6 +45,11 @@ const DOMAIN_MAP: Record<string, string> = {
   "www.bccacademy.io": MARKETING_SLUG,
 };
 
+/** True for a production host this app serves (a DOMAIN_MAP key). */
+export function isProductionHost(host: string): boolean {
+  return Object.hasOwn(DOMAIN_MAP, host);
+}
+
 /**
  * Always returns false — there are no program subdomains.
  * Kept so callers (auth callback) don't need to change.

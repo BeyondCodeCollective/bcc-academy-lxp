@@ -6,6 +6,7 @@ import { getLandingPage } from "@/lib/landing-pages";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendEventConfirmationEmail } from "@/lib/email";
 import { AGE_RANGES, AGE_ANSWER_KEY } from "@/lib/age-ranges";
+import { getLinkOrigin } from "@/lib/link-origin";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A repeat submit re-sends the confirmation at most this often. */
@@ -38,7 +39,8 @@ export async function enrollInCourse(input: {
   zipCode?: string;
   heardAbout?: string;
   sessionId?: string | null;
-  origin: string;
+  /** Ignored. Still accepted so cached clients that send it keep working. */
+  origin?: string;
 }): Promise<EnrollActionResult> {
   const email = (input.email ?? "").trim().toLowerCase();
   // The form now collects first and last separately. A cached page that still
@@ -172,6 +174,7 @@ export async function enrollInCourse(input: {
 
       if (confirm) {
         const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
+        const origin = await getLinkOrigin();
         try {
           await sendEventConfirmationEmail({
             to: email,
@@ -182,8 +185,8 @@ export async function enrollInCourse(input: {
             eventEndUtc: session?.endUtc ?? null,
             eventStartLocal: null,
             eventTimezone: session?.timezone ?? null,
-            inviteLink: `${input.origin}/invite/${inviteToken}`,
-            origin: input.origin,
+            inviteLink: `${origin}/invite/${inviteToken}`,
+            origin,
             returning: !!account?.length,
           });
         } catch (err) {

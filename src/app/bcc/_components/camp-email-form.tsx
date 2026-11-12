@@ -50,7 +50,6 @@ export function CampEmailForm({
 
     const result = await sendLoginLink({
       email: email.trim(),
-      origin: window.location.origin,
       joinTrack: trackSlug ?? undefined,
       next: portalPath,
     });
