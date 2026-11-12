@@ -25,15 +25,29 @@ export function WeekNavPortal({
   prevLabel?: string;
   nextLabel?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // The breadcrumb bar streams in under its own Suspense boundary and can
+  // hydrate after this page does. Portaling into the slot before then puts an
+  // <a> in server HTML React has not hydrated yet: hydration fails, the bar is
+  // rebuilt on the client and the nav is thrown away with the old node. So wait
+  // for the bar to mark its slot ready, and follow it if the bar remounts.
+  const [target, setTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const sync = () =>
+      setTarget(document.querySelector<HTMLElement>("#breadcrumb-actions[data-ready]"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-ready"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const prevWeek = weekNum > 1 ? weekNum - 1 : null;
   const nextWeek = weekNum < totalWeeks ? weekNum + 1 : null;
   if (!prevWeek && !nextWeek) return null;
-  if (!mounted) return null;
-
-  const target = document.getElementById("breadcrumb-actions");
   if (!target) return null;
 
   const cls =
