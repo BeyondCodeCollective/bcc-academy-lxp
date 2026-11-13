@@ -46,3 +46,45 @@ Automated tests cover audit invocation for both formats, denial/render failures,
 privacy rejections, and suppression through the report loader, CSV records,
 PDF document content, and rendered survey table. These use synthetic data;
 they do not verify live database audit persistence.
+
+## Connected Learners sensitive views
+
+Successful directory and evidence actions apply the same `logAdminAccess`
+best-effort policy with action `view`, using the freshly authenticated actor.
+Resources are `mvp/learners/directory` and `mvp/learners/evidence`.
+Each returned program receives one event counting distinct returned learners
+(the directory page, not the full matching population). Reopening evidence or
+repeating a successful request records another view. Empty results, unavailable
+evidence, and denied/failed requests do not record successful identifiable views.
+
+Audit metadata contains only `rowUnit: returned_learners`. No learner IDs,
+names, emails, search text, review notes, evidence timestamps, or file links are
+copied into audit records. Program scope comes from authorized returned
+enrollments, not unchecked request filters. Audit setup failures are non-blocking
+and emit a generic server message; asynchronous insert failures retain the
+shared helper's existing handling. Synthetic tests verify invocation and
+metadata, not live audit persistence or durable delivery.
+
+## Identifiable exports: not approved and out of scope
+
+The Learners MVP supports authorized on-screen directory and evidence access
+only. Do not add learner/contact CSVs, selected-learner downloads, evidence
+exports, or file-link exports without separate explicit approval. Permission to
+view records, select learners, or export aggregate reports is not approval to
+export identifiable records. The existing MVP CSV/PDF endpoint remains limited
+to its allowed aggregate report metrics and sections; it does not accept learner
+IDs, directory rows, evidence payloads, or individual-record export metrics.
+
+### Remaining completion sequence
+
+- Resolve calculation-policy dependencies after Mica's response: confirm the
+  approved offering requirements, deadlines, grace periods, checkpoints, and
+  attendance denominator treatment, then implement and verify those decisions.
+  Previously confirmed policy answers do not mean the registries or calculations
+  have been updated. Keep Not evaluated wherever configuration or evidence is
+  insufficient; assessment flags and synthetic progress percentages stay deferred.
+- Complete Integration testing and review afterward. Track the missing
+  chart-to-directory connection as an open integration item; suppression tests
+  alone do not verify a drill-down path that is not connected.
+- Identifiable exports remain excluded unless separately approved; they are not
+  a prerequisite for finishing the timestamp-and-attendance MVP.
