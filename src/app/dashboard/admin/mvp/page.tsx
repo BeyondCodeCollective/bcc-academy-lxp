@@ -23,16 +23,17 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
 
     const role = context?.student?.role ?? "student";
+    const params = await searchParams;
+    const isCommitments = params.view === "commitments";
 
-    // Access follows the shared MVP role policy, narrowed to super-admins while
-    // the dashboard is being built. Everyone else goes to the dashboard home.
-    if (!canViewMvp(role) || role !== "super_admin") {
+    // Commitments supports admins and super-admins. Other MVP views retain
+    // their existing super-admin restriction during development.
+    const allowedRole = role === "super_admin" || (isCommitments && role === "admin");
+    if (!canViewMvp(role) || !allowedRole) {
         redirect("/dashboard");
     }
-    const params = await searchParams;
-    // The initial Learners workspace intentionally loads no learner records.
+    // Initial Learners and Commitments shells intentionally load no records.
     // Future loaders must enforce program/course scope before reading PII.
-    const isCommitments = params.view === "commitments";
     if (params.view === "learners" || isCommitments) {
         return <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager />
