@@ -4,6 +4,26 @@ import { describe, expect, it } from "vitest";
 import { changeLearnerFilters, EMPTY_LEARNER_FILTERS, LearnerFilterBar } from "./learner-filters";
 
 describe("Learners-only filter bar", () => {
+  it("changes and clears only its own state without mutating defaults or another workspace", () => {
+    const dashboardFilters = Object.freeze({ programId: "overview-program", courseSlug: "overview-course", learnerStatus: "completed" });
+    const defaults = Object.freeze({ ...EMPTY_LEARNER_FILTERS });
+    const selected = changeLearnerFilters(defaults, { type: "change", field: "programId", value: "learner-program" });
+    const searched = changeLearnerFilters(selected, { type: "change", field: "search", value: "Ada" });
+    const flagged = changeLearnerFilters(searched, { type: "toggle_check_in" });
+    const cleared = changeLearnerFilters(flagged, { type: "clear" });
+    expect(flagged).toMatchObject({ programId: "learner-program", search: "Ada", status: "needs_check_in" });
+    expect(cleared).toEqual(defaults);
+    expect(cleared).not.toBe(EMPTY_LEARNER_FILTERS);
+    expect(EMPTY_LEARNER_FILTERS).toEqual(defaults);
+    expect(dashboardFilters).toEqual({ programId: "overview-program", courseSlug: "overview-course", learnerStatus: "completed" });
+  });
+  it("renders connected loading state without claiming results are still a preview", () => {
+    const html = renderToStaticMarkup(createElement(LearnerFilterBar, { options: { programs: [], courses: [], cohorts: [] },
+      searchAction: async () => ({ ok: false as const, message: "Unavailable" }) }));
+    expect(html).toContain("Loading learners");
+    expect(html).toContain("Search updates automatically");
+    expect(html).not.toContain("Learner results are not connected yet");
+  });
   it("renders accessible search and the four requested controls without geography", () => {
     const html = renderToStaticMarkup(createElement(LearnerFilterBar));
     for (const label of ["Search learners", "Program", "Course / Track", "Current cohort", "Status", "On Track", "Needs Check-in", "Not evaluated", "Clear filters", "Apply Filters"]) expect(html).toContain(label);
@@ -33,5 +53,12 @@ describe("Learners-only filter bar", () => {
     expect(html).toContain("Authorized program");
     expect(html).not.toContain("Scoped course");
     expect(html).not.toContain("Scoped cohort");
+    expect(html).toContain("limited to your authorized access");
+    expect(html.match(/<select[^>]*\sdisabled=""/g)).toHaveLength(2);
+  });
+  it("distinguishes no authorized programs from unavailable options", () => {
+    const html = renderToStaticMarkup(createElement(LearnerFilterBar, { options: { programs: [], courses: [], cohorts: [] } }));
+    expect(html).toContain("No authorized programs available");
+    expect(html.match(/<select[^>]*\sdisabled=""/g)).toHaveLength(3);
   });
 });

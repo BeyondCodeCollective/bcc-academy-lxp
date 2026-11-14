@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef } from "react";
 import type { DirectoryLearner } from "./learner-directory";
+import type { LearnerFilters } from "./learner-filters";
+import { ConnectedLearnerEvidence } from "./connected-learner-evidence";
 
 // Metadata-only contract for a future authorized server loader. Never pass raw
 // submission/reflection records, free-text review notes, or storage URLs here.
@@ -70,10 +72,13 @@ export function LearnerEvidenceContent({ learner }: { learner: DirectoryLearner 
   </div>;
 }
 
-export function LearnerEvidenceDrawer({ learner, onClose }: { learner: DirectoryLearner; onClose: () => void }) {
+export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }: { learner: DirectoryLearner; onClose: () => void; filters?: LearnerFilters;
+  navigation?: { index: number; total: number; onNavigate: (index: number) => void };
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const id = useId();
+  useEffect(() => { dialog.current?.scrollTo({ top: 0 }); }, [learner.id]);
   useEffect(() => {
     const element = dialog.current!;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -90,9 +95,14 @@ export function LearnerEvidenceDrawer({ learner, onClose }: { learner: Directory
   return <dialog ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-person`} onCancel={event => { event.preventDefault(); onClose(); }}
     className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-2xl overflow-y-auto border-l border-rule bg-white p-0 text-ink shadow-2xl backdrop:bg-black/40">
     <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-rule bg-white p-5">
-      <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
+      <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} aria-live="polite" aria-atomic="true" className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
       <button ref={close} type="button" onClick={onClose} className="min-h-11 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
     </header>
-    <div className="p-5"><LearnerEvidenceContent learner={learner} /></div>
+    {navigation && <nav aria-label="Selected learners" className="flex flex-wrap items-center justify-between gap-2 border-b border-rule p-4">
+      <p role="status" aria-live="polite">{navigation.index + 1} of {navigation.total} learners</p>
+      <button type="button" disabled={navigation.index === 0} onClick={() => navigation.onNavigate(navigation.index - 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Previous learner</button>
+      <button type="button" disabled={navigation.index >= navigation.total - 1} onClick={() => navigation.onNavigate(navigation.index + 1)} className="min-h-11 rounded-lg border border-rule px-3 py-2 disabled:opacity-50">Next learner</button>
+    </nav>}
+    <div className="p-5">{filters ? <ConnectedLearnerEvidence learnerId={learner.id} filters={filters} /> : <LearnerEvidenceContent learner={learner} />}</div>
   </dialog>;
 }
