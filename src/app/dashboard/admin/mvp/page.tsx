@@ -11,6 +11,7 @@ import { MvpOverview } from "./mvp-components/mvp-overview";
 import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
 import { LearnerFilterBar } from "./mvp-components/learner-filters";
+import { CommitmentSummary } from "./mvp-components/commitment-summary";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -23,16 +24,18 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
 
     const role = context?.student?.role ?? "student";
+    const params = await searchParams;
+    const isCommitments = params.view === "commitments";
 
-    // Access follows the shared MVP role policy, narrowed to super-admins while
-    // the dashboard is being built. Everyone else goes to the dashboard home.
-    if (!canViewMvp(role) || role !== "super_admin") {
+    // Commitments supports admins and super-admins. Other MVP views retain
+    // their existing super-admin restriction during development.
+    const allowedRole = role === "super_admin" || (isCommitments && role === "admin");
+    if (!canViewMvp(role) || !allowedRole) {
         redirect("/dashboard");
     }
-    const params = await searchParams;
-    // The initial Learners workspace intentionally loads no learner records.
+    // Initial Learners and Commitments shells intentionally load no records.
     // Future loaders must enforce program/course scope before reading PII.
-    if (params.view === "learners") {
+    if (params.view === "learners" || isCommitments) {
         return <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager />
             <WorkspaceLayout navigation={
@@ -40,15 +43,18 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
                     <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview</Link>
                     <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs</Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" aria-current="page" className="flex min-h-11 items-center rounded-lg bg-primary/10 px-3 text-sm font-semibold text-primary">Learners</Link>
-                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
+                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners</Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments</Link>
                 </nav>
             }>
                 <header className="mb-6">
-                    <h1 className="text-2xl font-semibold text-ink">Learners</h1>
-                    <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
+                    <h1 className="text-2xl font-semibold text-ink">{isCommitments ? "Commitments" : "Learners"}</h1>
+                    <p className="mt-2 text-sm text-ink-soft">{isCommitments ? "Track what we promised funders and partners, with the evidence behind each result." : "Find learners and explore recorded course activity across your accessible programs."}</p>
                 </header>
-                <LearnerFilterBar />
+                {isCommitments ? <><CommitmentSummary /><section className="panel p-6">
+                    <h2 className="text-lg font-semibold text-ink">Commitments workspace</h2>
+                    <p className="mt-2 text-sm text-ink-soft">This page is being built. Commitment records are not available here yet.</p>
+                </section></> : <LearnerFilterBar />}
             </WorkspaceLayout>
         </main>;
     }
@@ -91,7 +97,7 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview</Link>
                     <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs</Link>
                     <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners</Link>
-                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
+                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Commitments</Link>
                 </nav>
             }>
                     {isPrograms ? <><MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} /><MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} /></>
