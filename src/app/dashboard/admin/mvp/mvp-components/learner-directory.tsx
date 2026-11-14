@@ -3,11 +3,17 @@
 import { useId, useState } from "react";
 import type { LearnerFilters } from "./learner-filters";
 import { LearnerEvidenceDrawer, type CourseEvidence } from "./learner-evidence";
+import type { parseLearnerSort } from "@/lib/mvp/learner-sort";
+import type { LearnerWeeklyMilestones } from "@/lib/mvp/learner-activity";
+
+export type DirectorySorting = ReturnType<typeof parseLearnerSort>;
 
 export type DirectoryEnrollment = {
   programId: string; programName: string; courseSlug: string; courseName: string;
   cohort: { id: string; name: string } | null;
   attendance: { present: number; eligibleHeld: number } | null;
+  attendanceUnavailableReason?: string | null;
+  weeklyMilestones?: LearnerWeeklyMilestones[];
   caughtUp?: { percent: number | null; completedSessions: number | null; applicableSessions: number | null; unavailableReason: string | null };
   lastActivity: { at: string | null; state: "recorded" | "none_recorded" | "unavailable" };
   status: "on_track" | "needs_check_in" | "not_evaluated";
@@ -76,20 +82,41 @@ function Activity({ activity }: { activity: DirectoryEnrollment["lastActivity"] 
   return <time dateTime={date.toISOString()}>{date.toLocaleString("en-US", { timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}</time>;
 }
 
-export function LearnerDirectory({ filters, learners, onViewEvidence }: {
+function Milestones({ enrollment }: { enrollment: DirectoryEnrollment }) {
+  if (!enrollment.weeklyMilestones) return <span>Milestone timestamps unavailable</span>;
+  if (!enrollment.weeklyMilestones.length) return <span>No recorded milestone activity</span>;
+  return <details>
+    <summary className="cursor-pointer py-2 text-primary focus-visible:outline focus-visible:outline-2">Weekly timestamps for {enrollment.courseName}</summary>
+    <p className="text-xs text-ink-soft">Eastern Time. Video marks are learner-recorded, not verified viewing.</p>
+    <ul className="mt-2 space-y-3">{enrollment.weeklyMilestones.map(week => <li key={week.weekNumber ?? "unmapped"}>
+      <span className="font-medium">{week.weekNumber === null ? "Week not linked" : `Week ${week.weekNumber}`}</span>
+      <dl className="mt-1 space-y-1 text-xs">{([
+        ["Submission", week.submission], ["Reflection", week.reflection], ["Marked watched", week.markedWatched],
+      ] as const).map(([label, activity]) => <div key={label}><dt className="text-ink-soft">{label}</dt><dd><Activity activity={activity} /></dd></div>)}</dl>
+    </li>)}</ul>
+  </details>;
+}
+
+export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange, sorting, onSortChange }: {
   filters: LearnerFilters;
   learners?: DirectoryLearner[];
   onViewEvidence?: (learner: DirectoryLearner) => void;
+  serverPagination?: { page: number; pageSize: number; totalMatching: number; totalPages: number; start: number; end: number };
+  onPageChange?: (page: number, pageSize: number) => void;
+  sorting?: DirectorySorting;
+  onSortChange?: (sorting: DirectorySorting) => void;
 }) {
   const id = useId();
   const [paging, setPaging] = useState({ scope: "", page: 1, size: 25 });
   const [selection, setSelection] = useState<{ id: string; scope: string } | null>(null);
   let matching: DirectoryLearner[] = [];
   let invalid = false;
-  try { matching = selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
+  try { matching = serverPagination ? learners ?? [] : selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
   // Never retain a later page when the filters or authorized result set changes.
   const scope = JSON.stringify([filters, matching.map(row => row.id)]);
-  const page = directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
+  const page = serverPagination ? { rows: matching, page: serverPagination.page, pages: serverPagination.totalPages,
+    start: serverPagination.start, end: serverPagination.end } : directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
+  const total = serverPagination?.totalMatching ?? matching.length;
   const ready = learners !== undefined && !invalid;
   const selected = ready && selection?.scope === scope ? matching.find(row => row.id === selection.id) : undefined;
   const buttonClass = "min-h-11 rounded-lg border border-rule px-3 py-2 text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
@@ -98,21 +125,36 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
       <div><h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Learner directory</h2>
         <p className="mt-2 text-sm text-ink-soft">One row per learner · matching current enrollments only</p>
         <p className="mt-1 text-xs text-ink-soft">Progress is per course, based on verified held sessions and requirements due so far—not an overall completion score.</p></div>
-      <p role="status" className="text-sm text-ink-soft">{ready ? `${matching.length} matching ${matching.length === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
+      <p role="status" className="text-sm text-ink-soft">{ready ? `${total} matching ${total === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
     </div>
+    {serverPagination && sorting && onSortChange && <div className="mt-4 flex flex-wrap gap-4">
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-sort`}>Sort by
+        <select id={`${id}-sort`} className={`${buttonClass} bg-white`} value={sorting.sortBy}
+          onChange={event => onSortChange({ ...sorting, sortBy: event.target.value as DirectorySorting["sortBy"] })}>
+          <option value="name">Name (last, first)</option><option value="email">Email</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-order`}>Sort order
+        <select id={`${id}-order`} className={`${buttonClass} bg-white`} value={sorting.sortOrder}
+          onChange={event => onSortChange({ ...sorting, sortOrder: event.target.value as DirectorySorting["sortOrder"] })}>
+          <option value="asc">A–Z</option><option value="desc">Z–A</option>
+        </select>
+      </label>
+    </div>}
     <div className="mt-5 overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Scrollable learner directory">
       <table className="w-full min-w-[1000px] text-left text-sm">
         <caption className="sr-only">Learners and their matching course-specific evidence. Activity times use Eastern Time.</caption>
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-ink-soft"><tr>
-          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
+          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Weekly milestone timestamps", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
         </tr></thead>
-        <tbody>{!ready || !matching.length ? <tr><td colSpan={8} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters."}</td></tr>
+        <tbody>{!ready || !matching.length ? <tr><td colSpan={9} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters. Try a different search or use Clear filters above. If results remain empty, no learners are available in your authorized scope."}</td></tr>
           : page.rows.map(learner => <tr key={learner.id} className="border-t border-rule align-top">
             <th scope="row" className="px-4 py-5 font-medium text-ink"><span className="block">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}</span><span className="mt-1 block break-all text-xs font-normal text-ink-soft">{learner.email || "Email unavailable"}</span></th>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block font-medium">{e.courseName}</span><span className="text-xs text-ink-soft">{e.programName}</span></li>)}</ul></td>
-            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.filter(e => e.cohort).map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort!.name}</li>)}</ul></td>
-            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}</li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort?.name ?? "Unlinked"}</li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}{!e.attendance && e.attendanceUnavailableReason && <span className="block text-xs text-ink-soft">{e.attendanceUnavailableReason}</span>}</li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><CourseProgress progress={e.caughtUp} /></li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><Milestones enrollment={e} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span><Activity activity={e.lastActivity} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="mb-1 block text-xs text-ink-soft">{e.courseName}</span><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${e.status === "needs_check_in" ? "bg-amber-50 text-amber-800" : e.status === "on_track" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-ink-soft"}`}>{statusLabels[e.status] ?? "Not evaluated"}</span></li>)}</ul></td>
             <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => { setSelection({ id: learner.id, scope }); onViewEvidence?.(learner); }} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
@@ -120,11 +162,11 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
       </table>
     </div>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-size`}>Rows per page<select id={`${id}-size`} className={`${buttonClass} bg-white`} value={paging.size} onChange={event => setPaging({ scope, page: 1, size: Number(event.target.value) })}>{[10, 25, 50].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
-      <div className="flex flex-wrap items-center gap-3"><span className="text-xs text-ink-soft">{ready ? `Showing ${page.start}–${page.end} of ${matching.length}` : "Results unavailable"}</span>
-        <button type="button" className={buttonClass} disabled={!ready || page.page === 1} onClick={() => setPaging({ ...paging, scope, page: page.page - 1 })}>Previous</button>
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-size`}>Rows per page<select id={`${id}-size`} className={`${buttonClass} bg-white`} value={serverPagination?.pageSize ?? paging.size} onChange={event => serverPagination ? onPageChange?.(1, Number(event.target.value)) : setPaging({ scope, page: 1, size: Number(event.target.value) })}>{[10, 25, 50].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
+      <div className="flex flex-wrap items-center gap-3"><span className="text-xs text-ink-soft">{ready ? `Showing ${page.start}–${page.end} of ${total}` : "Results unavailable"}</span>
+        <button type="button" className={buttonClass} disabled={!ready || page.page === 1} onClick={() => serverPagination ? onPageChange?.(page.page - 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page - 1 })}>Previous</button>
         <span className="text-xs text-ink-soft">Page {page.page} of {page.pages}</span>
-        <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
+        <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => serverPagination ? onPageChange?.(page.page + 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
       </div>
     </div>
     {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} onClose={() => setSelection(null)} />}
