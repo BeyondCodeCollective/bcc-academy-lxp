@@ -11,6 +11,7 @@ import { MvpOverview } from "./mvp-components/mvp-overview";
 import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
 import { LearnerFilterBar } from "./mvp-components/learner-filters";
+import { CommitmentSummary } from "./mvp-components/commitment-summary";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -50,10 +51,10 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <h1 className="text-2xl font-semibold text-ink">{isCommitments ? "Commitments" : "Learners"}</h1>
                     <p className="mt-2 text-sm text-ink-soft">{isCommitments ? "Track what we promised funders and partners, with the evidence behind each result." : "Find learners and explore recorded course activity across your accessible programs."}</p>
                 </header>
-                {isCommitments ? <section className="panel p-6">
+                {isCommitments ? <><CommitmentSummary /><section className="panel p-6">
                     <h2 className="text-lg font-semibold text-ink">Commitments workspace</h2>
                     <p className="mt-2 text-sm text-ink-soft">This page is being built. Commitment records are not available here yet.</p>
-                </section> : <LearnerFilterBar />}
+                </section></> : <LearnerFilterBar />}
             </WorkspaceLayout>
         </main>;
     }
