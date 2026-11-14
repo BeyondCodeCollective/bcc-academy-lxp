@@ -10,6 +10,11 @@ import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
 import { loadLearnerActivity } from "./learner-activity";
+import { loadLearnerSessionContext, summarizeLearnerSessionContext } from "./learner-summary";
+import { loadLearnerAttendance } from "./learner-attendance";
+import { evaluateLearnerCheckIns } from "./learner-check-ins";
+import { aggregateLearnerAttendance } from "./learner-attendance-aggregates";
+import { aggregateLearnerMilestones } from "./learner-milestone-aggregates";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -19,7 +24,7 @@ export type LearnerProgramScope = {
 
 // Server-only entry point. Every roster request rechecks access; no caller can
 // supply a trusted scope or bypass student-preview restrictions.
-export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
+async function loadAuthorizedLearnerContext(params: LearnerQueryParams = {}) {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
   if (!context?.userId || !canViewMvp(role) || !canManageStudents(role) || await isPreviewingAsStudent(role)) {
@@ -79,9 +84,34 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   }
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
+  return { db, programs, options, filters, requestedPage, sorting, requested };
+}
+
+// Options-only page entry point: rechecks access/preview mode, but never reads
+// the learner roster or activity. No caller-supplied permission scope is trusted.
+export async function getMvpLearnerFilterOptions() {
+  return (await loadAuthorizedLearnerContext()).options;
+}
+
+export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
+  const { db, programs, options, filters, requestedPage, sorting, requested } = await loadAuthorizedLearnerContext(params);
   const matching = await loadLearnerRoster(db, options, filters);
-  const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
-  const enrichedDirectory = await loadLearnerProgress(directory, programs);
-  const directoryWithActivity = await loadLearnerActivity(db, enrichedDirectory);
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: directoryWithActivity, pagination };
+  const asOf = new Date();
+  const sessionContext = await loadLearnerSessionContext(db, matching, asOf);
+  // The check-in count and status filters require complete scoped evidence.
+  // Batch loaders must finish before counting; only the returned directory is paginated.
+  const activity = await loadLearnerActivity(db, matching, asOf);
+  const attendance = await loadLearnerAttendance(db, activity, sessionContext.heldByOffering, asOf);
+  const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf);
+  const filtered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,
+    enrollments: learner.enrollments.filter(enrollment => enrollment.status === filters.status),
+  })).filter(learner => learner.enrollments.length > 0);
+  const needsCheckIn = new Set(filtered.filter(learner => learner.enrollments.some(enrollment =>
+    enrollment.status === "needs_check_in" && enrollment.checkIn.attentionFlags.length > 0)).map(learner => learner.id)).size;
+  const page = paginateLearners(sortLearners(filtered, sorting), requestedPage);
+  const directory = await loadLearnerProgress(page.directory, programs);
+  const summary = { ...(filters.status === "all" ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf)), needsCheckIn };
+  const attendanceBySession = aggregateLearnerAttendance(filtered);
+  const weeklyMilestones = aggregateLearnerMilestones(filtered);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession, weeklyMilestones };
 }
