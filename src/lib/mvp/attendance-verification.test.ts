@@ -15,6 +15,22 @@ const base = { programId: "program", courseSlug: "course", learnerId: "learner",
   attendance: [], asOf };
 
 describe("staff-verified absence evidence", () => {
+  it("excludes excused and explicitly ineligible sessions without changing their states", () => {
+    const heldRequiredSessions = [1, 2, 3, 4].map(weekNumber => ({ weekNumber, sessionNumber: 1, label: "Session" }));
+    const result = verifyMvpMissedSessions({ ...base, heldRequiredSessions, reviews: [
+      review(1, { outcome: "present" }), review(2), review(3, { outcome: "excused" }),
+      review(4, { eligibility: "not_eligible", outcome: "unknown" }),
+    ] });
+    expect(result.finalizedAttendance).toEqual({ attended: 1, held: 2 });
+    expect(result.unavailableReason).toBeNull();
+    expect(result.sessionStates?.map(row => row.state)).toEqual(["verified_present", "verified_absent", "excused", "not_eligible"]);
+  });
+  it("does not publish a percentage when every session is excluded", () => {
+    const result = verifyMvpMissedSessions({ ...base, reviews: [review(1, { outcome: "excused" }),
+      review(2, { eligibility: "not_eligible", outcome: "unknown" })] });
+    expect(result.finalizedAttendance).toBeNull();
+    expect(result.unavailableReason).toContain("No eligible required sessions");
+  });
   it("keeps absence, excused, unrecorded, present, and ineligible sessions distinct", () => {
     const heldRequiredSessions = [5, 3, 2, 1, 4, 1].map(weekNumber => ({ weekNumber, sessionNumber: 1, label: "Session" }));
     const result = verifyMvpMissedSessions({ ...base, heldRequiredSessions, reviews: [review(1),

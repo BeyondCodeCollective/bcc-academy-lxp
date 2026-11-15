@@ -53,7 +53,7 @@ export async function loadLearnerAttendance<T extends Learner>(
         const verified = verifyMvpMissedSessions({ programId, courseSlug, learnerId, heldRequiredSessions: schedule.slots, reviews, attendance, asOf });
         byLearner.set(learnerId, { attendanceSessions: verified.sessionStates, attendance: verified.finalizedAttendance
           ? { present: verified.finalizedAttendance.attended, eligibleHeld: verified.finalizedAttendance.held } : null,
-        attendanceUnavailableReason: verified.finalizedAttendance ? null : verified.unavailableReason ?? "Excused or ineligible sessions require a configured denominator policy." });
+        attendanceUnavailableReason: verified.finalizedAttendance ? null : verified.unavailableReason ?? "Verified attendance is unavailable." });
       }
     }
   }

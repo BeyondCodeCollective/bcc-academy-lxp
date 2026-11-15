@@ -42,7 +42,8 @@ export function evaluateLearnerCheckIns<T extends Learner>(directory: T[], progr
     const key = JSON.stringify([enrollment.programId, enrollment.courseSlug]);
     const sessions = enrollment.attendanceSessions;
     const absent = sessions?.filter(row => row.state === "verified_absent") ?? [];
-    const complete = !!sessions?.length && sessions.every(row => row.state === "verified_present" || row.state === "verified_absent");
+    const complete = !!sessions?.some(row => row.state === "verified_present" || row.state === "verified_absent") &&
+      sessions.every(row => ["verified_present", "verified_absent", "excused", "not_eligible"].includes(row.state));
     const timestamp = (mark: LearnerWeeklyMilestones["submission"]) => mark.state === "unavailable" ? "invalid" : mark.at;
     const additional = buildMvpAdditionalSignals({ learnerId: learner.id, courseSlug: enrollment.courseSlug, asOf,
       activeConfig: config, policy, exams: [],

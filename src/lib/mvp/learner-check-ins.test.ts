@@ -18,12 +18,16 @@ function run(states: MvpAttendanceSessionState["state"][] | null, weeklyMileston
 }
 beforeEach(() => { vi.clearAllMocks(); mocks.config.mockReturnValue(null); mocks.policy.mockReturnValue(null); });
 describe("evidence-backed learner check-ins", () => {
-  it.each(["excused", "not_eligible"] as const)("keeps %s attendance unevaluated with satisfied requirements", state => {
+  it("keeps an entirely excluded attendance population unevaluated", () => {
+    mocks.config.mockReturnValue({ ...config, requiredAssignments: [] });
+    expect(run(["excused", "not_eligible"]).status).toBe("not_evaluated");
+  });
+  it.each(["excused", "not_eligible"] as const)("excludes %s with satisfied requirements and other verified attendance", state => {
     mocks.config.mockReturnValue(config);
     const result = run(["verified_present", state], [{ weekNumber: 1,
       submission: { at: "2026-10-01T00:00:00Z", state: "recorded" }, reflection: none, markedWatched: none }]);
-    expect(result.status).toBe("not_evaluated");
-    expect(result.checkIn.unevaluatedRuleIds).toContain("framework-missed-sessions-v1");
+    expect(result.status).toBe("on_track");
+    expect(result.checkIn.unevaluatedRuleIds).not.toContain("framework-missed-sessions-v1");
     expect(result.checkIn.attentionFlags).toEqual([]);
     expect(run(["verified_absent", "verified_absent", state]).status).toBe("needs_check_in");
   });
@@ -89,7 +93,7 @@ describe("evidence-backed learner check-ins", () => {
     expect(result.status).toBe("needs_check_in");
     expect(result.checkIn.attentionFlags[0].reason).toBe("missing_required_submission");
     expect(result.checkIn.unevaluatedRuleIds).toContain("framework-missed-sessions-v1");
-    mocks.config.mockReturnValue({ ...config, submissionGraceDays: 19 });
+    mocks.config.mockReturnValue({ ...config, requiredAssignments: [{ id: "work", label: "Week 1 work", weekNumber: 1, dueAt: "2026-10-06T00:00:00Z" }] });
     expect(run(["verified_present"]).checkIn.attentionFlags).toEqual([]);
   });
   it("clears missing work after a recorded submission but never with invalid or unmapped evidence", () => {

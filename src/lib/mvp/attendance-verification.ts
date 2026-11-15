@@ -26,7 +26,7 @@ export type MvpAttendanceReview = {
 };
 
 // Caller supplies complete authorized history and required sessions verified
-// as held. This pure function performs no reads and never finalizes attendance.
+// as held. This pure function performs no reads or review writes.
 export function verifyMvpMissedSessions(input: {
   programId: string; courseSlug: string; learnerId: string;
   heldRequiredSessions: MvpSessionSlot[] | null;
@@ -47,7 +47,7 @@ export function verifyMvpMissedSessions(input: {
   const evidence: MvpAttentionObservation["evidence"] = [];
   let unknownSessions = 0;
   let presentSessions = 0;
-  let unresolvedActivePolicy = false;
+  let excludedSessions = 0;
   const sessionStates: MvpAttendanceSessionState[] = [];
   for (const [key, slot] of required) {
     // Default to unresolved; only validated evidence may establish an outcome.
@@ -73,12 +73,12 @@ export function verifyMvpMissedSessions(input: {
     const held = Date.parse(row.session_held_at);
     if (!row.id.trim() || !row.recorded_by.trim() || !Number.isFinite(held) || held > Date.parse(row.recorded_at) ||
       row.eligibility === "unknown" || !row.eligibility_basis?.trim()) { unknownSessions++; continue; }
-    // Excused/ineligible sessions need an explicit active-denominator policy.
-    // They can clear absence flags without proving active or inactive status.
-    if (row.eligibility === "not_eligible" && row.outcome === "unknown") { session.state = "not_eligible"; unresolvedActivePolicy = true; continue; }
+    // Approved policy: validated excused/ineligible sessions count in neither
+    // numerator nor denominator. Conflicting or incomplete reviews stay unknown.
+    if (row.eligibility === "not_eligible" && row.outcome === "unknown") { session.state = "not_eligible"; excludedSessions++; continue; }
     if (row.eligibility !== "eligible" || !["present", "absent", "excused"].includes(row.outcome)) { unknownSessions++; continue; }
     if (row.outcome === "present") { session.state = "verified_present"; presentSessions++; continue; }
-    if (row.outcome === "excused") { session.state = "excused"; unresolvedActivePolicy = true; continue; }
+    if (row.outcome === "excused") { session.state = "excused"; excludedSessions++; continue; }
     if (hasCheckIn) { unknownSessions++; continue; }
     session.state = "verified_absent";
     evidence.push({ sourceRecordId: row.id, label: `Staff-confirmed absence: ${slot.label}`, href: null });
@@ -86,7 +86,8 @@ export function verifyMvpMissedSessions(input: {
   // Two confirmed absences establish the existing threshold even if other
   // sessions remain unknown. Below it, incomplete coverage cannot clear a flag.
   return { value: evidence.length >= 2 || unknownSessions === 0 ? evidence.length : null,
-    finalizedAttendance: unknownSessions === 0 && !unresolvedActivePolicy ? { attended: presentSessions, held: required.size } : null,
+    finalizedAttendance: unknownSessions === 0 && required.size > excludedSessions ? { attended: presentSessions, held: required.size - excludedSessions } : null,
     evidence, unknownSessions, sessionStates: sessionStates.sort((a, b) => a.weekNumber - b.weekNumber || a.sessionNumber - b.sessionNumber),
-    unavailableReason: unknownSessions ? "Some required sessions have missing, unresolved, or conflicting staff review evidence." : null };
+    unavailableReason: unknownSessions ? "Some required sessions have missing, unresolved, or conflicting staff review evidence."
+      : required.size === excludedSessions ? "No eligible required sessions remain after attendance exclusions." : null };
 }
