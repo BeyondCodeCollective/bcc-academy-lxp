@@ -37,9 +37,12 @@ export async function POST(request: Request) {
     userId: user.id,
     eventType,
     programId,
-    trackSlug: typeof body.trackSlug === "string" ? body.trackSlug : null,
+    trackSlug:
+      typeof body.trackSlug === "string" && /^[a-z0-9-]{1,64}$/.test(body.trackSlug) ? body.trackSlug : null,
     metadata:
-      body.metadata && typeof body.metadata === "object" ? body.metadata : {},
+      body.metadata && typeof body.metadata === "object" && JSON.stringify(body.metadata).length <= 2000
+        ? body.metadata
+        : {},
   });
 
   return NextResponse.json({ ok: true });

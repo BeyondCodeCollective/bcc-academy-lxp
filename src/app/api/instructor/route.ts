@@ -148,6 +148,20 @@ export async function POST(request: Request) {
     events,
   });
 
+  // Reserve the slot before the model call (see tutor route) so parallel
+  // requests can't all slip under the daily cap.
+  const { data: reserved } = await svc
+    .from("tutor_messages")
+    .insert({
+      student_id: user.id,
+      program_id: studentRow?.program_id ?? programId,
+      track_slug: trackSlug,
+      week_number: weekNumber,
+      model: MODEL,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
   let result;
   try {
     result = await generateText({
@@ -172,17 +186,17 @@ export async function POST(request: Request) {
     // thing to do, so the learner is never left staring at silence.
     "Done. Tell me what you see, or say \"next\".";
 
-  after(async () => {
-    await svc.from("tutor_messages").insert({
-      student_id: user.id,
-      program_id: studentRow?.program_id ?? programId,
-      track_slug: trackSlug,
-      week_number: weekNumber,
-      input_tokens: result.usage?.inputTokens ?? null,
-      output_tokens: result.usage?.outputTokens ?? null,
-      model: MODEL,
+  if (reserved?.id) {
+    after(async () => {
+      await svc
+        .from("tutor_messages")
+        .update({
+          input_tokens: result.usage?.inputTokens ?? null,
+          output_tokens: result.usage?.outputTokens ?? null,
+        })
+        .eq("id", reserved.id);
     });
-  });
+  }
 
   return NextResponse.json({ reply, events });
 }

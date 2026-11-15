@@ -9,15 +9,18 @@ export async function POST(request: Request) {
     ? "[csp-report-only]"
     : "[csp-report]";
   try {
-    const body = await request.json();
+    const text = await request.text();
+    if (text.length > 8192) return new Response(null, { status: 413 });
+    const body = JSON.parse(text);
     const r = body["csp-report"] ?? body;
+    const clean = (v: unknown) => String(v ?? "?").replace(/[\r\n]/g, " ").slice(0, 300);
     console.warn(
       tag,
-      r["violated-directive"] ?? r["effectiveDirective"] ?? "?",
+      clean(r["violated-directive"] ?? r["effectiveDirective"]),
       "blocked:",
-      r["blocked-uri"] ?? r["blockedURL"] ?? "?",
+      clean(r["blocked-uri"] ?? r["blockedURL"]),
       "on:",
-      r["document-uri"] ?? r["documentURL"] ?? "?"
+      clean(r["document-uri"] ?? r["documentURL"])
     );
   } catch {
     // Malformed report — nothing to do

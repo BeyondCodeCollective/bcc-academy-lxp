@@ -5,6 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { isTutorAvailable } from "@/lib/programs";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
+import { canAccessAdminPanel } from "@/lib/roles";
 import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 import { buildTutorSystemPrompt, parseTutorRequest } from "@/lib/tutor/prompt";
@@ -76,6 +77,11 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
+  // No profile row means no rate-limit accounting (the log insert is keyed on it).
+  if (!studentRow?.program_id) {
+    return NextResponse.json({ error: "Forbidden", reply: "The AI Tutor needs a completed profile." }, { status: 403 });
+  }
+
   // Rate limit: count today's (UTC day) tutor_messages for this student.
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
@@ -106,6 +112,13 @@ export async function POST(request: Request) {
     (trackRows ?? []).map((r: { track_slug: string }) => r.track_slug),
   );
 
+  if (enrolledSlugs.size === 0 && !isStaffEmail(user.email) && !canAccessAdminPanel(studentRow.role ?? "")) {
+    return NextResponse.json(
+      { error: "Forbidden", reply: "The AI Tutor is for enrolled learners." },
+      { status: 403 },
+    );
+  }
+
   const activeTrack: TrackConfig | undefined =
     program.tracks.find((t) => enrolledSlugs.has(t.slug)) ?? program.tracks[0];
 
@@ -132,6 +145,20 @@ export async function POST(request: Request) {
     week: activeWeek,
     currentWeekNumber,
   });
+
+  // Reserve the slot before the model call so parallel requests can't all
+  // slip under the daily limit; token counts are filled in afterwards.
+  const { data: reserved } = await svc
+    .from("tutor_messages")
+    .insert({
+      student_id: user.id,
+      program_id: studentRow.program_id,
+      track_slug: activeTrack?.slug ?? null,
+      week_number: currentWeekNumber,
+      model: aiModelName(),
+    })
+    .select("id")
+    .single<{ id: string }>();
 
   let result;
   try {
@@ -160,21 +187,15 @@ export async function POST(request: Request) {
     result.text.trim() ||
     "I had trouble generating a response. Could you try rephrasing your question?";
 
-  // Log exchange — never block the reply on a log failure. Must be awaited
-  // inside after(): a Supabase query builder is lazy, so the previous bare
-  // `void svc.from(...).insert(...)` never issued a request and tutor_messages
-  // stayed empty. after() runs it once the reply has been sent.
-  if (studentRow?.program_id) {
+  if (reserved?.id) {
     after(async () => {
-      await svc.from("tutor_messages").insert({
-        student_id: user.id,
-        program_id: studentRow.program_id,
-        track_slug: activeTrack?.slug ?? null,
-        week_number: currentWeekNumber,
-        input_tokens: result.usage?.inputTokens ?? null,
-        output_tokens: result.usage?.outputTokens ?? null,
-        model: aiModelName(),
-      });
+      await svc
+        .from("tutor_messages")
+        .update({
+          input_tokens: result.usage?.inputTokens ?? null,
+          output_tokens: result.usage?.outputTokens ?? null,
+        })
+        .eq("id", reserved.id);
     });
   }
 

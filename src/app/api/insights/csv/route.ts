@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireCapability } from "@/app/dashboard/admin/actions-shared";
+import { requireCapability, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
 import { surveyColumnHeading } from "@/lib/survey-csv-headers";
@@ -45,8 +45,11 @@ function flattenResponse(response: Record<string, unknown>): Record<string, stri
 
 export async function GET(req: NextRequest) {
   let svc;
+  let allowedIds: string[] | null;
   try {
-    ({ svc } = await requireCapability("view_insights"));
+    const actor = await requireCapability("view_insights");
+    svc = actor.svc;
+    allowedIds = allowedProgramIdsForActor(actor);
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e && String((e as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) {
       throw e;
@@ -60,7 +63,8 @@ export async function GET(req: NextRequest) {
     .from("programs")
     .select("id, slug")
     .in("slug", aggregatedSlugs);
-  const programIds = (programRows ?? []).map((p) => p.id as string);
+  const programIds = (programRows ?? []).map((p) => p.id as string).filter((id) => allowedIds === null || allowedIds.includes(id));
+  if (programIds.length === 0) return new NextResponse("Not authorized", { status: 403 });
 
   // Course scope, when the export was launched from a course's Surveys panel.
   // Same argument the screen passes: a CSV that silently returns program-wide
