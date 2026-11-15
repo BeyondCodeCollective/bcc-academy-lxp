@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireCapability } from "@/app/dashboard/admin/actions-shared";
+import { requireCapability, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
 import { renderInsightsPdf, renderDetailedSurveyPdf } from "@/app/dashboard/admin/insights/insights-pdf";
@@ -11,8 +11,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   let svc;
+  let allowedIds: string[] | null;
   try {
-    ({ svc } = await requireCapability("view_insights"));
+    const actor = await requireCapability("view_insights");
+    svc = actor.svc;
+    allowedIds = allowedProgramIdsForActor(actor);
   } catch (e) {
     // Let Next's redirect (unauthenticated) propagate; treat anything else as a
     // plain authorization failure rather than a 500.
@@ -32,7 +35,8 @@ export async function GET(req: NextRequest) {
     .from("programs")
     .select("id, slug")
     .in("slug", aggregatedSlugs);
-  const programIds = (programRows ?? []).map((p) => p.id as string);
+  const programIds = (programRows ?? []).map((p) => p.id as string).filter((id) => allowedIds === null || allowedIds.includes(id));
+  if (programIds.length === 0) return new NextResponse("Not authorized", { status: 403 });
 
   // Course scope, when the export was launched from a course's Surveys panel.
   // Same argument the screen passes, so the PDF can't come back program-wide.

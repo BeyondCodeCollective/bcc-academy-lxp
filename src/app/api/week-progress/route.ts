@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getProgramId } from "@/lib/programs/server";
+import { allowedProgramIds, getProgramGrants } from "@/lib/auth/program-access";
 
 export type ProgressRecord = {
   student_id: string;
@@ -24,9 +25,9 @@ export async function GET(_request: NextRequest) {
 
   const { data: currentStudent } = await supabase
     .from("students")
-    .select("role")
+    .select("role, program_id")
     .eq("id", user.id)
-    .single<{ role: string }>();
+    .single<{ role: string; program_id: string | null }>();
 
   if (!canAccessAdminPanel(currentStudent?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -34,17 +35,40 @@ export async function GET(_request: NextRequest) {
 
   const svc = createServiceClient();
   const programId = await getProgramId();
+  const role = currentStudent?.role ?? "";
+  // Instructors are track-scoped: instructor_tracks is their entitlement, and
+  // it names the program each assignment lives in (often not their home one).
+  let ownTracks: string[] | null = null;
+  if (role === "instructor") {
+    const { data: its } = await svc
+      .from("instructor_tracks")
+      .select("track_slug")
+      .eq("student_id", user.id)
+      .eq("program_id", programId);
+    ownTracks = (its ?? []).map((r) => r.track_slug as string);
+    if (ownTracks.length === 0) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  } else if (!canSwitchPrograms(role)) {
+    // An admin sees their home program plus any staff_program_access grant,
+    // whatever program the request's cookies resolve to.
+    const grants = await getProgramGrants(user.id);
+    if (!allowedProgramIds(currentStudent?.program_id ?? null, grants).includes(programId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
-  const [progressRes, submissionsRes] = await Promise.all([
-    svc
-      .from("week_progress")
-      .select("user_id, track_slug, week_number, video_watched_at")
-      .eq("program_id", programId),
-    svc
-      .from("submissions")
-      .select("student_id, track_slug, week_number, submitted_at")
-      .eq("program_id", programId),
-  ]);
+  let progressQ = svc
+    .from("week_progress")
+    .select("user_id, track_slug, week_number, video_watched_at")
+    .eq("program_id", programId);
+  let submissionsQ = svc
+    .from("submissions")
+    .select("student_id, track_slug, week_number, submitted_at")
+    .eq("program_id", programId);
+  if (ownTracks) {
+    progressQ = progressQ.in("track_slug", ownTracks);
+    submissionsQ = submissionsQ.in("track_slug", ownTracks);
+  }
+  const [progressRes, submissionsRes] = await Promise.all([progressQ, submissionsQ]);
 
   if (progressRes.error || submissionsRes.error) {
     console.error("[week-progress] query error", progressRes.error ?? submissionsRes.error);

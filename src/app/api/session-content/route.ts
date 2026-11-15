@@ -43,6 +43,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing track parameter" }, { status: 400 });
   }
 
+  if (student?.role === "instructor") {
+    const { data: own } = await svc
+      .from("instructor_tracks")
+      .select("track_slug")
+      .eq("student_id", user.id)
+      .eq("track_slug", track)
+      .limit(1);
+    if (!own?.length) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const rows = await getAllSessionContent(track);
   return NextResponse.json({ rows });
 }

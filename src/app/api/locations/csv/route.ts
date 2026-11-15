@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireCapability } from "@/app/dashboard/admin/actions-shared";
+import { requireCapability, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { resolveTrackLengths } from "@/lib/programs/scope";
 import { lookupZips, placeFor } from "@/lib/zip-to-city";
 
@@ -37,8 +37,11 @@ type StudentRow = {
 
 export async function GET() {
   let svc;
+  let allowedIds: string[] | null;
   try {
-    ({ svc } = await requireCapability("view_insights"));
+    const actor = await requireCapability("view_insights");
+    svc = actor.svc;
+    allowedIds = allowedProgramIdsForActor(actor);
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e && String((e as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) {
       throw e;
@@ -47,7 +50,10 @@ export async function GET() {
   }
 
   const { data: programs } = await svc.from("programs").select("id, slug, name").in("slug", HUB_SLUGS);
-  const programName = new Map((programs ?? []).map((p) => [p.id as string, p.name as string]));
+  const programName = new Map((programs ?? []).filter((p) => allowedIds === null || allowedIds.includes(p.id as string)).map((p) => [p.id as string, p.name as string]));
+
+  // An admin outside the hub programs has nothing to export here.
+  if (programName.size === 0) return new NextResponse("Not authorized", { status: 403 });
 
   const { data: studentRows } = await svc
     .from("students")
@@ -100,6 +106,7 @@ export async function GET() {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="participant-locations-${day}.csv"`,
+      "Cache-Control": "private, no-store",
     },
   });
 }

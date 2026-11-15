@@ -25,12 +25,15 @@ export function GET(req: NextRequest) {
   const end = q.get("end");
   const location = q.get("location") ?? "";
   const details = q.get("details") ?? "";
-  const uid = q.get("uid") ?? `${Date.parse(start ?? "") || "event"}@bccacademy.io`;
+  const uid = (q.get("uid") ?? "").replace(/[^A-Za-z0-9@._-]/g, "").slice(0, 100) || `${Date.parse(start ?? "") || "event"}@bccacademy.io`;
 
   if (!start) {
     return NextResponse.json({ error: "Missing start" }, { status: 400 });
   }
 
+  if (Number.isNaN(Date.parse(start)) || (end && Number.isNaN(Date.parse(end)))) {
+    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+  }
   const dtStart = toGcalUtc(start);
   // Default to a 1-hour block when no end is supplied.
   const dtEnd = toGcalUtc(end ?? new Date(Date.parse(start) + 3_600_000).toISOString());
