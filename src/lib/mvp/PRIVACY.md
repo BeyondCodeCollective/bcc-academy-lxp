@@ -77,12 +77,11 @@ IDs, directory rows, evidence payloads, or individual-record export metrics.
 
 ### Remaining completion sequence
 
-- Resolve calculation-policy dependencies after Mica's response: confirm the
-  approved offering requirements, deadlines, grace periods, checkpoints, and
-  attendance denominator treatment, then implement and verify those decisions.
-  Previously confirmed policy answers do not mean the registries or calculations
-  have been updated. Keep Not evaluated wherever configuration or evidence is
-  insufficient; assessment flags and synthetic progress percentages stay deferred.
+- The November 14 policy update applies universal 14-day submission grace and
+  excludes validated excused/ineligible sessions from attendance denominators.
+  Obtain approved offering requirements, deadlines, and checkpoints before
+  populating the registries. Keep Not evaluated wherever configuration or evidence
+  is insufficient; assessment flags and synthetic progress percentages stay deferred.
 - Complete Integration testing and review afterward. Track the missing
   chart-to-directory connection as an open integration item; suppression tests
   alone do not verify a drill-down path that is not connected.

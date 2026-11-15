@@ -430,10 +430,10 @@ eligibility and outcome evidence for every included session. Current enrollment
 or cohort membership alone does not establish historical eligibility.
 
 Missing, unresolved, duplicate-latest, or conflicting reviews return null, never
-guessed absences or zero attendance. The current shared verifier also withholds
-the ratio for excused or explicitly ineligible sessions until a denominator
-policy is configured; exclusion/credit rules remain a policy dependency, not an
-implemented guess. Latest revisions apply only as of the request snapshot.
+guessed absences or zero attendance. Validated excused and explicitly ineligible
+sessions are excluded from the denominator and receive no attendance credit.
+If all required sessions are excluded, the ratio remains unavailable rather than
+zero or 100%. Latest revisions apply only as of the request snapshot.
 
 Reviews and check-ins are program/course/learner-scoped. Check-ins
 are used to detect conflicting absence evidence, not infer activity
@@ -443,9 +443,10 @@ eligibility basis, or review notes.
 Read failures reject the request rather than returning partial attendance. The
 frontend connection and detailed attendance-state display remain separate tasks.
 
-Only verified present/absent states make attendance observations complete for
-check-in evaluation. Excused/ineligible states remain unevaluated pending a
-denominator policy; two independently verified absences can still trigger a flag.
+Check-in attendance observations are complete when at least one session is
+verified present/absent and all remaining sessions are verified or validly excluded.
+An entirely excluded population remains unevaluated; two independently verified
+absences can still trigger a flag.
 
 ### Distinct attendance session states
 
@@ -593,3 +594,16 @@ program-specific activity. Overwritten timestamps cannot reconstruct history.
 - `src/app/dashboard/track/actions.ts`: submission/reflection/video writes.
 - `src/app/dashboard/admin/actions-misc.ts` and
   `src/lib/certificates/auto.ts`: certificate reads and issuance.
+
+### Approved calculation policies — November 14, 2026
+
+The user confirmed a 14-day submission grace period for all programming, regardless
+of length, superseding the earlier proposed duration restriction. Active configuration
+validation rejects other grace periods. The attendance threshold remains 80%; validated
+excused and explicitly ineligible sessions are excluded from the denominator.
+
+Approved assignment requirements, deadlines (including time zones), and Field Ready
+checkpoints are still pending. No live offering or signal registry entries are populated
+by this change. Missing configuration or insufficient evidence remains Not evaluated.
+Mica’s proposed historical capstone Yes/No recording and optional URL are not implemented
+by this policy change. Assessment flags and synthetic progress remain deferred.

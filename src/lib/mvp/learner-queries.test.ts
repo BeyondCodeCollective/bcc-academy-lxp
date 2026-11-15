@@ -348,18 +348,19 @@ describe("Learners loader access boundary", () => {
     const result = await getMvpLearnersData({ programId: "p1", courseSlug: "a" });
     expect(result.summary.sessionsHeld).toBe(localFallback ? 2 : 0);
   });
-  it("returns privacy-safe attendance states per enrollment even when its ratio is unavailable", async () => {
+  it.each(["excused", "not_eligible"])("excludes %s while preserving private attendance states and unknown ratios", async state => {
     seedAttendance();
-    tables.mvp_attendance_reviews[1].outcome = "excused";
+    tables.mvp_attendance_reviews[1].outcome = state === "excused" ? "excused" : "unknown";
+    if (state === "not_eligible") tables.mvp_attendance_reviews[1].eligibility = "not_eligible";
     tables.mvp_attendance_reviews = tables.mvp_attendance_reviews.filter(row => row.track_slug !== "b");
     const result = await getMvpLearnersData({ search: "Learner00" });
     const [a, b] = result.directory[0].enrollments;
     expect(a.attendanceSessions).toEqual([
       { weekNumber: 1, sessionNumber: 1, state: "verified_present" },
-      { weekNumber: 2, sessionNumber: 1, state: "excused" },
+      { weekNumber: 2, sessionNumber: 1, state },
     ]);
     expect(b.attendanceSessions).toEqual([{ weekNumber: 1, sessionNumber: 1, state: "unrecorded" }]);
-    expect(a.attendance).toBeNull();
+    expect(a.attendance).toEqual({ present: 1, eligibleHeld: 1 });
     expect(b.attendance).toBeNull();
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
     expect(JSON.stringify(result)).not.toContain("recorded_by");
@@ -371,13 +372,11 @@ describe("Learners loader access boundary", () => {
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
     expect(result.directory[0].enrollments.every(row => row.attendanceUnavailableReason === null)).toBe(true);
   });
-  it.each(["missing", "conflict", "excused", "ineligible", "unknown", "duplicate", "future-review"])("does not invent attendance for %s evidence", async kind => {
+  it.each(["missing", "conflict", "unknown", "duplicate", "future-review"])("does not invent attendance for %s evidence", async kind => {
     seedAttendance();
     const review = tables.mvp_attendance_reviews[1];
     if (kind === "missing") tables.mvp_attendance_reviews.splice(1, 1);
     if (kind === "conflict") tables.attendance = [{ id: "checkin", program_id: "p1", student_id: "s00", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
-    if (kind === "excused") review.outcome = "excused";
-    if (kind === "ineligible") { review.eligibility = "not_eligible"; review.outcome = "unknown"; }
     if (kind === "unknown") review.eligibility = "unknown";
     if (kind === "duplicate") tables.mvp_attendance_reviews.push({ ...review, id: "zduplicate" });
     if (kind === "future-review") review.recorded_at = "2999-01-01T00:00:00Z";
