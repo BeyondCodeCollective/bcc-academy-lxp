@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CaretUpDown, SignOut, Check, GearSix } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
+import { clearPreviewCookie } from "@/app/dashboard/preview-actions";
 
 type ProgramOption = {
   slug: string;
@@ -84,6 +85,7 @@ export function UserMenu({
     document.cookie = "atg-demo-user=; path=/; max-age=0";
     document.cookie = "program-override=; path=/; max-age=0";
     try {
+      await clearPreviewCookie().catch(() => {});
       if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
         await createClient().auth.signOut();
       }
