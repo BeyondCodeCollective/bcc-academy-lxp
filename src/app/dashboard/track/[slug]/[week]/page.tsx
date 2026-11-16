@@ -687,8 +687,12 @@ export default async function TrackWeekPage({
   // under whichever session is open, with that session's homework above them.
   const reflectionPrompts = weekContent.reflectionPrompts ?? track.defaultReflectionPrompts ?? [];
   const showReflection = track.reflectionsEnabled !== false && reflectionPrompts.length > 0;
+  // Homework is assigned during the session, so an upcoming one has none yet.
   const hasWork =
-    unlocked && isSupabaseConfigured() && (weekSubmissionsEnabled || showReflection);
+    unlocked &&
+    !showUpcoming &&
+    isSupabaseConfigured() &&
+    (weekSubmissionsEnabled || showReflection);
   const selHomework =
     (homeworkInstructions.length > 1 ? homeworkInstructions[sel] : homeworkInstructions[0]) ||
     "";
