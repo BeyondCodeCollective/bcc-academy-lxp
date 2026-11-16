@@ -207,7 +207,7 @@ function toIsoInstant(value: string | null): string | undefined {
 function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
   const totalWeeks = row.total_weeks ?? 12;
   const sessionsPerWeek = row.sessions_per_week ?? 2;
-  const unitLabel = row.unit_label ?? "Week";
+  const unitLabel = row.unit_label?.trim() || "Week";
   // When a track is modeled as individual sessions (unit_label "Session", e.g.
   // Security+/Network+), each unit IS one session — so it has exactly one.
   // `sessions_per_week` there is the weekly meeting cadence, not sessions per
@@ -486,7 +486,8 @@ function mergeTrack(
     companionOf: override.companion_of ?? config.companionOf,
     coverImageUrl: override.cover_image_url ?? config.coverImageUrl,
     totalWeeks: override.total_weeks ?? config.totalWeeks,
-    unitLabel: override.unit_label ?? config.unitLabel,
+    // Trimmed: a stray space ("Week ") printed "Week  2" and broke label matching.
+    unitLabel: override.unit_label?.trim() || config.unitLabel,
     sessionsPerWeek: override.sessions_per_week ?? config.sessionsPerWeek,
     lastSessionDayOffset:
       override.last_session_day_offset ?? config.lastSessionDayOffset,

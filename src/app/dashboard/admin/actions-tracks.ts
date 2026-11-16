@@ -446,7 +446,7 @@ export async function saveTrackOverview(
   if ("instructor" in patch) row.instructor = blankToNull(patch.instructor);
   if ("start_date" in patch) row.start_date = blankToNull(patch.start_date);
   if ("total_weeks" in patch) row.total_weeks = patch.total_weeks;
-  if ("unit_label" in patch) row.unit_label = blankToNull(patch.unit_label);
+  if ("unit_label" in patch) row.unit_label = blankToNull(patch.unit_label?.trim());
   if ("sessions_per_week" in patch) row.sessions_per_week = patch.sessions_per_week;
   if ("last_session_day_offset" in patch)
     row.last_session_day_offset = patch.last_session_day_offset;
