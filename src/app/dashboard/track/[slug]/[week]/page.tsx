@@ -403,8 +403,10 @@ export default async function TrackWeekPage({
     : displaySubtitle;
   // Multi-session weeks print each session's day in the session picker, so
   // only a single-session week carries its day and time on this line.
+  // An untitled week's title is already its unit name ("Week 2"); saying it
+  // twice is noise.
   const headerMeta = [
-    unitName,
+    displayTitle.trim().toLowerCase() === unitName.trim().toLowerCase() ? null : unitName,
     track.instructor,
     subtitleSansDate,
     isSingleSession ? scheduledDay : null,
@@ -691,8 +693,9 @@ export default async function TrackWeekPage({
     (homeworkInstructions.length > 1 ? homeworkInstructions[sel] : homeworkInstructions[0]) ||
     "";
 
-  // Survey: open from the moment the session starts, live included.
-  const hasSurvey = !!exitSurvey;
+  // Survey: open from the moment the session starts, live included. Before
+  // then it is left off: a block that only says "not yet" is clutter.
+  const hasSurvey = !!exitSurvey && !showUpcoming;
   const surveyOpen = selState === "live" || selState === "ended";
   const surveyRow = exitSurvey?.[sel + 1];
 
@@ -707,9 +710,8 @@ export default async function TrackWeekPage({
           {
             href: "#session",
             label: "Session",
-            dot: showUpcoming
-              ? ("na" as const)
-              : selReplay && showChecklist
+            dot:
+              selReplay && showChecklist
                 ? watched
                   ? ("done" as const)
                   : ("todo" as const)
@@ -1134,7 +1136,9 @@ export default async function TrackWeekPage({
           </nav>
         </div>
 
-        {rail.length > 1 && !zoomLive && (
+        {/* An upcoming session has nothing to check off yet, so the rail
+           steps aside; the grid stays so switching sessions never reflows. */}
+        {rail.length > 1 && !zoomLive && !showUpcoming && (
           <aside aria-label="On this page" className="hidden pt-11 xl:block">
             <div className="sticky top-24">
               <p className="mb-2.5 text-[13px] text-ink-faint">
