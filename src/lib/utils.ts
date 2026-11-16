@@ -186,7 +186,7 @@ export function resolveCurrentUnit(track: TrackConfig, now: Date = new Date()): 
     : hasUnitDates
       ? dateScheduledThrough
       : started
-        ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+        ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset, now)
         : 0;
   const dateUnlockedThrough = track.selfPaced
     ? 0
