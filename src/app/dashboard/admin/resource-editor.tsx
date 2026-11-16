@@ -204,10 +204,10 @@ export function ResourceEditor({
               </label>
             )}
             {opens[r.url] && (
-              <p className="text-micro text-ink-faint sm:col-span-2" title={opens[r.url].learners.join(", ")}>
+              <p className="text-micro text-ink-faint sm:col-span-2">
                 Opened by {opens[r.url].learners.length}{" "}
                 {opens[r.url].learners.length === 1 ? "learner" : "learners"}
-                {opens[r.url].learners.length > 0 && `: ${opens[r.url].learners.slice(0, 8).join(", ")}${opens[r.url].learners.length > 8 ? ", and more" : ""}`}
+                {opens[r.url].learners.length > 0 && `: ${opens[r.url].learners.join(", ")}`}
               </p>
             )}
           </div>

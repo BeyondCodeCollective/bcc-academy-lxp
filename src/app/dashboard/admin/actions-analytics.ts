@@ -74,6 +74,34 @@ export type EngagementAnalytics = {
   trackOptions: { slug: string; name: string; hidden?: boolean }[];
   /** The course the funnel is scoped to, or null for the whole program. */
   activeCourse: string | null;
+  /** Week-by-week picture of the selected course; null for the whole program. */
+  weekGrid: WeekGrid | null;
+};
+
+/** One learner's activity in one week of a course. */
+export type WeekCell = {
+  here: boolean;
+  /** Indexes into that week's `materials`. */
+  opened: number[];
+  /** Sessions this week the learner turned homework in for. */
+  homework: number;
+};
+
+export type WeekGrid = {
+  unitLabel: string;
+  /** Weeks underway so far, oldest first. The last one decides "falling behind". */
+  weeks: {
+    week: number;
+    materials: { name: string; url: string }[];
+    /** Whether this week asks for homework at all. */
+    homeworkExpected: boolean;
+  }[];
+  /** learner email → week number → cell. Missing week = nothing that week. */
+  cells: Record<string, Record<number, WeekCell>>;
+  /** Emails of learners with nothing at all in the latest week underway. */
+  behind: string[];
+  /** learner email → student id, to match homework from getWeekPicture. */
+  ids: Record<string, string>;
 };
 
 export async function getEngagementAnalytics(
@@ -115,6 +143,7 @@ export async function getEngagementAnalytics(
     learners: [],
     activeCourse,
     trackOptions,
+    weekGrid: null,
   };
   if (ids.length === 0) return empty;
 
@@ -384,7 +413,118 @@ export async function getEngagementAnalytics(
     learners,
     trackOptions,
     activeCourse,
+    weekGrid: activeCourse
+      ? await buildWeekGrid(svc, activeCourse, allTracks.find((t) => t.slug === activeCourse), studs).catch((e) => {
+          console.error("[engagement] week grid failed", e instanceof Error ? e.message : e);
+          return null;
+        })
+      : null,
   };
+}
+
+type Svc = Awaited<ReturnType<typeof requireCapability>>["svc"];
+
+/**
+ * Week by week for one course: per learner, did they attend, which of the
+ * week's materials did they open, did they turn homework in. "Underway" weeks
+ * run up to the latest week anyone attended (live courses), or the latest week
+ * with any activity (self-paced ones). A learner with nothing in that latest
+ * week is falling behind (Field Ready ask, 2026-11-16).
+ */
+async function buildWeekGrid(
+  svc: Svc,
+  track: string,
+  config: { unitLabel?: string; submissionsEnabled?: boolean; weeks: { week: number; videoUrl?: string; submissionsEnabled?: boolean }[] } | undefined,
+  studs: { id: string; email: string }[],
+): Promise<WeekGrid | null> {
+  const ids = studs.map((s) => s.id);
+  if (ids.length === 0) return null;
+
+  const [content, attendance, submissions, videos] = await Promise.all([
+    svc.from("session_content").select("week_number, resources, homework_instructions, homework_instructions_2, homework_instructions_3").eq("track", track),
+    svc.from("attendance").select("student_id, week_number").eq("track", track).in("student_id", ids).not("checked_in_at", "is", null),
+    svc.from("submissions").select("student_id, week_number, session_number").eq("track_slug", track).in("student_id", ids),
+    svc.from("week_progress").select("user_id, week_number").eq("track_slug", track).in("user_id", ids).not("video_watched_at", "is", null),
+  ]);
+  // Opens carry their week in metadata. Paged past PostgREST's 1,000-row cap.
+  const opens: { user_id: string; url: string | null; week: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await svc
+      .from("activity_events")
+      .select("user_id, url:metadata->>url, week:metadata->>week")
+      .eq("event_type", "resource_open")
+      .eq("track_slug", track)
+      .in("user_id", ids)
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    opens.push(...((data ?? []) as typeof opens));
+    if (!data || data.length < 1000) break;
+  }
+
+  const attRows = (attendance.data ?? []) as { student_id: string; week_number: number }[];
+  const subRows = (submissions.data ?? []) as { student_id: string; week_number: number; session_number: number | null }[];
+  const vidRows = (videos.data ?? []) as { user_id: string; week_number: number }[];
+  const openRows = opens.filter((o) => o.url && Number(o.week) > 0).map((o) => ({ ...o, week: Number(o.week) }));
+
+  const latest = attRows.length > 0
+    ? Math.max(...attRows.map((r) => r.week_number))
+    : Math.max(0, ...subRows.map((r) => r.week_number), ...vidRows.map((r) => r.week_number), ...openRows.map((r) => r.week));
+  if (latest < 1) return null;
+
+  const contentByWeek = new Map(
+    ((content.data ?? []) as {
+      week_number: number;
+      resources: { name: string; url: string }[] | null;
+      homework_instructions: string | null;
+      homework_instructions_2: string | null;
+      homework_instructions_3: string | null;
+    }[]).map((r) => [r.week_number, r]),
+  );
+  const weeks: WeekGrid["weeks"] = [];
+  for (let w = 1; w <= latest; w++) {
+    const row = contentByWeek.get(w);
+    const cfg = config?.weeks.find((c) => c.week === w);
+    const materials = (row?.resources ?? []).filter((r) => r?.url).map((r) => ({ name: r.name || r.url, url: r.url }));
+    if (cfg?.videoUrl) materials.unshift({ name: "Video", url: `video:${w}` });
+    const submits = (cfg?.submissionsEnabled ?? config?.submissionsEnabled) !== false;
+    const hasInstructions = !!(row?.homework_instructions || row?.homework_instructions_2 || row?.homework_instructions_3);
+    weeks.push({ week: w, materials, homeworkExpected: submits && hasInstructions });
+  }
+
+  const emailOf = new Map(studs.map((s) => [s.id, s.email]));
+  const cells: WeekGrid["cells"] = {};
+  const cell = (id: string, w: number): WeekCell | null => {
+    const email = emailOf.get(id);
+    if (!email || w < 1 || w > latest) return null;
+    const byWeek = (cells[email] ??= {});
+    return (byWeek[w] ??= { here: false, opened: [], homework: 0 });
+  };
+  for (const r of attRows) {
+    const c = cell(r.student_id, r.week_number);
+    if (c) c.here = true;
+  }
+  const markOpened = (id: string, w: number, url: string) => {
+    const i = weeks[w - 1]?.materials.findIndex((m) => m.url === url) ?? -1;
+    const c = i >= 0 ? cell(id, w) : null;
+    if (c && !c.opened.includes(i)) c.opened.push(i);
+  };
+  for (const r of openRows) markOpened(r.user_id, r.week, r.url!);
+  for (const r of vidRows) markOpened(r.user_id, r.week_number, `video:${r.week_number}`);
+  for (const r of subRows) {
+    const c = cell(r.student_id, r.week_number);
+    if (c) c.homework += 1;
+  }
+
+  const behind = studs
+    .map((s) => s.email)
+    .filter((email) => {
+      const c = cells[email]?.[latest];
+      return !c || (!c.here && c.opened.length === 0 && c.homework === 0);
+    });
+
+  const idsByEmail = Object.fromEntries(studs.map((s) => [s.email, s.id]));
+  return { unitLabel: config?.unitLabel ?? "Week", weeks, cells, behind, ids: idsByEmail };
 }
 
 // ─── Compare-to-previous trends ──────────────────────────────────────────────
