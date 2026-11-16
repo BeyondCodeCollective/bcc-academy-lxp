@@ -47,14 +47,17 @@ export type EngagementLearner = {
   // export came back partial and nobody could tell why.
   tracks: string[];
   // Program-wide totals across every track this learner touches.
-  videosWatched: number;
+  // contentOpened = videos watched + distinct week resources (links, files,
+  // embeds) opened. Counting videos alone read as "nobody engaged" on courses
+  // whose materials are mostly links (Field Ready, 2026-11-16).
+  contentOpened: number;
   attended: number;
   submitted: number;
   // Same three signals broken out per track slug, so the Analytics table/CSV can
   // show track-scoped counts when a track is selected. A program-wide "attended"
   // over-reports a single track (a Security+ learner who also does MASS showed 7
   // against a 4-session track).
-  byTrack: Record<string, { videosWatched: number; attended: number; submitted: number }>;
+  byTrack: Record<string, { contentOpened: number; attended: number; submitted: number }>;
   surveys: number;
   // Which surveys this learner completed, so the count in the table drills
   // through to the actual list ("what 4 surveys did they take?") instead of
@@ -214,6 +217,31 @@ export async function getEngagementAnalytics(
       svc.from("student_tracks").select("student_id, track_slug").in("student_id", studentIds),
     ]);
 
+  // Week resources each learner opened, one per (learner, course, url) however
+  // many times they clicked. Paged: a busy program passes PostgREST's 1,000-row
+  // cap, which would silently undercount.
+  const resourceOpenKeys = new Set<string>();
+  if (studentIds.length > 0) {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await svc
+        .from("activity_events")
+        .select("user_id, track_slug, url:metadata->>url")
+        .eq("event_type", "resource_open")
+        .in("user_id", studentIds)
+        .order("id")
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("[engagement] resource_open fetch failed", error.message);
+        break;
+      }
+      for (const r of (data ?? []) as { user_id: string; track_slug: string | null; url: string | null }[]) {
+        if (r.track_slug && r.url) resourceOpenKeys.add(`${r.user_id}|${r.track_slug}|${r.url}`);
+      }
+      if (!data || data.length < PAGE) break;
+    }
+  }
+
   // Per-(student, track) tallies for the three engagement signals, so a
   // track-filtered view reports that track's activity instead of the sum across
   // every track a learner is in. `bump` increments the inner track counter.
@@ -223,16 +251,19 @@ export async function getEngagementAnalytics(
     inner.set(track, (inner.get(track) ?? 0) + 1);
     m.set(id, inner);
   };
-  const videosByUserTrack = new Map<string, Map<string, number>>();
+  const contentByUserTrack = new Map<string, Map<string, number>>();
   const attendanceByUserTrack = new Map<string, Map<string, number>>();
   const submissionsByUserTrack = new Map<string, Map<string, number>>();
+  const contentByUser = new Map<string, number>();
   for (const r of (videoRows.data ?? []) as { user_id: string; track_slug: string | null }[]) {
-    bump(videosByUserTrack, r.user_id, r.track_slug);
+    bump(contentByUserTrack, r.user_id, r.track_slug);
+    contentByUser.set(r.user_id, (contentByUser.get(r.user_id) ?? 0) + 1);
   }
-
-  const videosByUser = new Map<string, number>();
-  for (const r of (videoRows.data ?? []) as { user_id: string }[]) {
-    videosByUser.set(r.user_id, (videosByUser.get(r.user_id) ?? 0) + 1);
+  // Fold distinct resource opens into the same content tally.
+  for (const key of resourceOpenKeys) {
+    const [userId, track] = key.split("|");
+    bump(contentByUserTrack, userId, track);
+    contentByUser.set(userId, (contentByUser.get(userId) ?? 0) + 1);
   }
   // Keep the full per-learner survey list (type + date), not just a count, so
   // the table's Surveys cell can drill through to "which ones did they take?".
@@ -300,14 +331,14 @@ export async function getEngagementAnalytics(
   // Fold a learner's three per-track count maps into one { slug: {v,a,s} } record.
   const byTrackFor = (id: string) => {
     const slugs = new Set<string>([
-      ...(videosByUserTrack.get(id)?.keys() ?? []),
+      ...(contentByUserTrack.get(id)?.keys() ?? []),
       ...(attendanceByUserTrack.get(id)?.keys() ?? []),
       ...(submissionsByUserTrack.get(id)?.keys() ?? []),
     ]);
-    const out: Record<string, { videosWatched: number; attended: number; submitted: number }> = {};
+    const out: Record<string, { contentOpened: number; attended: number; submitted: number }> = {};
     for (const slug of slugs) {
       out[slug] = {
-        videosWatched: videosByUserTrack.get(id)?.get(slug) ?? 0,
+        contentOpened: contentByUserTrack.get(id)?.get(slug) ?? 0,
         attended: attendanceByUserTrack.get(id)?.get(slug) ?? 0,
         submitted: submissionsByUserTrack.get(id)?.get(slug) ?? 0,
       };
@@ -328,7 +359,7 @@ export async function getEngagementAnalytics(
       // freshly-enrolled cohort read 100% active in a partner export.
       lastActive: s.last_activity_at ? s.last_activity_at.slice(0, 10) : null,
       tracks: tracksByStudent.get(s.id) ?? [],
-      videosWatched: videosByUser.get(s.id) ?? 0,
+      contentOpened: contentByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
       submitted: submissionsByUser.get(s.id) ?? 0,
       byTrack: byTrackFor(s.id),
@@ -342,8 +373,8 @@ export async function getEngagementAnalytics(
     // videos-only sort buried every active learner under a wall of zeros.
     .sort(
       (a, b) =>
-        b.videosWatched + b.attended + b.submitted -
-          (a.videosWatched + a.attended + a.submitted) ||
+        b.contentOpened + b.attended + b.submitted -
+          (a.contentOpened + a.attended + a.submitted) ||
         (b.lastActive ?? "").localeCompare(a.lastActive ?? ""),
     );
 

@@ -162,7 +162,7 @@ export function AnalyticsDashboard({
   // sessions too and over-reports the track.
   // A count column that is all zeros across the whole roster reads as broken
   // (live-session programs record no videos) — hide it instead of muting it.
-  const showVideos = learners.some((l) => l.videosWatched > 0);
+  const showContent = learners.some((l) => l.contentOpened > 0);
   const showAttended = learners.some((l) => l.attended > 0);
   const showSubmitted = learners.some((l) => l.submitted > 0);
   // Course column only at all-courses altitude — with a course scope selected
@@ -170,11 +170,11 @@ export function AnalyticsDashboard({
   const showCourse = !track;
   const totalCols =
     4 +
-    [showCourse, showVideos, showAttended, showSubmitted].filter(Boolean).length;
+    [showCourse, showContent, showAttended, showSubmitted].filter(Boolean).length;
   const countsFor = (l: EngagementLearner) =>
     track
-      ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 }
-      : { videosWatched: l.videosWatched, attended: l.attended, submitted: l.submitted };
+      ? l.byTrack[track] ?? { contentOpened: 0, attended: 0, submitted: 0 }
+      : { contentOpened: l.contentOpened, attended: l.attended, submitted: l.submitted };
   // Step-wise funnel: each stage is a % of the PRIOR stage, not all against
   // "invited". Reading Engaged as "% of invited" put 13 next to 76% right beside
   // a "36" account count — three numbers that don't reconcile. As a funnel it's
@@ -240,7 +240,7 @@ export function AnalyticsDashboard({
             ...(showCourse ? ["Course"] : []),
             "Signed up",
             "Last active",
-            ...(showVideos ? [{ label: "Videos", align: "center" as const }] : []),
+            ...(showContent ? [{ label: "Content opened", align: "center" as const }] : []),
             ...(showAttended ? [{ label: "Attended", align: "center" as const }] : []),
             ...(showSubmitted ? [{ label: "Submitted", align: "center" as const }] : []),
             { label: "Surveys", align: "center" },
@@ -262,7 +262,7 @@ export function AnalyticsDashboard({
               )}
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.signedUp)}</td>
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.lastActive)}</td>
-              {showVideos && <td className="px-4 py-2.5 text-center"><Num value={c.videosWatched} /></td>}
+              {showContent && <td className="px-4 py-2.5 text-center"><Num value={c.contentOpened} /></td>}
               {showAttended && <td className="px-4 py-2.5 text-center"><Num value={c.attended} /></td>}
               {showSubmitted && <td className="px-4 py-2.5 text-center"><Num value={c.submitted} /></td>}
               <td className="px-4 py-2.5 text-center">
@@ -357,16 +357,16 @@ function surveyTitle(type: string): string {
 // Client-side CSV of the (filtered) learner rows: lets staff hand off
 // engagement data without re-running the export scripts.
 function downloadEngagementCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>, hiddenSlugs: Set<string>) {
-  const header = ["Name", "Email", "Courses", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
+  const header = ["Name", "Email", "Courses", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Content opened", "Attended", "Submitted", "Surveys"];
   // Match the table: when a track is selected, export that track's counts, not
   // the learner's program-wide totals.
   const rows = learners.map((l) => {
-    const c = track ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 } : l;
+    const c = track ? l.byTrack[track] ?? { contentOpened: 0, attended: 0, submitted: 0 } : l;
     const courses = l.tracks
       .filter((slug) => !hiddenSlugs.has(slug))
       .map((slug) => trackNames.get(slug) ?? slug)
       .join("; ");
-    return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys];
+    return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.contentOpened, c.attended, c.submitted, l.surveys];
   });
   // Name the file after the scope actually exported (program, or the selected
   // track) so a track-filtered download isn't mistaken for the whole program.
