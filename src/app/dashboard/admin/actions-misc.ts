@@ -19,6 +19,7 @@ export type AdminSubmissionRow = {
   student_email: string;
   track_slug: string;
   week_number: number;
+  session_number: number;
   description: string | null;
   links: { url: string; label: string }[];
   files: { url: string; name: string; type: string }[];
@@ -54,6 +55,7 @@ export async function getAllSubmissions(
     .eq("program_id", programId)
     .not("submitted_at", "is", null)
     .order("week_number")
+    .order("session_number")
     .order("submitted_at", { ascending: false });
 
   if (trackSlug) {
@@ -77,6 +79,7 @@ export async function getAllSubmissions(
       student_email: student?.email ?? "",
       track_slug: row.track_slug as string,
       week_number: row.week_number as number,
+      session_number: (row.session_number as number | null) ?? 1,
       description: row.description as string | null,
       links: (row.links ?? []) as { url: string; label: string }[],
       files: (row.files ?? []) as { url: string; name: string; type: string }[],
