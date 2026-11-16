@@ -19,6 +19,7 @@ export type SubmissionRow = {
   student_id: string;
   track_slug: string;
   week_number: number;
+  session_number: number;
   description: string | null;
   links: SubmissionLink[];
   files: SubmissionFile[];
@@ -73,6 +74,7 @@ async function requireAuth() {
 export async function submitProject(
   trackSlug: string,
   weekNumber: number,
+  sessionNumber: number,
   data: {
     description: string;
     links: SubmissionLink[];
@@ -80,6 +82,9 @@ export async function submitProject(
     promptResponses?: Record<string, string>;
   }
 ) {
+  if (!Number.isInteger(sessionNumber) || sessionNumber < 1 || sessionNumber > 5) {
+    throw new Error("Bad session");
+  }
   const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
   const svc = createServiceClient();
 
@@ -88,6 +93,7 @@ export async function submitProject(
       student_id: userId,
       track_slug: trackSlug,
       week_number: weekNumber,
+      session_number: sessionNumber,
       description: data.description,
       links: data.links,
       files: data.files,
@@ -96,7 +102,7 @@ export async function submitProject(
       program_id: programId,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "student_id,track_slug,week_number" }
+    { onConflict: "student_id,track_slug,week_number,session_number" }
   );
 
   if (error) throw new Error(error.message);
@@ -106,7 +112,7 @@ export async function submitProject(
     eventType: "submission",
     programId,
     trackSlug,
-    metadata: { week: weekNumber },
+    metadata: { week: weekNumber, session: sessionNumber },
   }));
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
@@ -116,7 +122,8 @@ export async function submitProject(
 
 export async function getSubmission(
   trackSlug: string,
-  weekNumber: number
+  weekNumber: number,
+  sessionNumber: number = 1,
 ): Promise<SubmissionRow | null> {
   const userId = await requireAuth();
   const svc = createServiceClient();
@@ -127,6 +134,7 @@ export async function getSubmission(
     .eq("student_id", userId)
     .eq("track_slug", trackSlug)
     .eq("week_number", weekNumber)
+    .eq("session_number", sessionNumber)
     .maybeSingle();
 
   if (error) {
@@ -225,6 +233,8 @@ export async function getWeekProgress(
       .eq("student_id", userId)
       .eq("track_slug", trackSlug)
       .eq("week_number", weekNumber)
+      .not("submitted_at", "is", null)
+      .limit(1)
       .maybeSingle(),
   ]);
 

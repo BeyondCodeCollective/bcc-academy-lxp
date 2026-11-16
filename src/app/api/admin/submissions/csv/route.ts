@@ -62,12 +62,13 @@ export async function GET(req: NextRequest) {
     nameBySlug.get(slug) ?? getTrackBySlug(tsProgram, slug)?.name ?? slug;
 
   const csv = toCsv(
-    ["Learner", "Email", "Course", "Week", "Description", "Prompt responses", "Submitted"],
+    ["Learner", "Email", "Course", "Week", "Session", "Description", "Prompt responses", "Submitted"],
     rows.map((r) => [
       r.student_name,
       r.student_email,
       courseName(r.track_slug),
       r.week_number,
+      r.session_number,
       r.description,
       Object.entries(r.prompt_responses).map(([q, a]) => `${q}: ${a}`).join("\n\n"),
       r.submitted_at ? r.submitted_at.slice(0, 10) : "",

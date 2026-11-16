@@ -1037,8 +1037,12 @@ export default async function TrackWeekPage({
                   <p className="mb-4 max-w-[68ch] whitespace-pre-line text-ink">{selHomework}</p>
                 )}
                 <WorkForms
+                  // Remount per session so one session's homework never
+                  // shows under another's.
+                  key={sel}
                   trackSlug={trackSlug}
                   weekNum={weekNum}
+                  sessionNumber={sel + 1}
                   submissionPrompts={weekContent.submissionPrompts}
                   showSubmissions={weekSubmissionsEnabled}
                   reflectionPrompts={showReflection ? reflectionPrompts : null}
@@ -1173,12 +1177,14 @@ function SessionStateWord({ state }: { state: "live" | "ended" | "upcoming" | "o
 async function WorkForms({
   trackSlug,
   weekNum,
+  sessionNumber,
   submissionPrompts,
   showSubmissions,
   reflectionPrompts,
 }: {
   trackSlug: string;
   weekNum: number;
+  sessionNumber: number;
   submissionPrompts?: string[];
   showSubmissions: boolean;
   /** null when the week takes no reflection. */
@@ -1186,7 +1192,7 @@ async function WorkForms({
 }) {
   const [existingSubmission, existingReflection] = await Promise.all([
     showSubmissions
-      ? getSubmission(trackSlug, weekNum).catch(() => null)
+      ? getSubmission(trackSlug, weekNum, sessionNumber).catch(() => null)
       : null,
     reflectionPrompts
       ? getReflection(trackSlug, weekNum).catch(() => null)
@@ -1211,6 +1217,7 @@ async function WorkForms({
           variant="plain"
           trackSlug={trackSlug}
           weekNumber={weekNum}
+          sessionNumber={sessionNumber}
           prompts={submissionPrompts}
           existing={existingSubmission}
           feedback={submissionFeedback}
