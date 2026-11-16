@@ -770,7 +770,7 @@ export default async function TrackWeekPage({
   const zoomLive = !!selZoom;
   const breakout = zoomLive
     ? ({
-        "--bw": "max(100%, min(100cqw - 4rem, (100dvh - 7rem) * 16 / 9))",
+        "--bw": "max(100%, min(100cqw - 6rem, (100dvh - 7rem) * 16 / 9))",
         width: "var(--bw)",
         marginLeft: "calc(50% - var(--bw) / 2)",
       } as CSSProperties)
