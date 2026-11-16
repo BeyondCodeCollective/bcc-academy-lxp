@@ -138,8 +138,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // On a staff cohort the staff ARE the learners, so their joins count.
-  const countsAsLearner = !isStaffEmail(user.email) || !!liveTrack?.staffCohort;
+  // Enrollment decides who is a learner, never the email domain or role. An
+  // admin or @wearebgc.org staffer enrolled in the course is a learner in it;
+  // anyone joining a course they are not enrolled in is a visit.
+  const { data: enrollment } = trackSlug
+    ? await svc
+        .from("student_tracks")
+        .select("student_id")
+        .eq("student_id", user.id)
+        .eq("track_slug", trackSlug)
+        .maybeSingle()
+    : { data: null };
+  const countsAsLearner = !!enrollment;
   if (trackSlug && weekNumber && countsAsLearner) {
     // Runs AFTER the response so the Zoom join is never delayed — but via
     // after(), which the platform guarantees to complete. The previous
