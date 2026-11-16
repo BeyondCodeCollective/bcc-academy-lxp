@@ -33,6 +33,10 @@ async function previewAllowed(
  * Set the preview cookie to a specific track slug, or clear it. Only
  * super-admins can change preview state — other roles get a silent no-op.
  *
+ * Exiting lands on the admin panel, not /dashboard: a staffer enrolled in a
+ * running course (Field Ready staff cohort) is sent from /dashboard straight
+ * back into that course, so Exit preview looked like it did nothing.
+ *
  * Preview is a transient overlay: the program skin for the previewed course
  * is derived from this cookie at resolution time (resolveBaseProgram), so we
  * deliberately do NOT touch the sticky program-override here. Clearing the
@@ -56,7 +60,16 @@ export async function setPreviewTrackSlug(slug: string | null) {
       maxAge: 60 * 60 * 8, // 8 hours
     });
   }
-  redirect("/dashboard");
+  redirect(slug ? "/dashboard" : "/dashboard/admin");
+}
+
+/**
+ * Clear the preview cookie without navigating. Called on sign-out: the cookie
+ * is httpOnly, so the browser can't drop it, and a stale one survived into the
+ * next sign-in, which then opened in student view.
+ */
+export async function clearPreviewCookie() {
+  (await cookies()).delete(PREVIEW_COOKIE);
 }
 
 /**
@@ -115,5 +128,5 @@ export async function togglePreviewTrackSlug(slug: string) {
       maxAge: 60 * 60 * 8, // 8 hours
     });
   }
-  redirect("/dashboard");
+  redirect(next.length === 0 ? "/dashboard/admin" : "/dashboard");
 }
