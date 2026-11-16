@@ -62,7 +62,8 @@ describe("determineRole / isPrivilegedEmail", () => {
   it("maps by list, case-insensitively, defaulting to student", async () => {
     const a = await load({ SUPER_ADMIN_EMAILS: "sa@example.test", ADMIN_EMAILS: "ad@example.test" });
     expect(a.determineRole("SA@Example.test")).toBe("super_admin");
-    expect(a.determineRole("ad@example.test")).toBe("admin");
+    // ADMIN_EMAILS no longer sets a role; admin lives in students.role.
+    expect(a.determineRole("ad@example.test")).toBe("student");
     expect(a.determineRole("kid@example.test")).toBe("student");
     expect(a.determineRole("devin.cooper@wearebgc.org")).toBe("super_admin");
   });

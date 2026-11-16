@@ -47,8 +47,11 @@ export function determineRole(
   email: string,
 ): "super_admin" | "admin" | "student" {
   const lower = email.toLowerCase();
+  // Only the super_admin list sets a role from the email. Every other role
+  // lives in students.role and is managed in Admin. ADMIN_EMAILS used to make
+  // addresses admin here, which re-stamped the role on each sign-in and routed
+  // those admins away from courses they were enrolled in as learners.
   if (SUPER_ADMIN_EMAILS.includes(lower)) return "super_admin";
-  if (ADMIN_EMAILS.includes(lower)) return "admin";
   return "student";
 }
 

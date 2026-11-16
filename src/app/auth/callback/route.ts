@@ -330,7 +330,7 @@ export async function GET(request: Request) {
         // was created before being added to SUPER_ADMIN_EMAILS would bounce to
         // /login?status=not-enrolled forever.
         const envRole = determineRole(email);
-        const isPrivilegedByEnv = envRole === "super_admin" || envRole === "admin";
+        const isPrivilegedByEnv = envRole === "super_admin";
 
         // Privileged admins are not learners — don't route them into a specific
         // track even if the allowlist lookup found one. Without this clear, the

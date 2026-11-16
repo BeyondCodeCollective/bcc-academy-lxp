@@ -346,9 +346,10 @@ export async function completePendingSetup(
     }
   }
 
-  // 6. Role sync — handles both upgrades and downgrades
+  // 6. Role sync: upgrade-only. The super_admin list can raise a role; it
+  // never lowers one, so a role set in Admin is not reverted at sign-in.
   const correctRole = determineRole(email);
-  if (correctRole !== currentRole) {
+  if (correctRole === "super_admin" && currentRole !== "super_admin") {
     const { error: roleErr } = await admin
       .from("students")
       .update({ role: correctRole })
