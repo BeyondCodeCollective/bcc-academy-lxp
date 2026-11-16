@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { UserCheck, ArrowsClockwise as RefreshCw, CaretLeft as ChevronLeft, CaretRight as ChevronRight, Download, Check, Circle } from "@phosphor-icons/react";
+import { UserCheck, ArrowsClockwise as RefreshCw, CaretLeft as ChevronLeft, CaretRight as ChevronRight, Download, Check, Circle, FileText, CaretDown, LinkSimple, Paperclip } from "@phosphor-icons/react";
+import { getSessionContent, getWeekPicture, type SessionResource, type WeekPicture } from "./actions-tracks";
 import {
   type AttendanceRecord,
   type StudentRow,
@@ -165,6 +166,32 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
     void fetchRecords();
   }, [fetchRecords]);
 
+  // The unit's full picture beyond check-ins: materials opened and homework
+  // turned in per session. Loaded per (course, unit) the mark grid shows;
+  // `key` drops a response that lands after the admin moved on.
+  const pictureKey = view === "mark" && activeTrackSlug ? `${activeTrackSlug}|${markWeek}` : null;
+  const [picture, setPicture] = useState<{
+    key: string;
+    data: WeekPicture;
+    resources: SessionResource[];
+  } | null>(null);
+  useEffect(() => {
+    if (!pictureKey) return;
+    let live = true;
+    Promise.all([
+      getWeekPicture(activeTrackSlug, markWeek),
+      getSessionContent(activeTrackSlug, markWeek),
+    ])
+      .then(([data, content]) => {
+        if (live) setPicture({ key: pictureKey, data, resources: content?.resources ?? [] });
+      })
+      .catch((err) => console.error("[attendance] week picture failed", err));
+    return () => {
+      live = false;
+    };
+  }, [pictureKey, activeTrackSlug, markWeek]);
+  const currentPicture = picture && picture.key === pictureKey ? picture : null;
+
 
   // studentId → set of enrolled track slugs. Undefined when no enrollments were
   // passed (embedded per-track view), which keeps the original all-tracks
@@ -268,7 +295,37 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
     );
   }
 
+  function exportWeekCSV() {
+    if (!activeTrack || !currentPicture) return;
+    const sessions = sessionsInUnit(activeTrack);
+    const header = ["Name", "Email"];
+    for (let n = 1; n <= sessions; n++) {
+      const p = sessions > 1 ? `Session ${n} ` : "";
+      header.push(`${p}Attended`, `${p}Materials opened`, `${p}Materials total`, `${p}Homework`);
+    }
+    const rows = students.map((st) => {
+      const row: (string | number)[] = [
+        st.first_name && st.last_name ? `${st.first_name} ${st.last_name}` : st.email,
+        st.email,
+      ];
+      for (let n = 1; n <= sessions; n++) {
+        const m = materialsFor(currentPicture, st.id, n, sessions);
+        const hw = currentPicture.data.homework[`${st.id}|${n}`];
+        row.push(
+          isAttended(st.id, activeTrack.slug, markWeek, n) ? "Yes" : "No",
+          m.opened,
+          m.total,
+          hw ? homeworkText(hw) : "",
+        );
+      }
+      return row;
+    });
+    const unit = (activeTrack.unitLabel ?? "week").toLowerCase();
+    downloadCsv(`${filenameSlug || "attendance"}-${unit}-${markWeek}.csv`, header, rows);
+  }
+
   function exportCSV() {
+    if (view === "mark") return exportWeekCSV();
     const trackCols = tracks.map((t) => t.shortName);
     const header = [
       "Name",
@@ -320,7 +377,18 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
   return (
     <div className="space-y-6">
       {embedded && viewSwitcher && (
-        <div className="flex flex-wrap items-center gap-2">{viewSwitcher}</div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {viewSwitcher}
+          <button
+            type="button"
+            onClick={exportWeekCSV}
+            disabled={!currentPicture || students.length === 0}
+            className={buttonClass("secondary", "sm")}
+          >
+            <Download size={12} />
+            Download CSV
+          </button>
+        </div>
       )}
       {!embedded && (
         <Header
@@ -368,10 +436,44 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
           onToggle={toggleAttendance}
           onMarkAllPresent={markAllPresent}
           loading={loading}
+          picture={currentPicture}
         />
       )}
     </div>
   );
+}
+
+/** Sessions inside one unit; a session-modeled track has exactly one. */
+function sessionsInUnit(track: TrackLike): number {
+  return track.unitLabel === "Session" ? 1 : track.sessionsPerWeek;
+}
+
+type Picture = { data: WeekPicture; resources: SessionResource[] };
+
+/** Materials listed under session `n` and how many of them the learner opened.
+ * A resource with no session, or one past the last session, belongs to the
+ * nearest session, the same rule the learner's Materials list uses. */
+function materialsFor(p: Picture, studentId: string, n: number, sessions: number) {
+  const urls = p.resources
+    .filter((r) => Math.min(Math.max(r.session ?? 1, 1), sessions) === n)
+    .map((r) => r.url);
+  const opened = new Set(p.data.opens[studentId] ?? []);
+  const openedNames = p.resources
+    .filter((r) => urls.includes(r.url) && opened.has(r.url))
+    .map((r) => r.name);
+  return { total: urls.length, opened: urls.filter((u) => opened.has(u)).length, openedNames };
+}
+
+/** A submission flattened to one readable string, for the CSV. */
+function homeworkText(hw: WeekPicture["homework"][string]): string {
+  return [
+    hw.description,
+    ...Object.entries(hw.promptResponses).map(([q, a]) => `${q}: ${a}`),
+    ...hw.links.map((l) => l.url),
+    ...hw.files.map((f) => f.name),
+  ]
+    .filter(Boolean)
+    .join(" | ");
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────
@@ -636,6 +738,7 @@ function MarkPanel({
   onToggle,
   onMarkAllPresent,
   loading,
+  picture,
 }: {
   tracks: TrackLike[];
   /** True when the shared Analytics scope already picks the course. */
@@ -658,6 +761,7 @@ function MarkPanel({
   ) => Promise<void>;
   onMarkAllPresent: (slug: string, week: number, sess: number) => Promise<void>;
   loading: boolean;
+  picture: Picture | null;
 }) {
   // Return null while loading — a placeholder card sits at a different height
   // than the populated mark grid and causes a visible jump on mount.
@@ -680,8 +784,7 @@ function MarkPanel({
   const totalWeeks = activeTrack.totalWeeks;
   // A session-modeled track has one session per unit; `sessionsPerWeek` there
   // is the weekly cadence, so using it would render two slots per session.
-  const sessionsPerWeek =
-    activeTrack.unitLabel === "Session" ? 1 : activeTrack.sessionsPerWeek;
+  const sessionsPerWeek = sessionsInUnit(activeTrack);
   const unitDisplay = unitDisplayMap(activeTrack.weekSummaries ?? [], activeTrack.unitLabel ?? "Week");
   const arrived = unitHasArrived(activeTrack, markWeek);
   const markDate = unitDate(activeTrack, markWeek);
@@ -788,6 +891,7 @@ function MarkPanel({
           onToggle={onToggle}
           onMarkAllPresent={onMarkAllPresent}
           locked={!arrived}
+          picture={picture}
         />
       )}
     </div>
@@ -804,6 +908,7 @@ function SessionTable({
   onToggle,
   onMarkAllPresent,
   locked,
+  picture,
 }: {
   track: TrackLike;
   week: number;
@@ -821,99 +926,213 @@ function SessionTable({
   onMarkAllPresent: (slug: string, week: number, sess: number) => Promise<void>;
   /** True when this unit's date hasn't arrived — grid is view-only. */
   locked?: boolean;
+  /** Materials opened + homework for this unit; null while it loads. */
+  picture: Picture | null;
 }) {
+  // One open homework answer at a time, keyed `${studentId}|${session}`.
+  const [openHomework, setOpenHomework] = useState<string | null>(null);
   const sessionNumbers = Array.from({ length: sessionsPerWeek }, (_, i) => i + 1);
+  const multi = sessionsPerWeek > 1;
+  // Per session: Here · Materials · Homework, then the unit's rate.
+  const cols = "sm:grid-cols-[minmax(10rem,1fr)_repeat(var(--sessions),4rem_6rem_6rem)_3rem]";
+  const gridStyle = { ["--sessions" as string]: sessionsPerWeek };
+  const name = (s: StudentRow) =>
+    s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email;
 
   return (
     <div className="overflow-hidden panel">
-      {/* Header: per-session present count + "mark all" */}
-      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint"
-        style={{ ["--sessions" as string]: sessionsPerWeek }}>
-        <div>Student</div>
-        {sessionNumbers.map((s) => {
-          const presentCount = students.filter((st) =>
-            isAttended(st.id, track.slug, week, s)
-          ).length;
+      {/* Header: per session, a title row with the present count + "mark
+         all", then the three column labels under it. */}
+      <div
+        className={`hidden sm:grid ${cols} gap-x-3 items-end px-4 pt-3 pb-2 bg-paper-tint-soft border-b border-rule text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint`}
+        style={gridStyle}
+      >
+        <div className="row-span-2 self-end">Learner</div>
+        {sessionNumbers.map((n) => {
+          const presentCount = students.filter((st) => isAttended(st.id, track.slug, week, n)).length;
           const allPresent = presentCount === students.length && students.length > 0;
           return (
-            <div key={s} className="hidden sm:flex items-center gap-2 justify-end">
-              <span className="tabular-nums normal-case font-normal text-ink-soft">
-                {presentCount}/{students.length}
+            <div key={n} className="col-span-3 flex items-center justify-between gap-2 whitespace-nowrap border-b border-rule-soft pb-1.5 normal-case tracking-normal">
+              <span className="text-xs font-semibold text-ink">
+                {multi ? `Session ${n}` : "This session"}
               </span>
               <button
-                type="button"
-                onClick={() => void onMarkAllPresent(track.slug, week, s)}
-                disabled={allPresent || locked}
-                className="rounded-full border border-rule px-2 py-0.5 text-micro font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
-              >
-                S{s} all
+                  type="button"
+                  onClick={() => void onMarkAllPresent(track.slug, week, n)}
+                  disabled={allPresent || locked}
+                  className="rounded-full border border-rule px-2 py-0.5 text-micro font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
+                >
+                {multi ? `All here S${n}` : "All here"}
               </button>
             </div>
           );
         })}
-        <div className="hidden sm:block text-right tabular-nums normal-case font-normal text-ink-soft">
-          Rate
-        </div>
+        <div className="row-span-2 self-end text-right">Rate</div>
+        {sessionNumbers.map((n) => {
+          // Column totals under each label: present, opened anything, turned in.
+          const count = "block pt-0.5 font-normal normal-case tracking-normal tabular-nums text-ink-soft";
+          const present = students.filter((st) => isAttended(st.id, track.slug, week, n)).length;
+          const opened = picture
+            ? students.filter((st) => materialsFor(picture, st.id, n, sessionsPerWeek).opened > 0).length
+            : null;
+          const turnedIn = picture
+            ? students.filter((st) => picture.data.homework[`${st.id}|${n}`]).length
+            : null;
+          return (
+            <div key={n} className="contents">
+              <div className="text-center">
+                Here<span className={count}>{present}/{students.length}</span>
+              </div>
+              <div className="text-center">
+                Materials<span className={count}>{opened === null ? "\u00a0" : `${opened} opened`}</span>
+              </div>
+              <div className="text-center">
+                Homework<span className={count}>{turnedIn === null ? "\u00a0" : `${turnedIn} in`}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <ul className="divide-y divide-rule-soft">
         {students.map((s) => {
-          const name =
-            s.first_name && s.last_name
-              ? `${s.first_name} ${s.last_name}`
-              : s.email;
+          const learner = name(s);
           const attendedSessions = sessionNumbers.filter((n) =>
             isAttended(s.id, track.slug, week, n)
           ).length;
+          const openKey = openHomework?.startsWith(`${s.id}|`) ? openHomework : null;
+          const openHw = openKey && picture ? picture.data.homework[openKey] : null;
           return (
-            <li
-              key={s.id}
-              className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-3"
-              style={{ ["--sessions" as string]: sessionsPerWeek }}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink truncate">{name}</p>
-                <p className="text-micro text-ink-faint truncate">{s.email}</p>
-              </div>
-              <div className="flex items-center gap-2 sm:contents">
-                {sessionNumbers.map((sNum) => {
-                  const checked = isAttended(s.id, track.slug, week, sNum);
-                  const key = `${s.id}|${track.slug}|${week}|${sNum}`;
-                  const saving = savingKeys.has(key);
-                  return (
-                    <button
-                      key={sNum}
-                      type="button"
-                      role="checkbox"
-                      aria-checked={checked}
-                      aria-label={`${name} — Session ${sNum}: ${checked ? "present" : "absent"}`}
-                      disabled={saving || locked}
-                      onClick={() =>
-                        void onToggle(s.id, track.slug, week, sNum, !checked)
-                      }
-                      className={`relative inline-flex h-8 w-8 sm:justify-self-end items-center justify-center rounded-full border transition-colors ${
-                        checked
-                          ? "border-success bg-success text-white"
-                          : "border-rule bg-surface-elevated text-ink-faint hover:border-ink-soft hover:text-ink-soft"
-                      } ${saving ? "opacity-60" : ""} ${locked ? "cursor-not-allowed opacity-50" : ""}`}
-                    >
-                      {checked ? <Check size={14} strokeWidth={2.5} /> : <Circle size={12} />}
-                      {sessionsPerWeek > 1 && (
-                        <span className="absolute -bottom-3.5 text-micro text-ink-faint hidden sm:block">
-                          S{sNum}
+            <li key={s.id} className="px-4 py-3">
+              <div className={`grid grid-cols-1 gap-y-2 ${cols} sm:gap-x-3 sm:items-center`} style={gridStyle}>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink truncate">{learner}</p>
+                  <p className="text-micro text-ink-faint truncate">{s.email}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:contents">
+                  {sessionNumbers.map((n) => {
+                    const checked = isAttended(s.id, track.slug, week, n);
+                    const key = `${s.id}|${track.slug}|${week}|${n}`;
+                    const saving = savingKeys.has(key);
+                    const m = picture ? materialsFor(picture, s.id, n, sessionsPerWeek) : null;
+                    const hwKey = `${s.id}|${n}`;
+                    const hw = picture?.data.homework[hwKey];
+                    const hwOpen = openHomework === hwKey;
+                    return (
+                      <div key={n} className="flex items-center gap-2 sm:contents">
+                        {multi && (
+                          <span className="text-micro font-semibold text-ink-faint sm:hidden">S{n}</span>
+                        )}
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          aria-label={`${learner}, ${multi ? `session ${n}` : "this session"}: ${checked ? "present" : "absent"}`}
+                          disabled={saving || locked}
+                          onClick={() => void onToggle(s.id, track.slug, week, n, !checked)}
+                          className={`inline-flex h-8 w-8 sm:justify-self-center items-center justify-center rounded-full border transition-colors ${
+                            checked
+                              ? "border-success bg-success text-white"
+                              : "border-rule bg-surface-elevated text-ink-faint hover:border-ink-soft hover:text-ink-soft"
+                          } ${saving ? "opacity-60" : ""} ${locked ? "cursor-not-allowed opacity-50" : ""}`}
+                        >
+                          {checked ? <Check size={14} weight="bold" /> : <Circle size={12} />}
+                        </button>
+                        <span
+                          className={`min-w-[2.75rem] text-center text-xs tabular-nums sm:justify-self-center ${
+                            m && m.opened > 0 ? "text-ink" : "text-ink-faint"
+                          }`}
+                          title={
+                            !m
+                              ? "Loading"
+                              : m.total === 0
+                                ? "No materials listed for this session"
+                                : m.openedNames.length > 0
+                                  ? `Opened: ${m.openedNames.join(", ")}`
+                                  : "Hasn't opened any materials yet"
+                          }
+                          aria-label={m ? `Materials opened: ${m.opened} of ${m.total}` : undefined}
+                        >
+                          {!m ? "" : m.total === 0 ? "–" : `${m.opened}/${m.total}`}
+                          {m && m.total > 0 && <span className="sm:hidden"> opened</span>}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        <span className="sm:justify-self-center">
+                          {!picture ? null : hw ? (
+                            <button
+                              type="button"
+                              onClick={() => setOpenHomework(hwOpen ? null : hwKey)}
+                              aria-expanded={hwOpen}
+                              aria-label={`${hwOpen ? "Hide" : "Show"} ${learner}'s ${multi ? `session ${n} ` : ""}homework`}
+                              className={`inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors ${
+                                hwOpen
+                                  ? "bg-ink text-white"
+                                  : "bg-primary/10 text-primary hover:bg-primary/15"
+                              }`}
+                            >
+                              <FileText size={14} />
+                              <CaretDown size={10} className={hwOpen ? "rotate-180" : undefined} />
+                            </button>
+                          ) : (
+                            <span className="text-xs text-ink-faint" aria-label="No homework">–</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="hidden sm:block text-right tabular-nums text-micro text-ink-soft">
+                  {attendedSessions}/{sessionsPerWeek}
+                </div>
               </div>
-              <div className="hidden sm:block text-right tabular-nums text-micro text-ink-soft">
-                {attendedSessions}/{sessionsPerWeek}
-              </div>
+
+              {openHw && openKey && (
+                <HomeworkAnswer
+                  hw={openHw}
+                  label={multi ? `Session ${openKey.split("|")[1]} homework` : "Homework"}
+                />
+              )}
             </li>
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+function HomeworkAnswer({ hw, label }: { hw: WeekPicture["homework"][string]; label: string }) {
+  const prompts = Object.entries(hw.promptResponses).filter(([, a]) => a?.trim());
+  return (
+    <div className="mt-3 rounded-lg bg-paper-tint-soft px-4 py-3">
+      <p className="text-micro font-semibold text-ink-faint">
+        {label}
+        {hw.submittedAt &&
+          ` · turned in ${new Date(hw.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}`}
+      </p>
+      {hw.description && (
+        <p className="mt-1.5 max-w-[70ch] whitespace-pre-wrap text-sm text-ink">{hw.description}</p>
+      )}
+      {prompts.map(([q, a]) => (
+        <div key={q} className="mt-2 max-w-[70ch]">
+          <p className="text-xs font-medium text-ink-soft">{q}</p>
+          <p className="whitespace-pre-wrap text-sm text-ink">{a}</p>
+        </div>
+      ))}
+      {(hw.links.length > 0 || hw.files.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+          {hw.links.map((l, i) => (
+            <a key={`l${i}`} href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-2 hover:underline">
+              <LinkSimple size={14} />
+              {l.label || l.url}
+            </a>
+          ))}
+          {hw.files.map((f, i) => (
+            <a key={`f${i}`} href={f.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-2 hover:underline">
+              <Paperclip size={14} />
+              {f.name}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
