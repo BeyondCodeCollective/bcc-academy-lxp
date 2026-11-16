@@ -1099,7 +1099,7 @@ function SessionTable({
   );
 }
 
-function HomeworkAnswer({ hw, label }: { hw: WeekPicture["homework"][string]; label: string }) {
+export function HomeworkAnswer({ hw, label }: { hw: WeekPicture["homework"][string]; label: string }) {
   const prompts = Object.entries(hw.promptResponses).filter(([, a]) => a?.trim());
   return (
     <div className="mt-3 rounded-lg bg-paper-tint-soft px-4 py-3">

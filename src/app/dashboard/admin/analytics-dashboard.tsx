@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import type { EngagementAnalytics, EngagementLearner, EngagementTrends } from "./actions-analytics";
 import { getEngagementTrends } from "./actions-analytics";
+import { WeekGrid } from "./week-grid";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
@@ -210,6 +211,8 @@ export function AnalyticsDashboard({
           pct={engagedPct === null ? undefined : `${engagedPct}% of accounts`}
         />
       </section>
+
+      {track && data.weekGrid && <WeekGrid grid={data.weekGrid} learners={learners} track={track} />}
 
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
