@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretUpDown, SignOut, Check, GearSix } from "@phosphor-icons/react";
+import Link from "next/link";
+import { CaretUpDown, SignOut, Check, GearSix, SquaresFour } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { clearPreviewCookie } from "@/app/dashboard/preview-actions";
 
@@ -25,6 +26,7 @@ export function UserMenu({
   currentProgramSlug,
   variant = "sidebar",
   align = "right",
+  showAdminPanel = false,
 }: {
   firstName: string;
   lastName: string;
@@ -37,6 +39,8 @@ export function UserMenu({
   /** Topbar popover edge. "left" when the trigger sits near the screen's left
    *  edge (the minimal checklist shell), or the menu opens off-screen. */
   align?: "left" | "right";
+  /** Staff taking a course: Home is the course, so the admin panel lives here. */
+  showAdminPanel?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -257,6 +261,17 @@ export function UserMenu({
             <div className="my-1 h-px bg-rule-soft" role="separator" />
           )}
           <div className="px-1 pb-1 pt-1">
+            {showAdminPanel && (
+              <Link
+                href="/dashboard/admin"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-2 px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
+              >
+                <SquaresFour size={15} weight="bold" aria-hidden />
+                <span>Admin panel</span>
+              </Link>
+            )}
             <a
               href="/dashboard/settings"
               role="menuitem"

@@ -17,9 +17,12 @@ type ProgramGroup = {
 export function PreviewToggle({
   previewingSlugs,
   groups,
+  enrolledSlugs = [],
 }: {
   previewingSlugs: string[];
   groups: ProgramGroup[];
+  /** Courses this staffer is actually enrolled in. */
+  enrolledSlugs?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -77,8 +80,14 @@ export function PreviewToggle({
                             }`}
                           >
                             <span className="truncate">{t.name}</span>
-                            {selected && (
+                            {selected ? (
                               <span className="shrink-0 text-[10px]">✓</span>
+                            ) : (
+                              enrolledSlugs.includes(t.slug) && (
+                                <span className="shrink-0 text-[10px] font-medium text-ink-faint">
+                                  You&apos;re enrolled
+                                </span>
+                              )
                             )}
                           </button>
                         </form>

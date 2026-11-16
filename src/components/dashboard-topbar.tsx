@@ -24,6 +24,7 @@ export function DashboardTopBar({
   hideSearch = false,
   tutorAvailable = false,
   workshopsAvailable = false,
+  showAdminPanel = false,
 }: {
   firstName: string;
   lastName: string;
@@ -41,6 +42,8 @@ export function DashboardTopBar({
   tutorAvailable?: boolean;
   /** Workshops are BGC-internal — hidden from search elsewhere. */
   workshopsAvailable?: boolean;
+  /** Staff taking a course get the admin panel in the account menu. */
+  showAdminPanel?: boolean;
 }) {
   // Breadcrumbs moved to a dedicated <Breadcrumbs> bar below the top bar (it
   // renders a full trail on all viewports). The top bar now just hosts search
@@ -69,6 +72,7 @@ export function DashboardTopBar({
             canSwitch={canSwitch}
             programs={programs}
             currentProgramSlug={currentProgramSlug}
+            showAdminPanel={showAdminPanel}
           />
         </div>
       </div>

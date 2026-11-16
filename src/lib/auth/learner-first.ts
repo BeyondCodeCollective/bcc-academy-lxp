@@ -1,11 +1,12 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { trackHasStarted } from "@/lib/utils";
+import { courseNotOver } from "@/lib/auth/course-window";
 
 // Staff who TAKE a course (the Field Ready staff cohort is all staff, many of
 // them admins) get the student view of it, pre-survey checklist included:
 // until it ends they land on it at login and its pages treat them as learners. Teaching it (an
-// instructor_tracks row) keeps the admin view. The admin panel stays one
-// click away in the account menu.
+// instructor_tracks row) keeps the admin view. Home points at the course;
+// the admin panel is one click away in the account menu.
 
 type TrackDates = {
   track_slug: string;
@@ -15,14 +16,7 @@ type TrackDates = {
   self_paced?: boolean | null;
 };
 
-/** True until the course is past its last week (upcoming counts). */
-export function courseNotOver(t: TrackDates, now: Date = new Date()): boolean {
-  if (!t.start_date) return false;
-  if (!t.total_weeks) return true;
-  const end = new Date(`${t.start_date}T00:00:00Z`);
-  end.setUTCDate(end.getUTCDate() + t.total_weeks * 7);
-  return now < end;
-}
+export { courseNotOver };
 
 async function learnerCourses(userId: string, only?: string): Promise<TrackDates[]> {
   const svc = createServiceClient();
