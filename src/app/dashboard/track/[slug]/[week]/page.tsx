@@ -729,12 +729,12 @@ export default async function TrackWeekPage({
       a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
     return title && !same(title, name) ? `${name}: ${title}` : name;
   };
-  // While a Zoom session is live the frame gets the page: the Session block breaks out of it, as wide as the
-  // page allows while a 16:9 frame still fits the viewport height, so a
-  // presenter's shared screen is legible. Notes and homework keep the column.
+  // While a Zoom session is live, or its recording is up, the video gets the
+  // page: the Session block breaks out of the column, as wide as the page
+  // allows while a 16:9 frame still fits the viewport height, so a presenter's
+  // shared screen is legible. Notes and homework keep the column.
   // On phones the max() keeps the block at column width.
-  const zoomLive = !!selZoom;
-  const breakout = zoomLive
+  const breakout = selZoom || selReplay
     ? ({
         "--bw": "max(100%, min(100cqw - 6rem, (100dvh - 7rem) * 16 / 9))",
         width: "var(--bw)",
@@ -873,6 +873,7 @@ export default async function TrackWeekPage({
                   )}
 
                   {selReplay && (
+                    <div style={breakout}>
                     <RecordingCard
                       variant="plain"
                       url={selReplay}
@@ -882,6 +883,7 @@ export default async function TrackWeekPage({
                       showWatchButton={isSupabaseConfigured() && unlocked}
                       initialWatched={watched}
                     />
+                    </div>
                   )}
 
                   {/* Between "session over" and "recording imported" this block
