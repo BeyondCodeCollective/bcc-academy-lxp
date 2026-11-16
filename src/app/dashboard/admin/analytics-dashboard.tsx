@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import type { EngagementAnalytics, EngagementLearner, EngagementTrends } from "./actions-analytics";
 import { getEngagementTrends } from "./actions-analytics";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LearnerMaterials, WeekGrid } from "./week-grid";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
@@ -117,7 +118,19 @@ export function AnalyticsDashboard({
   // signal why. Scoping the table AND the CSV to one track fixes that at source.
   // The shared Analytics scope (top-right) is the ONE course filter — no
   // second "All tracks" dropdown in the toolbar.
-  const track = course ?? "";
+  // The server resolves the scope (it also defaults a one-course program to
+  // that course), so read its answer rather than the raw ?course= param.
+  const track = data.activeCourse ?? course ?? "";
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const visibleCourses = trackOptions.filter((t) => !t.hidden);
+  const pickCourse = (slug: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (slug) next.set("course", slug);
+    else next.delete("course");
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  };
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
@@ -223,7 +236,20 @@ export function AnalyticsDashboard({
           <h2 className={microLabel}>
             Per-learner activity ({isFiltered ? `${filtered.length} of ${learners.length}` : learners.length})
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {visibleCourses.length > 1 && (
+              <select
+                value={track}
+                onChange={(e) => pickCourse(e.target.value)}
+                aria-label="Course"
+                className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint"
+              >
+                <option value="">All courses</option>
+                {visibleCourses.map((t) => (
+                  <option key={t.slug} value={t.slug}>{t.name}</option>
+                ))}
+              </select>
+            )}
             <input
               type="search"
               value={query}
@@ -284,7 +310,7 @@ export function AnalyticsDashboard({
                       <span aria-hidden className={`text-micro transition-transform ${contentOpen ? "rotate-180" : ""}`}>▾</span>
                     </button>
                   ) : (
-                    <span title="Pick a course at the top right to see which materials">
+                    <span title="Pick a course to see which materials">
                       <Num value={c.contentOpened} />
                     </span>
                   )}

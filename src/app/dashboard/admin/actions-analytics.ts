@@ -133,7 +133,17 @@ export async function getEngagementAnalytics(
     hidden: hidden.has(t.slug),
   }));
   // Only honor a course filter for a track that's actually in this program.
-  const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
+  // With no course picked, a program with one visible course is scoped to it:
+  // "all courses" and "that course" are the same thing there, and the scope is
+  // what unlocks the week grid and the Content opened drill-through.
+  // Only when it is the program's ONLY course, hidden ones included, so no
+  // hidden course's learners drop out of the counts.
+  const activeCourse =
+    trackSlug && trackSlugs.includes(trackSlug)
+      ? trackSlug
+      : !trackSlug && trackSlugs.length === 1
+        ? trackSlugs[0]
+        : null;
   // "Invited" reach narrows to the selected course's allowlist when drilled in.
   const invitedTrackSlugs = activeCourse ? [activeCourse] : trackSlugs;
 
