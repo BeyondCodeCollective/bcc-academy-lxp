@@ -291,3 +291,31 @@ function LearnerWeek({
     </div>
   );
 }
+
+/** Every material a learner opened and skipped, week by week, for the
+ *  per-learner table's "Content opened" drill-down. Same data as a grid cell,
+ *  laid out for one learner across the whole course. */
+export function LearnerMaterials({ grid, email }: { grid: WeekGridData; email: string }) {
+  const weeks = grid.weeks.filter((w) => w.materials.length > 0);
+  if (weeks.length === 0) return <p className="text-xs text-ink-faint">This course has no materials yet.</p>;
+  return (
+    <ul className="space-y-1.5">
+      {weeks.map((w) => {
+        const cell = grid.cells[email]?.[w.week] ?? EMPTY;
+        const opened = w.materials.filter((_, i) => cell.opened.includes(i));
+        const notOpened = w.materials.filter((_, i) => !cell.opened.includes(i));
+        return (
+          <li key={w.week} className="max-w-[90ch] text-xs text-ink-soft">
+            <span className="font-medium text-ink">
+              {grid.unitLabel} {w.week} · opened {opened.length} of {w.materials.length}
+            </span>
+            {opened.length > 0 && `: ${opened.map((m) => m.name).join(", ")}`}
+            {notOpened.length > 0 && (
+              <span className="block text-ink-faint">Not opened: {notOpened.map((m) => m.name).join(", ")}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
