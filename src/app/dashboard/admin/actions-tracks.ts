@@ -682,3 +682,72 @@ export async function getResourceOpens(track: string, weekNumber: number): Promi
   }
   return out;
 }
+
+export type WeekPicture = {
+  /** learner id → resource URLs they opened this week (distinct). */
+  opens: Record<string, string[]>;
+  /** `${learnerId}|${session}` → that session's homework. */
+  homework: Record<
+    string,
+    {
+      description: string | null;
+      links: { url: string; label: string }[];
+      files: { url: string; name: string }[];
+      promptResponses: Record<string, string>;
+      submittedAt: string | null;
+    }
+  >;
+};
+
+/**
+ * Everything the Attendance grid needs beyond check-ins for one unit: which
+ * materials each learner opened and the homework they turned in per session.
+ * Keyed by learner id (the roster already holds names), so it lists no PII
+ * the caller can't already see.
+ */
+export async function getWeekPicture(track: string, weekNumber: number): Promise<WeekPicture> {
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, track);
+  const [{ data: events }, { data: subs }] = await Promise.all([
+    svc
+      .from("activity_events")
+      .select("user_id, url:metadata->>url")
+      .eq("event_type", "resource_open")
+      .eq("track_slug", track)
+      .eq("metadata->>week", String(weekNumber))
+      .limit(5000),
+    svc
+      .from("submissions")
+      .select("student_id, session_number, description, links, files, prompt_responses, submitted_at")
+      .eq("track_slug", track)
+      .eq("week_number", weekNumber),
+  ]);
+
+  const opens: WeekPicture["opens"] = {};
+  for (const e of (events ?? []) as { user_id: string; url: string | null }[]) {
+    if (!e.url) continue;
+    const list = (opens[e.user_id] ??= []);
+    if (!list.includes(e.url)) list.push(e.url);
+  }
+
+  const homework: WeekPicture["homework"] = {};
+  for (const s of (subs ?? []) as {
+    student_id: string;
+    session_number: number | null;
+    description: string | null;
+    links: { url: string; label: string }[] | null;
+    files: { url: string; name: string }[] | null;
+    prompt_responses: Record<string, string> | null;
+    submitted_at: string | null;
+  }[]) {
+    homework[`${s.student_id}|${s.session_number ?? 1}`] = {
+      description: s.description?.trim() || null,
+      links: s.links ?? [],
+      files: (s.files ?? []).map((f) => ({ url: f.url, name: f.name })),
+      promptResponses: s.prompt_responses ?? {},
+      submittedAt: s.submitted_at,
+    };
+  }
+  return { opens, homework };
+}
