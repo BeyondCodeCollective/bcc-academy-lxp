@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import type { EngagementAnalytics, EngagementLearner, EngagementTrends } from "./actions-analytics";
 import { getEngagementTrends } from "./actions-analytics";
-import { WeekGrid } from "./week-grid";
+import { LearnerMaterials, WeekGrid } from "./week-grid";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
@@ -121,6 +121,10 @@ export function AnalyticsDashboard({
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
+  // Same drill-through for "Content opened": which materials, week by week.
+  // Needs one course picked, since the material list is per course.
+  const [openContent, setOpenContent] = useState<string | null>(null);
+  const contentGrid = track ? data.weekGrid : null;
   // Slug → display name for the Course column and course-name filtering.
   const trackNames = useMemo(
     () => new Map(trackOptions.map((t) => [t.slug, t.name])),
@@ -251,6 +255,7 @@ export function AnalyticsDashboard({
         >
           {filtered.map((l) => {
             const open = openSurveys === l.email;
+            const contentOpen = !!contentGrid && openContent === l.email;
             const c = countsFor(l);
             return (
             <Fragment key={l.email}>
@@ -265,7 +270,26 @@ export function AnalyticsDashboard({
               )}
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.signedUp)}</td>
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.lastActive)}</td>
-              {showContent && <td className="px-4 py-2.5 text-center"><Num value={c.contentOpened} /></td>}
+              {showContent && (
+                <td className="px-4 py-2.5 text-center">
+                  {contentGrid ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenContent(contentOpen ? null : l.email)}
+                      aria-expanded={contentOpen}
+                      aria-label={`Which materials ${l.name || l.email} opened`}
+                      className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      {c.contentOpened}
+                      <span aria-hidden className={`text-micro transition-transform ${contentOpen ? "rotate-180" : ""}`}>▾</span>
+                    </button>
+                  ) : (
+                    <span title="Pick a course at the top right to see which materials">
+                      <Num value={c.contentOpened} />
+                    </span>
+                  )}
+                </td>
+              )}
               {showAttended && <td className="px-4 py-2.5 text-center"><Num value={c.attended} /></td>}
               {showSubmitted && <td className="px-4 py-2.5 text-center"><Num value={c.submitted} /></td>}
               <td className="px-4 py-2.5 text-center">
@@ -284,6 +308,16 @@ export function AnalyticsDashboard({
                 )}
               </td>
             </tr>
+            {contentOpen && contentGrid && (
+              <tr className="bg-paper-tint">
+                <td colSpan={totalCols} className="px-4 py-2.5">
+                  <p className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-ink-faint">
+                    Materials opened by {l.name || l.email}, course to date
+                  </p>
+                  <LearnerMaterials grid={contentGrid} email={l.email} />
+                </td>
+              </tr>
+            )}
             {open && (
               <tr className="bg-paper-tint">
                 <td colSpan={totalCols} className="px-4 py-2.5">
