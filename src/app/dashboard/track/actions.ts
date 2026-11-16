@@ -208,7 +208,10 @@ export async function getReflection(
 
 export type WeekProgress = {
   videoWatched: boolean;
+  /** Any session's homework is in; drives week completion. */
   homeworkSubmitted: boolean;
+  /** Which sessions' homework is in, for the per-session "Turned in". */
+  submittedSessions: number[];
   completed: boolean;
 };
 
@@ -219,7 +222,7 @@ export async function getWeekProgress(
   const userId = await requireAuth();
   const svc = createServiceClient();
 
-  const [progressRow, submissionRow] = await Promise.all([
+  const [progressRow, submissionRows] = await Promise.all([
     svc
       .from("week_progress")
       .select("video_watched_at")
@@ -229,19 +232,25 @@ export async function getWeekProgress(
       .maybeSingle(),
     svc
       .from("submissions")
-      .select("submitted_at")
+      .select("session_number")
       .eq("student_id", userId)
       .eq("track_slug", trackSlug)
       .eq("week_number", weekNumber)
-      .not("submitted_at", "is", null)
-      .limit(1)
-      .maybeSingle(),
+      .not("submitted_at", "is", null),
   ]);
 
   const videoWatched = !!progressRow.data?.video_watched_at;
-  const homeworkSubmitted = !!submissionRow.data?.submitted_at;
+  const submittedSessions = ((submissionRows.data ?? []) as { session_number: number }[]).map(
+    (r) => r.session_number,
+  );
+  const homeworkSubmitted = submittedSessions.length > 0;
 
-  return { videoWatched, homeworkSubmitted, completed: videoWatched && homeworkSubmitted };
+  return {
+    videoWatched,
+    homeworkSubmitted,
+    submittedSessions,
+    completed: videoWatched && homeworkSubmitted,
+  };
 }
 
 /**
