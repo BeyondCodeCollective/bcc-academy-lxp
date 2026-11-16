@@ -207,7 +207,7 @@ export function StudentWorkTab({
                         {sub.files.map((file, i) => (
                           <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-ink hover:text-ink">
                             <FileText size={12} className="shrink-0" />
-                            {file.name}
+                            {file.part ? `Part ${file.part} · ${file.name}` : file.name}
                           </a>
                         ))}
                       </div>

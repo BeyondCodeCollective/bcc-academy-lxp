@@ -736,15 +736,22 @@ export async function getWeekPicture(track: string, weekNumber: number): Promise
     student_id: string;
     session_number: number | null;
     description: string | null;
-    links: { url: string; label: string }[] | null;
-    files: { url: string; name: string }[] | null;
+    links: { url: string; label: string; part?: number }[] | null;
+    files: { url: string; name: string; part?: number }[] | null;
     prompt_responses: Record<string, string> | null;
     submitted_at: string | null;
   }[]) {
     homework[`${s.student_id}|${s.session_number ?? 1}`] = {
       description: s.description?.trim() || null,
-      links: s.links ?? [],
-      files: (s.files ?? []).map((f) => ({ url: f.url, name: f.name })),
+      // Per-part homework tags each attachment; name the part for reviewers.
+      links: (s.links ?? []).map((l) => ({
+        url: l.url,
+        label: l.part ? `Part ${l.part} · ${l.label || l.url}` : l.label,
+      })),
+      files: (s.files ?? []).map((f) => ({
+        url: f.url,
+        name: f.part ? `Part ${f.part} · ${f.name}` : f.name,
+      })),
       promptResponses: s.prompt_responses ?? {},
       submittedAt: s.submitted_at,
     };

@@ -22,7 +22,7 @@ export type AdminSubmissionRow = {
   session_number: number;
   description: string | null;
   links: { url: string; label: string }[];
-  files: { url: string; name: string; type: string }[];
+  files: { url: string; name: string; type: string; part?: number }[];
   prompt_responses: Record<string, string>;
   submitted_at: string | null;
   feedback_count: number;
