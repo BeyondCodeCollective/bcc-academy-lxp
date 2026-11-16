@@ -754,12 +754,20 @@ export default async function TrackWeekPage({
       a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
     return title && !same(title, name) ? `${name}: ${title}` : name;
   };
+  // While a Zoom session is live the frame gets the page: the checklist rail
+  // steps aside (its links all point at blocks below anyway) and the column
+  // widens, so a presenter's shared screen is legible.
+  const zoomLive = !!selZoom;
   const blockClass = "scroll-mt-24 py-7 first:pt-6 lg:py-9 lg:first:pt-8";
   const cardClass =
     "flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg border border-rule bg-surface-elevated px-5 py-[18px]";
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5 xl:max-w-[980px]">
+    <div
+      className={`mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5 ${
+        zoomLive ? "lg:max-w-[1200px]" : "xl:max-w-[980px]"
+      }`}
+    >
       <WeekKeyboardNav
         prevHref={prevWeek ? weekHref(prevWeek) : null}
         nextHref={nextWeek ? weekHref(nextWeek) : null}
@@ -837,7 +845,9 @@ export default async function TrackWeekPage({
         </nav>
       )}
 
-      <div className="mt-2 xl:grid xl:grid-cols-[minmax(0,680px)_180px] xl:gap-20">
+      <div
+        className={`mt-2 ${zoomLive ? "" : "xl:grid xl:grid-cols-[minmax(0,680px)_180px] xl:gap-20"}`}
+      >
         <div className="min-w-0">
           <div className="divide-y divide-rule">
             {hasSessionBlock && (
@@ -1109,7 +1119,7 @@ export default async function TrackWeekPage({
           </nav>
         </div>
 
-        {rail.length > 1 && (
+        {rail.length > 1 && !zoomLive && (
           <aside aria-label="On this page" className="hidden pt-11 xl:block">
             <div className="sticky top-24">
               <p className="mb-2.5 text-[13px] text-ink-faint">
