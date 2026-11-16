@@ -213,6 +213,29 @@ export async function GET(req: NextRequest) {
   </script>
 
   <script nonce="${nonce}">
+    // Re-layout after the frame changes size. The Client View sizes its video
+    // canvas on resize, but entering or leaving fullscreen (and the page
+    // resizing the iframe) can land before its layout pass, leaving the video
+    // stuck at the old size in one corner (reported 2026-11-16). Nudge it with
+    // a synthetic resize once the size settles. Synthetic events are not
+    // trusted, so they never retrigger this handler.
+    (function () {
+      var timers = [];
+      function relayout() {
+        timers.forEach(clearTimeout);
+        timers = [150, 600, 1500].map(function (ms) {
+          return setTimeout(function () {
+            window.dispatchEvent(new Event("resize"));
+          }, ms);
+        });
+      }
+      document.addEventListener("fullscreenchange", relayout);
+      document.addEventListener("webkitfullscreenchange", relayout);
+      window.addEventListener("resize", function (e) { if (e.isTrusted) relayout(); });
+    })();
+  </script>
+
+  <script nonce="${nonce}">
     // Settings-dialog escape hatch. Zoom's Settings/Statistics modal
     // (.settings-dialog) opens with a native close (.settings-dialog__close),
     // but in this embedded frame — shorter than the standalone web client it
