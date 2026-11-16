@@ -80,21 +80,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, imported: 0, note: "no Zoom meeting links stored" });
   }
 
-  // The week a class was held, from real check-ins — the schedule can't say
-  // whether a session actually ran, and attendance can.
-  const { data: attendance } = await svc
-    .from("attendance")
-    .select("track, week_number, checked_in_at")
-    .not("checked_in_at", "is", null);
-  const weekByTrackDate = new Map<string, number>();
-  for (const a of attendance ?? []) {
-    weekByTrackDate.set(`${a.track}|${easternDate(a.checked_in_at)}`, a.week_number);
-  }
-
   // 45 days back covers a missed cron, a holiday gap, and Zoom's shortest
   // retention window without re-listing the whole account every run.
   const to = new Date();
   const from = new Date(to.getTime() - 45 * 24 * 60 * 60 * 1000);
+
+  // The week a class was held, from real check-ins: the schedule can't say
+  // whether a session actually ran, and attendance can. Scoped to the same
+  // window and paged, because PostgREST caps a response at 1000 rows and an
+  // unbounded read silently dropped the newest check-ins once the table grew.
+  const weekByTrackDate = new Map<string, number>();
+  const PAGE = 1000;
+  for (let offset = 0; ; offset += PAGE) {
+    const { data: attendance, error } = await svc
+      .from("attendance")
+      .select("id, track, week_number, checked_in_at")
+      .gte("checked_in_at", from.toISOString())
+      .order("id")
+      .range(offset, offset + PAGE - 1);
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    for (const a of attendance ?? []) {
+      weekByTrackDate.set(`${a.track}|${easternDate(a.checked_in_at)}`, a.week_number);
+    }
+    if (!attendance || attendance.length < PAGE) break;
+  }
+
   const recordings = await listRecordings(from.toISOString(), to.toISOString());
 
   // One candidate per session: the longest recording that day. A host who
