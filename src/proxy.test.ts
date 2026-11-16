@@ -3,12 +3,17 @@ import { NextRequest } from "next/server";
 
 // Drives the real proxy() with Supabase stubbed at the createServerClient
 // boundary: getClaims decides who is signed in, the students lookup decides
-// the role. Everything else (host rules, redirects, cookies) is the real code.
+// the role, and `rows` feeds the enrollment / teaching / course-date lookups.
+// Everything else (host rules, redirects, cookies) is the real code.
 const getClaims = vi.fn();
 const maybeSingle = vi.fn();
-const limit = vi.fn();
-const from = vi.fn(() => ({
-  select: () => ({ eq: () => ({ maybeSingle, limit }) }),
+let rows: Record<string, unknown[]> = {};
+const result = (table: string) => Promise.resolve({ data: rows[table] ?? [] });
+const from = vi.fn((table: string) => ({
+  select: () => ({
+    eq: () => ({ maybeSingle, then: (r: (v: unknown) => unknown) => result(table).then(r) }),
+    in: () => result(table),
+  }),
 }));
 
 vi.mock("@supabase/ssr", () => ({
@@ -28,7 +33,7 @@ function req(url: string, cookies: Record<string, string> = {}) {
 const signedIn = (role: string) => {
   getClaims.mockResolvedValue({ data: { claims: { sub: "user-1" } } });
   maybeSingle.mockResolvedValue({ data: { role } });
-  limit.mockResolvedValue({ data: [] });
+  rows = {};
 };
 const signedOut = () => getClaims.mockResolvedValue({ data: null });
 
@@ -117,11 +122,35 @@ describe("proxy: signed-in visitors", () => {
     }
   });
 
-  it("lets an admin who takes a course through to the dashboard page", async () => {
+  it("lets an admin who takes a running course through to the dashboard page", async () => {
     signedIn("admin");
-    limit.mockResolvedValue({ data: [{ track_slug: "field-ready-staff-cohort" }] });
+    rows = {
+      student_tracks: [{ track_slug: "field-ready-staff-cohort" }],
+      track_overrides: [{ start_date: "2099-01-05", total_weeks: 6 }],
+    };
     const res = await proxy(req("https://bccacademy.io/dashboard"));
     expect(location(res)?.pathname).not.toBe("/dashboard/admin");
+  });
+
+  it("sends an admin whose course has ended straight to the admin panel", async () => {
+    signedIn("admin");
+    rows = {
+      student_tracks: [{ track_slug: "old-course" }],
+      track_overrides: [{ start_date: "2020-01-06", total_weeks: 6 }],
+    };
+    const res = await proxy(req("https://bccacademy.io/dashboard"));
+    expect(location(res)!.pathname).toBe("/dashboard/admin");
+  });
+
+  it("sends an admin who teaches their enrolled course to the admin panel", async () => {
+    signedIn("admin");
+    rows = {
+      student_tracks: [{ track_slug: "field-ready-staff-cohort" }],
+      instructor_tracks: [{ track_slug: "field-ready-staff-cohort" }],
+      track_overrides: [{ start_date: "2099-01-05", total_weeks: 6 }],
+    };
+    const res = await proxy(req("https://bccacademy.io/dashboard"));
+    expect(location(res)!.pathname).toBe("/dashboard/admin");
   });
 
   it("lets an admin finishing sign-up through so setup runs", async () => {

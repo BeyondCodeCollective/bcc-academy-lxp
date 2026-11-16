@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured, createClient, createServiceClient } from "@/lib/supabase/server";
@@ -13,6 +13,7 @@ import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { ProfileCaptureOverlay } from "@/components/profile-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { PreviewBanner } from "@/components/preview-banner";
+import { runningLearnerCourse as runningLearnerCourseUncached } from "@/lib/auth/learner-first";
 import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
@@ -321,6 +322,9 @@ async function allSwitchablePrograms(): Promise<
   return programs;
 }
 
+// The nav (Home) and the top bar (account menu) both ask; one lookup per request.
+const runningLearnerCourse = cache(runningLearnerCourseUncached);
+
 async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   const program = await resolveLearnerBrand(await getProgram());
 
@@ -336,6 +340,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   let canShowPreviewToggle = false;
   let previewingSlugs: string[] = [];
   let pendingLearner = false;
+  let learnerHomeHref: string | null = null;
   // Programs reachable through a cross-program grant (empty for super-admins,
   // who already see every program, and for single-program staff).
   let grantSwitcherSlugs: string[] = [];
@@ -378,6 +383,20 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         ...(homeProgram?.slug ? [homeProgram.slug] : []),
         ...(await getGrantedProgramSlugs(ctx.userId)),
       ];
+    }
+    // Staff taking a running course (Field Ready staff cohort): Home opens
+    // that course, and the account menu carries the admin panel. A course
+    // homed in another program goes through switch-program, like /dashboard.
+    if (actualIsAdmin && !validPreviewSlug) {
+      const course = await runningLearnerCourse(ctx.userId);
+      if (course) {
+        const home = await resolveHomeProgramSlug(course.slug);
+        const slug = encodeURIComponent(course.slug);
+        learnerHomeHref =
+          home && home !== program.slug
+            ? `/dashboard/switch-program?track=${slug}`
+            : `/dashboard/track/${slug}`;
+      }
     }
     previewingSlugs = validPreviewSlugs;
     firstName = ctx.student?.first_name ?? "";
@@ -744,6 +763,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
             ? null
             : previewingSlug
         }
+        learnerHomeHref={learnerHomeHref}
         curriculumTracks={curriculumTracks}
         adminTracks={adminTracks}
         lunchLearnRecordings={lunchLearnRecordings}
@@ -783,6 +803,10 @@ async function TopBarShell() {
   // their account menu (the dark in-sidebar UserMenu is gone on the light shell).
 
   const canSwitch = canSwitchPrograms(role) && !isPreviewing;
+  // Staff taking a running course have Home pointed at it (NavShell), so the
+  // admin panel moves into this account menu.
+  const showAdminPanel =
+    canAccessAdminPanel(role) && !isPreviewing && !!(await runningLearnerCourse(ctx.userId));
   // Super-admins manage every program — list them all (Catalyst, Upskill
   // Bahamas, Beyond Code Centers, BGC), not just Catalyst from getAllPrograms.
   const programs = canSwitch ? await allSwitchablePrograms() : [];
@@ -831,6 +855,7 @@ async function TopBarShell() {
       }
       confined={confined}
       hideSearch={hideSearch}
+      showAdminPanel={showAdminPanel}
       tutorAvailable={isTutorAvailable(program)}
       workshopsAvailable={program.slug === "bgc"}
     />
@@ -996,6 +1021,17 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   const canShowPreview =
     canSwitchPrograms(role) ||
     (canAccessAdminPanel(role) && previewGroupMap.size > 0);
+  // Courses this staffer really takes, marked in the preview menu so a
+  // preview isn't mistaken for their own enrollment.
+  const { data: myEnrollments } = canShowPreview
+    ? await createServiceClient()
+        .from("student_tracks")
+        .select("track_slug")
+        .eq("student_id", ctx.userId)
+    : { data: [] };
+  const enrolledSlugs = ((myEnrollments ?? []) as { track_slug: string }[]).map(
+    (r) => r.track_slug,
+  );
 
   return (
     <>
@@ -1012,7 +1048,11 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
       )}
       {showTutor && !confined && <TutorFab />}
       {canShowPreview && (
-        <PreviewToggle previewingSlugs={validPreviewSlugs} groups={previewGroups} />
+        <PreviewToggle
+          previewingSlugs={validPreviewSlugs}
+          groups={previewGroups}
+          enrolledSlugs={enrolledSlugs}
+        />
       )}
     </>
   );

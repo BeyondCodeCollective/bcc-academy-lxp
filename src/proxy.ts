@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { safeNextPath } from "@/lib/auth/next-path";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { courseNotOver } from "@/lib/auth/course-window";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -211,18 +212,29 @@ export async function proxy(request: NextRequest) {
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
-    // An admin who is also enrolled in a course (Field Ready staff cohort), or
-    // finishing sign-up (?setup=1), goes through the dashboard page instead:
-    // it enrolls them and lands them on the course they're taking, and still
-    // sends everyone else to the admin panel.
+    // An admin who is taking a course that hasn't ended (Field Ready staff
+    // cohort), or finishing sign-up (?setup=1), goes through the dashboard
+    // page instead: it enrolls them and lands them on the course they're
+    // taking, and still sends everyone else to the admin panel. Same rule as
+    // runningLearnerCourse: a course they teach, or one that's over, doesn't
+    // count, so an old enrollment no longer costs a learner render first.
     let takesACourse = request.nextUrl.searchParams.has("setup");
     if (!takesACourse && canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
-      const { data: enr } = await supabase
-        .from("student_tracks")
-        .select("track_slug")
-        .eq("student_id", user.id)
-        .limit(1);
-      takesACourse = (enr?.length ?? 0) > 0;
+      const [{ data: enr }, { data: teach }] = await Promise.all([
+        supabase.from("student_tracks").select("track_slug").eq("student_id", user.id),
+        supabase.from("instructor_tracks").select("track_slug").eq("student_id", user.id),
+      ]);
+      const teaching = new Set((teach ?? []).map((r) => r.track_slug as string));
+      const slugs = (enr ?? [])
+        .map((r) => r.track_slug as string)
+        .filter((s) => !teaching.has(s));
+      if (slugs.length > 0) {
+        const { data: courses } = await supabase
+          .from("track_overrides")
+          .select("start_date, total_weeks")
+          .in("track_slug", slugs);
+        takesACourse = (courses ?? []).some((c) => courseNotOver(c));
+      }
     }
     if (!takesACourse && canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
       const url = request.nextUrl.clone();

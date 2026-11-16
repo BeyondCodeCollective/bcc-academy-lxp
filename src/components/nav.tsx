@@ -111,6 +111,7 @@ export function Nav({
   lunchLearnRecordings = [],
   showLunchLearnLink = false,
   previewingSlug = null,
+  learnerHomeHref = null,
 }: {
   isAdmin: boolean;
   canAccessStaff?: boolean;
@@ -133,6 +134,9 @@ export function Nav({
   showLunchLearnLink?: boolean;
   /** Track being previewed-as-student — Home follows it. Null = not previewing. */
   previewingSlug?: string | null;
+  /** Staff taking a running course: Home opens it, and the admin panel moves
+   *  into the account menu. Null for everyone else. */
+  learnerHomeHref?: string | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -186,11 +190,13 @@ export function Nav({
       ? (previewingSlug ??
         (collapsedCourseCount > 1 ? null : (primaryTrack(curriculumTracks)?.slug ?? null)))
       : null;
-  const homeHref = isAdmin
-    ? "/dashboard/admin"
-    : primarySlug
-      ? `/dashboard/track/${primarySlug}`
-      : "/dashboard";
+  const homeHref =
+    learnerHomeHref ??
+    (isAdmin
+      ? "/dashboard/admin"
+      : primarySlug
+        ? `/dashboard/track/${primarySlug}`
+        : "/dashboard");
 
   // While previewing, Home follows the previewed course — useful from a week
   // or session page, and a dead link on the course page itself, which is
@@ -323,6 +329,7 @@ export function Nav({
     canSwitch,
     programs,
     currentProgramSlug,
+    showAdminPanel: !!learnerHomeHref,
   };
 
   const { enabled: readAloud, setEnabled: setReadAloud, speak, stop } = useReadAloud();
