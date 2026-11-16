@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { getAllSubmissions, addFeedback } from "./actions";
 import type { AdminSubmissionRow } from "./actions";
-import { CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, CircleNotch as Loader2, FileText, PaperPlaneTilt as Send, ChatCentered as MessageSquare } from "@phosphor-icons/react";
-import { fieldInput } from "@/components/ui";
+import { CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, CircleNotch as Loader2, FileText, PaperPlaneTilt as Send, ChatCentered as MessageSquare, DownloadSimple } from "@phosphor-icons/react";
+import { buttonClass, fieldInput } from "@/components/ui";
 import { type AdminTrackConfig } from "./admin-shared";
 
 // ─── Student Work Tab ──────────────────────────────────────────────────────
@@ -70,6 +70,13 @@ export function StudentWorkTab({
 
   const maxWeeks = Math.max(...tracks.map((t) => t.totalWeeks), 0);
 
+  // Server-built so it carries the same staff gate and entitlement scope as
+  // the list, and exports exactly what the filters show.
+  const csvParams = new URLSearchParams({ program: programSlug });
+  if (trackFilter !== "all") csvParams.set("track", trackFilter);
+  if (weekFilter !== "all") csvParams.set("week", String(weekFilter));
+  const csvHref = `/api/admin/submissions/csv?${csvParams}`;
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -108,6 +115,12 @@ export function StudentWorkTab({
         <span className="text-xs text-ink-faint ml-auto">
           {filteredSubmissions.length} result{filteredSubmissions.length !== 1 ? "s" : ""}
         </span>
+        {!loading && filteredSubmissions.length > 0 && (
+          <a href={csvHref} className={buttonClass("secondary", "sm")}>
+            <DownloadSimple size={12} aria-hidden />
+            Download CSV
+          </a>
+        )}
       </div>
 
       {loading && (
