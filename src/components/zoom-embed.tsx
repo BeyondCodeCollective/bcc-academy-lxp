@@ -51,7 +51,7 @@ export function ZoomEmbed({
     <div>
       {/* Zoom embed — isolated iframe. The page names the live state (the
          session picker and the block heading), so the frame carries no label. */}
-      <div className="relative w-full overflow-hidden rounded-lg bg-ink aspect-video min-h-[220px] sm:min-h-[380px]">
+      <div className="relative w-full overflow-hidden rounded-lg bg-ink aspect-video max-h-[calc(100dvh-7rem)] min-h-[220px] sm:min-h-[380px]">
         <iframe
           src={src}
           title={sessionTitle ? `Live session: ${sessionTitle}` : "Live session"}
