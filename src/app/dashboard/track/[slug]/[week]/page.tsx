@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
@@ -755,17 +756,28 @@ export default async function TrackWeekPage({
     return title && !same(title, name) ? `${name}: ${title}` : name;
   };
   // While a Zoom session is live the frame gets the page: the checklist rail
-  // steps aside (its links all point at blocks below anyway) and the column
-  // widens, so a presenter's shared screen is legible.
+  // steps aside (its links all point at blocks below anyway), the reading
+  // column centers, and the Session block breaks out of it, as wide as the
+  // page allows while a 16:9 frame still fits the viewport height, so a
+  // presenter's shared screen is legible. Notes and homework keep the column.
+  // On phones the max() keeps the block at column width.
   const zoomLive = !!selZoom;
+  const breakout = zoomLive
+    ? ({
+        "--bw": "max(100%, min(100cqw - 4rem, (100dvh - 7rem) * 16 / 9))",
+        width: "var(--bw)",
+        marginLeft: "calc(50% - var(--bw) / 2)",
+      } as CSSProperties)
+    : undefined;
   const blockClass = "scroll-mt-24 py-7 first:pt-6 lg:py-9 lg:first:pt-8";
   const cardClass =
     "flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-lg border border-rule bg-surface-elevated px-5 py-[18px]";
 
   return (
+    <div className="@container">
     <div
       className={`mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5 ${
-        zoomLive ? "lg:max-w-[1200px]" : "xl:max-w-[980px]"
+        zoomLive ? "" : "xl:max-w-[980px]"
       }`}
     >
       <WeekKeyboardNav
@@ -852,15 +864,16 @@ export default async function TrackWeekPage({
           <div className="divide-y divide-rule">
             {hasSessionBlock && (
               <section id="session" className={blockClass}>
+                <div style={breakout}>
                 <h2 className={weekHeading}>
                   Session
                   {isSingleSession && <SessionStateWord state={selState} />}
                 </h2>
                 {selTitle && <p className="-mt-1.5 mb-3.5 text-ink-soft">{selTitle}</p>}
-                <div className="space-y-4">
-                  {/* The meeting ID never appears in the DOM; learners join
-                     through the SDK inside the frame. */}
-                  {selZoom && (
+                {/* The meeting ID never appears in the DOM; learners join
+                   through the SDK inside the frame. */}
+                {selZoom && (
+                  <div className="mb-4">
                     <ZoomEmbed
                       meetingNumber={selZoom.meetingNumber}
                       password={selZoom.password}
@@ -871,8 +884,10 @@ export default async function TrackWeekPage({
                       sessionNumber={sel + 1}
                       sessionTitle={selTitle ?? undefined}
                     />
-                  )}
-
+                  </div>
+                )}
+                </div>
+                <div className="space-y-4">
                   {selExternalJoin && (
                     <div className="grid aspect-video place-items-center rounded-lg bg-ink px-6 text-center">
                       <div>
@@ -1158,6 +1173,7 @@ export default async function TrackWeekPage({
           </aside>
         )}
       </div>
+    </div>
     </div>
   );
 }
