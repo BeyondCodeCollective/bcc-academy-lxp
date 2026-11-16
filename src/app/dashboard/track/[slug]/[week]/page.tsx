@@ -7,6 +7,7 @@ import {
   ArrowLeft as ArrowLeftIcon,
   ArrowRight,
   CalendarPlus,
+  CaretRight,
   Check,
 } from "@phosphor-icons/react/dist/ssr";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
@@ -347,7 +348,6 @@ export default async function TrackWeekPage({
       return data?.signedUrl ?? null;
     }),
   );
-  const showChecklist = isSupabaseConfigured() && weekSubmissionsEnabled;
   // Self-paced tracks unlock the watch button and the submission form on every
   // week regardless of `currentWeek` — the date gate only matches cohort-style
   // tracks. Without this, a self-paced track with a future `startDate` would
@@ -681,7 +681,6 @@ export default async function TrackWeekPage({
   const selResources = groupMaterialsBySession
     ? resources.filter((r) => Math.min(r.session ?? 1, sessionCount) === sel + 1)
     : resources;
-  const hasNotes = !!notesHtml || displayObjectives.length > 0 || selResources.length > 0;
 
   // Your work: the week has one submission and one reflection, so both show
   // under whichever session is open, with that session's homework above them.
@@ -696,6 +695,16 @@ export default async function TrackWeekPage({
   const selHomework =
     (homeworkInstructions.length > 1 ? homeworkInstructions[sel] : homeworkInstructions[0]) ||
     "";
+  // A link whose label starts with "homework" ("homework part one: Make a
+  // morning brief") is an assignment. It sits with the upload under Homework,
+  // not in the reading list, so a learner meets each assignment once.
+  const isHomeworkLink = (name: string) => /^\s*homework\b/i.test(name);
+  const homeworkLinks =
+    hasWork && weekSubmissionsEnabled ? selResources.filter((r) => isHomeworkLink(r.name)) : [];
+  const readingList = homeworkLinks.length
+    ? selResources.filter((r) => !isHomeworkLink(r.name))
+    : selResources;
+  const hasNotes = !!notesHtml || displayObjectives.length > 0;
 
   // Survey: open from the moment the session starts, live included. Before
   // then it is left off: a block that only says "not yet" is clutter.
@@ -703,54 +712,9 @@ export default async function TrackWeekPage({
   const surveyOpen = selState === "live" || selState === "ended";
   const surveyRow = exitSurvey?.[sel + 1];
 
-  // The rail: the open session's blocks, as jump links. A filled dot means
-  // done, a dashed one means not available yet.
   const watched = weekProgress?.videoWatched ?? false;
   // Homework is per session, so "Turned in" speaks for the open session only.
   const turnedIn = weekProgress?.submittedSessions.includes(sel + 1) ?? false;
-  const rail: { href: string; label: string; dot: "todo" | "done" | "na" | "none" }[] = [
-    ...(hasSessionBlock
-      ? [
-          {
-            href: "#session",
-            label: "Session",
-            dot:
-              selReplay && showChecklist
-                ? watched
-                  ? ("done" as const)
-                  : ("todo" as const)
-                : ("none" as const),
-          },
-        ]
-      : []),
-    ...(hasNotes ? [{ href: "#notes", label: "Notes", dot: "none" as const }] : []),
-    ...(hasWork
-      ? [
-          {
-            href: "#work",
-            label: "Your work",
-            dot: !weekSubmissionsEnabled
-              ? ("none" as const)
-              : turnedIn
-                ? ("done" as const)
-                : ("todo" as const),
-          },
-        ]
-      : []),
-    ...(hasSurvey
-      ? [
-          {
-            href: "#survey",
-            label: "Survey",
-            dot: !surveyOpen
-              ? ("na" as const)
-              : surveyRow?.understanding != null
-                ? ("done" as const)
-                : ("todo" as const),
-          },
-        ]
-      : []),
-  ];
 
   const weekHref = (n: number) => `/dashboard/track/${trackSlug}/${n}`;
   const weekLinkLabel = (n: number) => {
@@ -761,9 +725,7 @@ export default async function TrackWeekPage({
       a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
     return title && !same(title, name) ? `${name}: ${title}` : name;
   };
-  // While a Zoom session is live the frame gets the page: the checklist rail
-  // steps aside (its links all point at blocks below anyway), the reading
-  // column centers, and the Session block breaks out of it, as wide as the
+  // While a Zoom session is live the frame gets the page: the Session block breaks out of it, as wide as the
   // page allows while a 16:9 frame still fits the viewport height, so a
   // presenter's shared screen is legible. Notes and homework keep the column.
   // On phones the max() keeps the block at column width.
@@ -782,9 +744,7 @@ export default async function TrackWeekPage({
   return (
     <div className="@container">
     <div
-      className={`mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5 ${
-        zoomLive ? "" : "xl:max-w-[980px]"
-      }`}
+      className="mx-auto w-full max-w-[720px] px-4 pb-16 pt-2 sm:px-5"
     >
       <WeekKeyboardNav
         prevHref={prevWeek ? weekHref(prevWeek) : null}
@@ -863,16 +823,14 @@ export default async function TrackWeekPage({
         </nav>
       )}
 
-      <div
-        className={`mt-2 ${zoomLive ? "" : "xl:grid xl:grid-cols-[minmax(0,680px)_180px] xl:gap-20"}`}
-      >
+      <div className="mt-2">
         <div className="min-w-0">
           <div className="divide-y divide-rule">
             {hasSessionBlock && (
               <section id="session" className={blockClass}>
                 <div style={breakout}>
                 <h2 className={weekHeading}>
-                  Session
+                  Class
                   {isSingleSession && <SessionStateWord state={selState} />}
                 </h2>
                 {selTitle && <p className="-mt-1.5 mb-3.5 text-ink-soft">{selTitle}</p>}
@@ -1016,45 +974,56 @@ export default async function TrackWeekPage({
 
             {hasNotes && (
               <section id="notes" className={blockClass}>
-                <h2 className={weekHeading}>Notes</h2>
+                <h2 className={weekHeading}>
+                  {isSingleSession ? "About this week" : "About this session"}
+                </h2>
                 {notesHtml && (
                   <div
                     className="prose max-w-[68ch] leading-relaxed text-ink prose-headings:text-ink prose-a:text-primary prose-strong:text-ink"
                     dangerouslySetInnerHTML={{ __html: notesHtml }}
                   />
                 )}
+                {/* The topic list mostly repeats the reading list's titles, so
+                   it waits behind a disclosure for whoever wants the outline. */}
                 {displayObjectives.length > 0 && (
-                  <div className={notesHtml ? "mt-5" : undefined}>
-                    <p className="mb-1.5 font-medium text-ink">What you&apos;ll cover</p>
-                    <ol className="max-w-[68ch] list-decimal pl-5 text-ink marker:text-ink-faint">
+                  <details className={`group ${notesHtml ? "mt-4" : ""}`}>
+                    <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 text-sm text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden">
+                      <CaretRight
+                        size={14}
+                        aria-hidden
+                        className="shrink-0 transition-transform group-open:rotate-90"
+                      />
+                      Topics ({displayObjectives.length})
+                    </summary>
+                    <ol className="mt-1 max-w-[68ch] list-decimal pl-5 text-ink marker:text-ink-faint">
                       {displayObjectives.map((obj, i) => (
                         <li key={i} className="py-0.5 pl-1">
                           {obj}
                         </li>
                       ))}
                     </ol>
-                  </div>
+                  </details>
                 )}
-                {selResources.length > 0 && (
-                  <ul
-                    className={`divide-y divide-rule border-y border-rule ${
-                      notesHtml || displayObjectives.length > 0 ? "mt-5" : ""
-                    }`}
-                  >
-                    {selResources.map((r, i) => (
-                      <li key={i}>
-                        <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              </section>
+            )}
+
+            {readingList.length > 0 && (
+              <section id="materials" className={blockClass}>
+                <h2 className={weekHeading}>Watch and read</h2>
+                <ul className="divide-y divide-rule border-y border-rule">
+                  {readingList.map((r, i) => (
+                    <li key={i}>
+                      <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
 
             {hasWork && (
               <section id="work" className={blockClass}>
                 <h2 className={weekHeading}>
-                  Your work
+                  {weekSubmissionsEnabled ? "Homework" : "Your work"}
                   {weekSubmissionsEnabled &&
                     (turnedIn ? (
                       <span className={weekStateDone}>
@@ -1065,8 +1034,32 @@ export default async function TrackWeekPage({
                       <span className={weekState}>Not turned in yet</span>
                     ))}
                 </h2>
-                {weekSubmissionsEnabled && selHomework && (
-                  <p className="mb-4 max-w-[68ch] whitespace-pre-line text-ink">{selHomework}</p>
+                {homeworkLinks.length > 0 ? (
+                  <>
+                    <ul className="mb-4 divide-y divide-rule border-y border-rule">
+                      {homeworkLinks.map((r, i) => (
+                        <li key={i}>
+                          <ResourceLink
+                            resource={r}
+                            trackSlug={trackSlug}
+                            weekNum={weekNum}
+                            label={r.name.replace(/^\s*homework\b[^:]*:\s*/i, "") || undefined}
+                            part={homeworkLinks.length > 1 ? i + 1 : undefined}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {homeworkLinks.length > 1 && (
+                      <p className="mb-3 text-sm text-ink-soft">
+                        One upload holds every part. Add a file or link for each.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  weekSubmissionsEnabled &&
+                  selHomework && (
+                    <p className="mb-4 max-w-[68ch] whitespace-pre-line text-ink">{selHomework}</p>
+                  )
                 )}
                 <WorkForms
                   // Remount per session so one session's homework never
@@ -1140,46 +1133,6 @@ export default async function TrackWeekPage({
           </nav>
         </div>
 
-        {/* An upcoming session has nothing to check off yet, so the rail
-           steps aside; the grid stays so switching sessions never reflows. */}
-        {rail.length > 1 && !zoomLive && !showUpcoming && (
-          <aside aria-label="On this page" className="hidden pt-11 xl:block">
-            <div className="sticky top-24">
-              <p className="mb-2.5 text-[13px] text-ink-faint">
-                {isSingleSession ? "Checklist" : `Session ${sel + 1} checklist`}
-              </p>
-              {rail.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-2.5 py-[7px] text-sm text-ink-soft transition-colors hover:text-ink"
-                >
-                  <span
-                    aria-hidden
-                    className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] ${
-                      item.dot === "done"
-                        ? "border-success-text bg-success-text text-white"
-                        : item.dot === "na"
-                          ? "border-dashed border-[#b9b9c0]"
-                          : item.dot === "none"
-                            ? "border-transparent"
-                            : "border-[#b9b9c0]"
-                    }`}
-                  >
-                    {item.dot === "done" ? (
-                      <Check size={9} weight="bold" />
-                    ) : item.dot === "none" ? (
-                      <span className="h-1 w-1 rounded-full bg-[#b9b9c0]" />
-                    ) : null}
-                  </span>
-                  {item.label}
-                  {item.dot === "done" && <span className="sr-only">(done)</span>}
-                  {item.dot === "na" && <span className="sr-only">(not open yet)</span>}
-                </a>
-              ))}
-            </div>
-          </aside>
-        )}
       </div>
     </div>
     </div>
