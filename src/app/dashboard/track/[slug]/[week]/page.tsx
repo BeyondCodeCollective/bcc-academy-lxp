@@ -36,6 +36,8 @@ import { getSurveyStatus } from "@/app/dashboard/actions";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { ResourceLink } from "@/components/resource-link";
+import type { SessionResource } from "@/app/dashboard/admin/actions-tracks";
+import { submissionHasPart } from "@/lib/submission-parts";
 import { sessionDates } from "@/lib/session-days";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
@@ -701,6 +703,8 @@ export default async function TrackWeekPage({
   const isHomeworkLink = (name: string) => /^\s*homework\b/i.test(name);
   const homeworkLinks =
     hasWork && weekSubmissionsEnabled ? selResources.filter((r) => isHomeworkLink(r.name)) : [];
+  // Two or more parts each get their own upload, and the status counts parts.
+  const multiPart = homeworkLinks.length > 1;
   const readingList = homeworkLinks.length
     ? selResources.filter((r) => !isHomeworkLink(r.name))
     : selResources;
@@ -1025,6 +1029,7 @@ export default async function TrackWeekPage({
                 <h2 className={weekHeading}>
                   {weekSubmissionsEnabled ? "Homework" : "Your work"}
                   {weekSubmissionsEnabled &&
+                    !multiPart &&
                     (turnedIn ? (
                       <span className={weekStateDone}>
                         <Check size={14} weight="bold" aria-hidden />
@@ -1034,27 +1039,17 @@ export default async function TrackWeekPage({
                       <span className={weekState}>Not turned in yet</span>
                     ))}
                 </h2>
-                {homeworkLinks.length > 0 ? (
-                  <>
-                    <ul className="mb-4 divide-y divide-rule border-y border-rule">
-                      {homeworkLinks.map((r, i) => (
-                        <li key={i}>
-                          <ResourceLink
-                            resource={r}
-                            trackSlug={trackSlug}
-                            weekNum={weekNum}
-                            label={r.name.replace(/^\s*homework\b[^:]*:\s*/i, "") || undefined}
-                            part={homeworkLinks.length > 1 ? i + 1 : undefined}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                    {homeworkLinks.length > 1 && (
-                      <p className="mb-3 text-sm text-ink-soft">
-                        One upload holds every part. Add a file or link for each.
-                      </p>
-                    )}
-                  </>
+                {multiPart ? null : homeworkLinks.length === 1 ? (
+                  <ul className="mb-4 divide-y divide-rule border-y border-rule">
+                    <li>
+                      <ResourceLink
+                        resource={homeworkLinks[0]}
+                        trackSlug={trackSlug}
+                        weekNum={weekNum}
+                        label={homeworkLabel(homeworkLinks[0].name)}
+                      />
+                    </li>
+                  </ul>
                 ) : (
                   weekSubmissionsEnabled &&
                   selHomework && (
@@ -1071,6 +1066,7 @@ export default async function TrackWeekPage({
                   submissionPrompts={weekContent.submissionPrompts}
                   showSubmissions={weekSubmissionsEnabled}
                   reflectionPrompts={showReflection ? reflectionPrompts : null}
+                  parts={multiPart ? homeworkLinks : undefined}
                 />
               </section>
             )}
@@ -1162,6 +1158,11 @@ function SessionStateWord({ state }: { state: "live" | "ended" | "upcoming" | "o
   return null;
 }
 
+/** A homework link's name without its "homework part one:" prefix. */
+function homeworkLabel(name: string): string | undefined {
+  return name.replace(/^\s*homework\b[^:]*:\s*/i, "") || undefined;
+}
+
 async function WorkForms({
   trackSlug,
   weekNum,
@@ -1169,6 +1170,7 @@ async function WorkForms({
   submissionPrompts,
   showSubmissions,
   reflectionPrompts,
+  parts,
 }: {
   trackSlug: string;
   weekNum: number;
@@ -1177,6 +1179,8 @@ async function WorkForms({
   showSubmissions: boolean;
   /** null when the week takes no reflection. */
   reflectionPrompts: string[] | null;
+  /** Homework links when the session has two or more parts; each gets its own upload. */
+  parts?: SessionResource[];
 }) {
   const [existingSubmission, existingReflection] = await Promise.all([
     showSubmissions
@@ -1197,6 +1201,52 @@ async function WorkForms({
       ? getFeedback(undefined, existingReflection.id).catch(() => [])
       : [],
   ]);
+
+  if (showSubmissions && parts) {
+    const partsDone = parts.filter((_, i) => submissionHasPart(existingSubmission, i + 1)).length;
+    return (
+      <>
+        <p className={`-mt-1.5 mb-3 text-sm ${partsDone === parts.length ? "text-success-text" : "text-ink-soft"}`}>
+          {partsDone} of {parts.length} parts turned in
+        </p>
+        <ul className="mb-4 divide-y divide-rule border-y border-rule">
+          {parts.map((r, i) => (
+            <li key={i} className="pb-3">
+              <ResourceLink
+                resource={r}
+                trackSlug={trackSlug}
+                weekNum={weekNum}
+                label={homeworkLabel(r.name)}
+                part={i + 1}
+              />
+              <div className="pl-8">
+                <SubmissionForm
+                  variant="plain"
+                  trackSlug={trackSlug}
+                  weekNumber={weekNum}
+                  sessionNumber={sessionNumber}
+                  part={i + 1}
+                  existing={existingSubmission}
+                  // Feedback is on the whole session's work; show it once.
+                  feedback={i === parts.length - 1 ? submissionFeedback : []}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+        {reflectionPrompts && (
+          <ReflectionForm
+            variant="plain"
+            trackSlug={trackSlug}
+            weekNumber={weekNum}
+            prompts={reflectionPrompts}
+            existing={existingReflection}
+            feedback={reflectionFeedback}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">

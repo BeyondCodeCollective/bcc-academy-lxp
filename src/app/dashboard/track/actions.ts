@@ -8,11 +8,13 @@ import { getSessionContext } from "@/lib/auth/session";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { autoIssueIfFinished } from "@/lib/certificates/auto";
 import { revalidatePath } from "next/cache";
+import { partKey } from "@/lib/submission-parts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SubmissionLink = { url: string; label: string };
-export type SubmissionFile = { url: string; name: string; type: string };
+/** `part` tags an attachment to one homework part (see lib/submission-parts). */
+export type SubmissionLink = { url: string; label: string; part?: number };
+export type SubmissionFile = { url: string; name: string; type: string; part?: number };
 
 export type SubmissionRow = {
   id: string;
@@ -80,6 +82,8 @@ export async function submitProject(
     links: SubmissionLink[];
     files: SubmissionFile[];
     promptResponses?: Record<string, string>;
+    /** Saves just this homework part, leaving the session's other parts as they are. */
+    part?: number;
   }
 ) {
   if (!Number.isInteger(sessionNumber) || sessionNumber < 1 || sessionNumber > 5) {
@@ -88,16 +92,50 @@ export async function submitProject(
   const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
   const svc = createServiceClient();
 
+  let description = data.description;
+  let links = data.links;
+  let files = data.files;
+  let promptResponses = data.promptResponses ?? {};
+  const part = data.part;
+  if (part !== undefined) {
+    if (!Number.isInteger(part) || part < 1 || part > 10) throw new Error("Bad part");
+    // Merge into the session's row: replace this part's attachments and note,
+    // keep every other part's.
+    const { data: row, error: readError } = await svc
+      .from("submissions")
+      .select("description, links, files, prompt_responses")
+      .eq("student_id", userId)
+      .eq("track_slug", trackSlug)
+      .eq("week_number", weekNumber)
+      .eq("session_number", sessionNumber)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    const prev = (row ?? {}) as Partial<SubmissionRow>;
+    description = prev.description ?? "";
+    links = [
+      ...(prev.links ?? []).filter((l) => l.part !== part),
+      ...data.links.map((l) => ({ ...l, part })),
+    ];
+    files = [
+      ...(prev.files ?? []).filter((f) => f.part !== part),
+      ...data.files.map((f) => ({ ...f, part })),
+    ];
+    promptResponses = { ...(prev.prompt_responses ?? {}) };
+    const note = data.description.trim();
+    if (note) promptResponses[partKey(part)] = note;
+    else delete promptResponses[partKey(part)];
+  }
+
   const { error } = await svc.from("submissions").upsert(
     {
       student_id: userId,
       track_slug: trackSlug,
       week_number: weekNumber,
       session_number: sessionNumber,
-      description: data.description,
-      links: data.links,
-      files: data.files,
-      prompt_responses: data.promptResponses ?? {},
+      description,
+      links,
+      files,
+      prompt_responses: promptResponses,
       submitted_at: new Date().toISOString(),
       program_id: programId,
       updated_at: new Date().toISOString(),

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { submitProject } from "@/app/dashboard/track/actions";
+import { partKey, submissionHasPart } from "@/lib/submission-parts";
 import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from "@/app/dashboard/track/actions";
 import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
@@ -16,6 +17,7 @@ export function SubmissionForm({
   existing,
   feedback,
   variant = "panel",
+  part,
 }: {
   trackSlug: string;
   weekNumber: number;
@@ -33,9 +35,12 @@ export function SubmissionForm({
   /** "plain" is the week page's Your work block: a quiet button that opens
    *  the form in place, with no panel or heading of its own. */
   variant?: "panel" | "plain";
+  /** One homework part of the session: the form shows and saves only that
+   *  part's files, links and note (lib/submission-parts). */
+  part?: number;
 }) {
   const plain = variant === "plain";
-  const activePrompts = prompts ?? [];
+  const activePrompts = part ? [] : (prompts ?? []);
   const hasPrompts = activePrompts.length > 0;
   const existingPromptResponses = existing?.prompt_responses ?? {};
 
@@ -46,16 +51,24 @@ export function SubmissionForm({
     }
     return initial;
   });
-  const [description, setDescription] = useState(existing?.description ?? "");
-  const [links, setLinks] = useState<SubmissionLink[]>(existing?.links ?? []);
-  const [files, setFiles] = useState<SubmissionFile[]>(existing?.files ?? []);
+  const [description, setDescription] = useState(
+    (part ? existing?.prompt_responses?.[partKey(part)] : existing?.description) ?? "",
+  );
+  const [links, setLinks] = useState<SubmissionLink[]>(
+    (existing?.links ?? []).filter((l) => !part || l.part === part),
+  );
+  const [files, setFiles] = useState<SubmissionFile[]>(
+    (existing?.files ?? []).filter((f) => !part || f.part === part),
+  );
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(!!existing?.submitted_at);
+  const [saved, setSaved] = useState(
+    part ? submissionHasPart(existing, part) : !!existing?.submitted_at,
+  );
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(
-    (existing?.links?.length ?? 0) > 0 || (existing?.files?.length ?? 0) > 0
+    links.length > 0 || files.length > 0
   );
 
   function updatePromptResponse(prompt: string, value: string) {
@@ -135,6 +148,7 @@ export function SubmissionForm({
         links: links.filter((l) => l.url.trim()),
         files,
         promptResponses: cleanedPromptResponses,
+        part,
       });
       setSaved(true);
     } catch (err) {
@@ -160,7 +174,13 @@ export function SubmissionForm({
             className={`${weekBtnQuiet} w-full sm:w-auto`}
           >
             <Upload size={18} />
-            {saved ? "Edit your work" : "Upload your work"}
+            {part
+              ? saved
+                ? `Edit part ${part}`
+                : `Upload part ${part}`
+              : saved
+                ? "Edit your work"
+                : "Upload your work"}
           </button>
         )
       ) : (
