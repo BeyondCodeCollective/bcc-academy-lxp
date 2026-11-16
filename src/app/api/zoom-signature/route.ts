@@ -4,7 +4,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import crypto from "crypto";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, resolveTrackProgram } from "@/lib/programs/server";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { logActivityEvent } from "@/lib/analytics/log-event";
@@ -118,7 +118,16 @@ export async function POST(request: NextRequest) {
   // they opened). Resolve the live session server-side from the syllabus dates;
   // fall back to the client value only for undated/self-paced (on-demand) tracks
   // where the page's week genuinely is the unit being consumed.
-  const liveTrack = program.tracks.find((t) => t.slug === trackSlug);
+  // The browsing program can differ from the course's program: an admin whose
+  // program switcher points at BGC still joins the Field Ready staff cohort
+  // from its week page. Missing the track there treated the join as a staff
+  // visit and silently dropped their attendance (2026-11-16: four admins in
+  // class, none recorded). Fall back to the course's own program.
+  // Same resolver the week page renders with, so both agree on the track.
+  const liveTrack = trackSlug
+    ? (program.tracks.find((t) => t.slug === trackSlug) ??
+      (await resolveTrackProgram(trackSlug).catch(() => null))?.track)
+    : undefined;
   if (liveTrack && liveTrack.weekSummaries.some((ws) => ws.date)) {
     const currentUnit = resolveCurrentUnit(liveTrack);
     if (currentUnit >= 1) {
