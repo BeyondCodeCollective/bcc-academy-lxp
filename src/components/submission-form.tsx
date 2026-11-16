@@ -11,6 +11,7 @@ import { weekBtnQuiet } from "@/components/week-page-ui";
 export function SubmissionForm({
   trackSlug,
   weekNumber,
+  sessionNumber = 1,
   prompts,
   existing,
   feedback,
@@ -18,6 +19,8 @@ export function SubmissionForm({
 }: {
   trackSlug: string;
   weekNumber: number;
+  /** Which session of the week this homework belongs to. */
+  sessionNumber?: number;
   /**
    * Structured questions ("Written Artifact") for this week's submission.
    * When provided, the form renders one labeled textarea per prompt and
@@ -127,7 +130,7 @@ export function SubmissionForm({
       for (const [prompt, answer] of Object.entries(promptResponses)) {
         if (answer.trim()) cleanedPromptResponses[prompt] = answer.trim();
       }
-      await submitProject(trackSlug, weekNumber, {
+      await submitProject(trackSlug, weekNumber, sessionNumber, {
         description,
         links: links.filter((l) => l.url.trim()),
         files,

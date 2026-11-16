@@ -144,7 +144,7 @@ export function StudentWorkTab({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink">{sub.student_name}</p>
                     <p className="text-micro text-ink-faint">
-                      {(() => { const st = tracks.find((t) => t.slug === sub.track_slug); return `${st?.shortName ?? sub.track_slug} · ${st?.unitLabel || "Week"} ${sub.week_number}`; })()}
+                      {(() => { const st = tracks.find((t) => t.slug === sub.track_slug); return `${st?.shortName ?? sub.track_slug} · ${st?.unitLabel || "Week"} ${sub.week_number} · Session ${sub.session_number}`; })()}
                       {sub.submitted_at && ` · ${new Date(sub.submitted_at).toLocaleDateString()}`}
                     </p>
                   </div>
