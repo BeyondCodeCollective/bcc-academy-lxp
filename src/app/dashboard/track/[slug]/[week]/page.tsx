@@ -698,7 +698,8 @@ export default async function TrackWeekPage({
   // The rail: the open session's blocks, as jump links. A filled dot means
   // done, a dashed one means not available yet.
   const watched = weekProgress?.videoWatched ?? false;
-  const turnedIn = weekProgress?.homeworkSubmitted ?? false;
+  // Homework is per session, so "Turned in" speaks for the open session only.
+  const turnedIn = weekProgress?.submittedSessions.includes(sel + 1) ?? false;
   const rail: { href: string; label: string; dot: "todo" | "done" | "na" | "none" }[] = [
     ...(hasSessionBlock
       ? [
