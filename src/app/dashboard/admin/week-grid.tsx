@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { BookOpenText, ClipboardText, UserCheck, WarningCircle } from "@phosphor-icons/react";
+import { BookOpenText, CheckCircle, Circle, ClipboardText, UserCheck, WarningCircle } from "@phosphor-icons/react";
 import type { EngagementLearner, WeekCell, WeekGrid as WeekGridData } from "./actions-analytics";
 import { getWeekPicture, type WeekPicture } from "./actions-tracks";
 import { HomeworkAnswer } from "./attendance-tab";
@@ -109,7 +109,7 @@ export function WeekGrid({
               <tr className="border-b border-rule bg-paper-tint-soft/60">
                 <td colSpan={grid.weeks.length + 1} className="px-4 py-3">
                   {/* Pinned to the visible width: the table scrolls sideways on a phone. */}
-                  <div className="sticky left-4 w-[min(80ch,calc(100vw-4rem))]">
+                  <div className="sticky left-4 w-[min(72rem,calc(100vw-4rem))]">
                   <WeekViewers
                     week={grid.weeks.find((w) => w.week === openWeek)!}
                     unit={unit}
@@ -173,7 +173,7 @@ export function WeekGrid({
                     <tr className="border-b border-rule bg-paper-tint-soft/60">
                       <td colSpan={grid.weeks.length + 1} className="px-4 py-3">
                   {/* Pinned to the visible width: the table scrolls sideways on a phone. */}
-                  <div className="sticky left-4 w-[min(80ch,calc(100vw-4rem))]">
+                  <div className="sticky left-4 w-[min(72rem,calc(100vw-4rem))]">
                         <LearnerWeek
                           name={nameOf(r.email)}
                           unit={unit}
@@ -208,6 +208,90 @@ function Legend() {
   );
 }
 
+type Material = WeekGridData["weeks"][number]["materials"][number];
+type Kind = "required" | "homework" | "optional";
+
+const KINDS: { kind: Kind; title: string }[] = [
+  { kind: "required", title: "Required" },
+  { kind: "homework", title: "Homework" },
+  { kind: "optional", title: "Optional" },
+];
+
+/** Material labels carry their role as a prefix ("optional: Skills in
+ *  Gemini", "homework part one: Make a morning brief"), the same convention the
+ *  learner week page reads. Split it off so the list can group by role and
+ *  show the bare title. */
+function classify(name: string): { kind: Kind; title: string; part?: string } {
+  const clean = name.replace(/\s+,/g, ",").replace(/\s+/g, " ").trim();
+  const hw = clean.match(/^homework\b\s*(part\s+[^:]+)?:\s*(.*)$/i);
+  if (hw) {
+    const part = hw[1]?.replace(/^part\s+/i, "");
+    return { kind: "homework", title: hw[2] || clean, part: part ? `Part ${part}` : undefined };
+  }
+  const opt = clean.match(/^optional\s*:\s*(.*)$/i);
+  if (opt) return { kind: "optional", title: opt[1] || clean };
+  return { kind: "required", title: clean };
+}
+
+/** Group a week's materials by role, keeping curriculum order and each
+ *  material's index (cells store opened materials by index). */
+function grouped(materials: Material[]) {
+  const items = materials.map((m, i) => ({ i, url: m.url, ...classify(m.name) }));
+  return KINDS.map((k) => ({ ...k, items: items.filter((it) => it.kind === k.kind) })).filter(
+    (g) => g.items.length > 0,
+  );
+}
+
+/** One learner's week as a checklist: what they opened is checked, what they
+ *  skipped is a hollow ring, split into required, homework and optional. */
+function MaterialChecklist({
+  materials,
+  opened,
+  compact = false,
+}: {
+  materials: Material[];
+  opened: number[];
+  compact?: boolean;
+}) {
+  const groups = grouped(materials);
+  const text = compact ? "text-xs" : "text-sm";
+  return (
+    <div className={`grid gap-x-8 gap-y-4 ${groups.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
+      {groups.map((g) => {
+        const done = g.items.filter((it) => opened.includes(it.i)).length;
+        return (
+          <div key={g.kind} className="min-w-0">
+            <p className="mb-1.5 flex items-baseline justify-between gap-3 border-b border-rule pb-1 text-micro font-semibold text-ink-faint">
+              <span>{g.title}</span>
+              <span className="tabular-nums font-medium">
+                {done} of {g.items.length}
+              </span>
+            </p>
+            <ul className={compact ? "space-y-1" : "space-y-1.5"}>
+              {g.items.map((it) => {
+                const seen = opened.includes(it.i);
+                return (
+                  <li key={it.url} className={`flex items-start gap-2 ${text}`}>
+                    {seen ? (
+                      <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-primary" aria-label="Opened" />
+                    ) : (
+                      <Circle size={16} className="mt-0.5 shrink-0 text-ink-faint/60" aria-label="Not opened" />
+                    )}
+                    <span className={`min-w-0 ${seen ? "text-ink" : "text-ink-soft"}`}>
+                      {it.part && <span className="mr-1.5 text-micro font-semibold text-ink-faint">{it.part}</span>}
+                      {it.title}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function WeekViewers({
   week,
   unit,
@@ -223,21 +307,40 @@ function WeekViewers({
     return <p className="text-sm text-ink-soft">{unit} {week.week} has no materials.</p>;
   }
   return (
-    <div className="space-y-3">
-      <p className="text-micro font-semibold text-ink-faint">Who opened each {unit.toLowerCase()} {week.week} material</p>
-      <ul className="space-y-2.5">
-        {week.materials.map((m, i) => {
-          const names = viewers(i);
-          return (
-            <li key={m.url} className="max-w-[80ch]">
-              <p className="text-sm font-medium text-ink">
-                {m.name} <span className="font-normal text-ink-faint tabular-nums">· {names.length} of {total}</span>
-              </p>
-              <p className="text-sm text-ink-soft">{names.length > 0 ? names.join(", ") : "Nobody yet"}</p>
-            </li>
-          );
-        })}
-      </ul>
+    <div className="max-w-3xl space-y-4">
+      <p className="text-sm font-medium text-ink">Who opened each {unit.toLowerCase()} {week.week} material</p>
+      {grouped(week.materials).map((g) => (
+        <div key={g.kind}>
+          <p className="mb-1 border-b border-rule pb-1 text-micro font-semibold text-ink-faint">{g.title}</p>
+          <ul className="divide-y divide-rule/60">
+            {g.items.map((it) => {
+              const names = viewers(it.i);
+              const pct = total > 0 ? (names.length / total) * 100 : 0;
+              return (
+                <li key={it.url} className="grid gap-x-6 gap-y-1 py-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                  <div className="min-w-0">
+                    <p className="text-sm text-ink">
+                      {it.part && <span className="mr-1.5 text-micro font-semibold text-ink-faint">{it.part}</span>}
+                      {it.title}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-micro text-ink-soft">
+                      {names.length > 0 ? names.map((n) => <span key={n}>{n}</span>) : <span className="text-ink-faint">Nobody yet</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 sm:pt-1">
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-rule" aria-hidden>
+                      <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </span>
+                    <span className="w-14 text-right text-micro tabular-nums text-ink-soft">
+                      {names.length} of {total}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
@@ -257,65 +360,75 @@ function LearnerWeek({
   picture: WeekPicture | "loading" | "error" | undefined;
   studentId: string | undefined;
 }) {
-  const opened = week.materials.filter((_, i) => cell.opened.includes(i));
-  const notOpened = week.materials.filter((_, i) => !cell.opened.includes(i));
   const homework =
     picture && picture !== "loading" && picture !== "error"
       ? Object.entries(picture.homework).filter(([key]) => key.split("|")[0] === studentId)
       : [];
+  const total = week.materials.length;
+  const fact = "inline-flex items-center gap-1.5";
+  const icon = (on: boolean) => (on ? "text-primary" : "text-ink-faint/60");
   return (
-    <div className="space-y-2 text-sm">
-      <p className="font-medium text-ink">
-        {name} · {unit} {week.week}: {cell.here ? "attended" : "did not attend"}
-      </p>
-      {week.materials.length > 0 && (
-        <p className="max-w-[80ch] text-ink-soft">
-          <span className="text-ink">Opened {opened.length} of {week.materials.length}</span>
-          {opened.length > 0 && `: ${opened.map((m) => m.name).join(", ")}`}
-          {notOpened.length > 0 && (
-            <span className="block text-ink-faint">Not opened: {notOpened.map((m) => m.name).join(", ")}</span>
-          )}
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <p className="text-sm font-medium text-ink">
+          {name} <span className="font-normal text-ink-faint">· {unit} {week.week}</span>
         </p>
-      )}
-      {cell.homework === 0 ? (
-        <p className="text-ink-soft">{week.homeworkExpected ? "No homework turned in yet." : "No homework asked this week."}</p>
-      ) : picture === "loading" || picture === undefined ? (
-        <p className="text-ink-faint">Loading homework…</p>
-      ) : picture === "error" ? (
-        <p className="text-ink-soft">Homework turned in. Could not load it here; open the Students tab to read it.</p>
-      ) : (
-        homework.map(([key, hw]) => (
-          <HomeworkAnswer key={key} hw={hw} label={`Session ${key.split("|")[1]} homework`} />
-        ))
-      )}
+        <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-soft">
+          <span className={fact}>
+            <UserCheck size={16} weight={cell.here ? "fill" : "regular"} className={icon(cell.here)} aria-hidden />
+            {cell.here ? "Attended" : "Did not attend"}
+          </span>
+          {total > 0 && (
+            <span className={`${fact} tabular-nums`}>
+              <BookOpenText size={16} weight={cell.opened.length > 0 ? "fill" : "regular"} className={icon(cell.opened.length > 0)} aria-hidden />
+              Opened {cell.opened.length} of {total}
+            </span>
+          )}
+          <span className={fact}>
+            <ClipboardText size={16} weight={cell.homework > 0 ? "fill" : "regular"} className={icon(cell.homework > 0)} aria-hidden />
+            {cell.homework > 0 ? "Homework turned in" : week.homeworkExpected ? "No homework yet" : "No homework asked"}
+          </span>
+        </p>
+      </div>
+      {total > 0 && <MaterialChecklist materials={week.materials} opened={cell.opened} />}
+      {cell.homework > 0 &&
+        (picture === "loading" || picture === undefined ? (
+          <p className="text-sm text-ink-faint">Loading homework…</p>
+        ) : picture === "error" ? (
+          <p className="text-sm text-ink-soft">Could not load the homework here; open the Students tab to read it.</p>
+        ) : (
+          <div className="space-y-2 text-sm">
+            {homework.map(([key, hw]) => (
+              <HomeworkAnswer key={key} hw={hw} label={`Session ${key.split("|")[1]} homework`} />
+            ))}
+          </div>
+        ))}
     </div>
   );
 }
 
 /** Every material a learner opened and skipped, week by week, for the
- *  per-learner table's "Content opened" drill-down. Same data as a grid cell,
- *  laid out for one learner across the whole course. */
+ *  per-learner table's "Content opened" drill-down. Same checklist as a grid
+ *  cell, laid out for one learner across the whole course. */
 export function LearnerMaterials({ grid, email }: { grid: WeekGridData; email: string }) {
   const weeks = grid.weeks.filter((w) => w.materials.length > 0);
   if (weeks.length === 0) return <p className="text-xs text-ink-faint">This course has no materials yet.</p>;
   return (
-    <ul className="space-y-1.5">
+    <div className="space-y-5">
       {weeks.map((w) => {
         const cell = grid.cells[email]?.[w.week] ?? EMPTY;
-        const opened = w.materials.filter((_, i) => cell.opened.includes(i));
-        const notOpened = w.materials.filter((_, i) => !cell.opened.includes(i));
         return (
-          <li key={w.week} className="max-w-[90ch] text-xs text-ink-soft">
-            <span className="font-medium text-ink">
-              {grid.unitLabel} {w.week} · opened {opened.length} of {w.materials.length}
-            </span>
-            {opened.length > 0 && `: ${opened.map((m) => m.name).join(", ")}`}
-            {notOpened.length > 0 && (
-              <span className="block text-ink-faint">Not opened: {notOpened.map((m) => m.name).join(", ")}</span>
-            )}
-          </li>
+          <section key={w.week} className="space-y-2">
+            <h3 className="text-xs font-semibold text-ink">
+              {grid.unitLabel} {w.week}
+              <span className="ml-1.5 font-normal tabular-nums text-ink-faint">
+                opened {cell.opened.length} of {w.materials.length}
+              </span>
+            </h3>
+            <MaterialChecklist materials={w.materials} opened={cell.opened} compact />
+          </section>
         );
       })}
-    </ul>
+    </div>
   );
 }
