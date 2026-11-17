@@ -134,6 +134,88 @@ describe("Learners loader access boundary", () => {
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
     tables.students[0].role = "super_admin";
   };
+  it("keeps duplicate multi-course enrollments consistent between directory and evidence responses", async () => {
+    seedAttendance(); signInSuperAdmin();
+    const params = { search: "Learner00" };
+    const directory = await searchMvpLearners(params);
+    requests = [];
+    const evidence = await loadMvpLearnerEvidence("s00", params);
+    expect(directory.ok).toBe(true);
+    expect(evidence.state).toBe("ready");
+    if (!directory.ok || evidence.state !== "ready") throw new Error("Expected available responses");
+    expect(directory.summary.totalEnrolled).toBe(1);
+    expect(directory.pagination.totalMatching).toBe(1);
+    expect(directory.directory).toHaveLength(1);
+    expect(evidence.evidence.enrollments).toHaveLength(2);
+    expect(directory.directory[0].enrollments.map(e => [e.courseSlug, e.attendance])).toEqual([
+      ["a", { present: 1, eligibleHeld: 2 }], ["b", { present: 1, eligibleHeld: 1 }],
+    ]);
+    expect(evidence.evidence.enrollments.map(e => [e.courseSlug, e.attendanceSessions?.map(session => session.state)])).toEqual([
+      ["a", ["verified_present", "verified_absent"]], ["b", ["verified_present"]],
+    ]);
+  });
+  it.each(["missing", "deleted", "wrong-course", "wrong-program", "unlinked"])("does not infer cohort membership from a %s link", async kind => {
+    seedSummary(); signInSuperAdmin();
+    tables.student_tracks = tables.student_tracks.filter(row => row.student_id === "s00");
+    if (kind === "missing") for (const row of tables.student_tracks) (row.students as Row).cohort_id = null;
+    if (kind === "deleted") tables.cohorts = [];
+    if (kind === "wrong-course") tables.cohorts[0].track_slug = "b";
+    if (kind === "wrong-program") tables.cohorts[0].program_id = "p2";
+    if (kind === "unlinked") tables.cohorts[0].track_slug = null;
+    const params = { programId: "p1", courseSlug: "a" };
+    const directory = await searchMvpLearners(params);
+    requests = [];
+    const evidence = await loadMvpLearnerEvidence("s00", params);
+    expect(directory.ok).toBe(true);
+    expect(evidence.state).toBe("ready");
+    if (!directory.ok || evidence.state !== "ready") throw new Error("Expected available responses");
+    expect(directory.directory[0].enrollments[0].cohort).toBeNull();
+    expect(evidence.evidence.enrollments).toHaveLength(1);
+    expect(evidence.evidence.enrollments[0]).toMatchObject({ programId: "p1", courseSlug: "a" });
+    requests = [];
+    const filtered = await searchMvpLearners({ ...params, cohortId: "c1" });
+    requests = [];
+    const filteredEvidence = await loadMvpLearnerEvidence("s00", { ...params, cohortId: "c1" });
+    if (kind === "missing") {
+      expect(filtered).toMatchObject({ ok: true, directory: [], summary: { totalEnrolled: 0 } });
+      expect(filteredEvidence.state).toBe("unavailable");
+    } else {
+      expect(filtered.ok).toBe(false);
+      expect(filteredEvidence.state).toBe("error");
+    }
+  });
+  it("preserves missing names and activity without inventing zero attendance or completion", async () => {
+    seedSummary(); signInSuperAdmin();
+    tables.student_tracks = tables.student_tracks.filter(row => row.student_id === "s00");
+    for (const row of tables.student_tracks) Object.assign(row.students as Row, { first_name: null, last_name: null, email: null });
+    tables.track_overrides = [];
+    const directory = await searchMvpLearners({});
+    requests = [];
+    const evidence = await loadMvpLearnerEvidence("s00", {});
+    expect(directory.ok).toBe(true);
+    expect(evidence.state).toBe("ready");
+    if (!directory.ok || evidence.state !== "ready") throw new Error("Expected available responses");
+    expect(directory.directory[0]).toMatchObject({ id: "s00", firstName: null, lastName: null, email: null });
+    expect(directory.directory[0].enrollments).toHaveLength(2);
+    for (const enrollment of directory.directory[0].enrollments) {
+      expect(enrollment.attendance).toBeNull();
+      expect(enrollment.status).toBe("not_evaluated");
+      expect(enrollment.lastActivity).toEqual({ at: null, state: "none_recorded" });
+    }
+    expect(evidence.evidence.enrollments).toHaveLength(2);
+    for (const enrollment of evidence.evidence.enrollments) {
+      expect(enrollment.attendanceSessions).toBeNull();
+      expect(enrollment.attendanceUnavailableReason).toBeTruthy();
+      expect(enrollment.weeklyMilestones).toEqual([]);
+      expect(enrollment.status).toBe("not_evaluated");
+    }
+  });
+  it.each(["cohorts", "student_tracks", "submissions", "mvp_attendance_reviews"])("returns errors rather than partial browser responses when %s fails", async table => {
+    seedAttendance(); signInSuperAdmin(); failure = table;
+    expect((await searchMvpLearners({ search: "Learner00" })).ok).toBe(false);
+    requests = [];
+    expect(await loadMvpLearnerEvidence("s00", {})).toEqual({ state: "error" });
+  });
   it("excludes private source content, review notes, staff identities and file links from both browser responses", async () => {
     seedAttendance(); signInSuperAdmin();
     tables.mvp_attendance_reviews[0].outcome = "absent";
