@@ -1,7 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), home: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), home: vi.fn(), activePolicies: vi.fn(), signalPolicies: vi.fn() }));
 vi.mock("@/lib/programs", () => ({ getEveryProgramConfig: mocks.configs, getHomeProgramForTrack: mocks.home }));
 vi.mock("server-only", () => ({}));
+vi.mock("./active-config", async original => {
+  const actual = await original<typeof import("./active-config")>();
+  return { ...actual, getMvpOfferingActiveConfig: (program: string, course: string) =>
+    actual.getMvpOfferingActiveConfig(program, course, mocks.activePolicies()) };
+});
+vi.mock("./check-in-signals", async original => {
+  const actual = await original<typeof import("./check-in-signals")>();
+  return { ...actual, getMvpSignalPolicy: (program: string, course: string) =>
+    actual.getMvpSignalPolicy(program, course, mocks.signalPolicies()) };
+});
 vi.mock("@/app/dashboard/admin/actions-shared", () => ({ logAdminAccess: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
@@ -28,6 +38,8 @@ beforeEach(() => {
   mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
   mocks.preview.mockResolvedValue(false);
   mocks.configs.mockReturnValue([]);
+  mocks.activePolicies.mockReturnValue([]);
+  mocks.signalPolicies.mockReturnValue([]);
   mocks.home.mockReturnValue(undefined);
   requests = []; failure = "";
   serverCap = 1; ignoreRosterCursor = false; failRosterAfter = Infinity;
@@ -134,6 +146,71 @@ describe("Learners loader access boundary", () => {
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
     tables.students[0].role = "super_admin";
   };
+  it.each([
+    ["unconfigured", "not_evaluated", null],
+    ["unknown-requirements", "not_evaluated", null],
+    ["overdue", "needs_check_in", "missing_required_submission"],
+    ["submitted", "on_track", null],
+    ["invalid-submission", "not_evaluated", null],
+    ["unmapped-submission", "not_evaluated", null],
+    ["missing-attendance", "not_evaluated", null],
+    ["video-checkpoint", "needs_check_in", "behind_expected_progress"],
+    ["invalid-video", "not_evaluated", null],
+    ["assessment-unavailable", "not_evaluated", null],
+  ] as const)("keeps directory, status filter and evidence consistent for %s", async (scenario, status, reason) => {
+    seedAttendance(); signInSuperAdmin();
+    for (const row of tables.mvp_attendance_reviews) row.outcome = "present";
+    const assignment = { id: "required", label: "Fixture assignment", weekNumber: 1, dueAt: "2000-01-01T00:00:00Z" };
+    if (scenario !== "unconfigured") mocks.activePolicies.mockReturnValue([{
+      programSlug: "one", courseSlug: "a", kind: "cohort", attendanceThreshold: 80, submissionGraceDays: 14,
+      requiredAssignments: scenario === "unknown-requirements" ? null : ["overdue", "submitted", "invalid-submission", "unmapped-submission"].includes(scenario) ? [assignment] : [],
+    }]);
+    if (["submitted", "invalid-submission", "unmapped-submission"].includes(scenario)) tables.submissions = [{
+      id: "work", program_id: "p1", track_slug: "a", student_id: "s00",
+      week_number: scenario === "unmapped-submission" ? null : 1,
+      submitted_at: scenario === "invalid-submission" ? "bad-timestamp" : "2000-01-02T00:00:00Z",
+    }];
+    if (scenario === "missing-attendance") tables.mvp_attendance_reviews = [];
+    if (["video-checkpoint", "invalid-video"].includes(scenario)) {
+      mocks.signalPolicies.mockReturnValue([{ programSlug: "one", courseSlug: "a", progress: {
+        source: "required_videos", requiredWeeks: [1, 2], dueAt: "2000-01-01T00:00:00Z", minimumPercent: 80,
+      } }]);
+      tables.week_progress = [{ id: "video", program_id: "p1", track_slug: "a", user_id: "s00", week_number: 1,
+        video_watched_at: scenario === "invalid-video" ? "bad-timestamp" : "2000-01-02T00:00:00Z" }];
+    }
+    if (scenario === "assessment-unavailable") mocks.signalPolicies.mockReturnValue([{
+      programSlug: "one", courseSlug: "a", assessment: { examId: "fixture-exam", minimumPercent: 80 },
+    }]);
+    const params = { programId: "p1", courseSlug: "a", search: "Learner00", status };
+    const directory = await searchMvpLearners(params);
+    requests = [];
+    const evidence = await loadMvpLearnerEvidence("s00", params);
+    expect(directory.ok).toBe(true);
+    expect(evidence.state).toBe("ready");
+    if (!directory.ok || evidence.state !== "ready") throw new Error("Expected available responses");
+    expect(directory.pagination.totalMatching).toBe(1);
+    expect(directory.directory[0].enrollments[0].status).toBe(status);
+    const enrollment = evidence.evidence.enrollments[0];
+    expect(enrollment.status).toBe(status);
+    expect(enrollment.checkIn.attentionFlags.map(flag => flag.reason)).toEqual(reason ? [reason] : []);
+    if (status === "not_evaluated") {
+      expect(enrollment.checkIn.unevaluatedRuleIds.length).toBeGreaterThan(0);
+      expect(enrollment.checkIn.unavailableReason).toBeTruthy();
+    }
+    if (reason) {
+      const flag = enrollment.checkIn.attentionFlags[0];
+      expect(flag).toMatchObject({ learnerId: "s00", programId: "p1", courseSlug: "a", explanation: expect.any(String) });
+      expect(flag.explanation.length).toBeGreaterThan(0);
+      expect(flag.supportingEvidence.kind).toBe(reason === "missing_required_submission" ? "overdue_required_submissions" : "required_video_checkpoint");
+    }
+    requests = [];
+    const otherCourse = await loadMvpLearnerEvidence("s00", { programId: "p1", courseSlug: "b" });
+    expect(otherCourse.state).toBe("ready");
+    if (otherCourse.state !== "ready") throw new Error("Expected other course evidence");
+    expect(otherCourse.evidence.enrollments[0].status).toBe("not_evaluated");
+    expect(otherCourse.evidence.enrollments[0].checkIn.attentionFlags).toEqual([]);
+    expect(otherCourse.evidence.enrollments[0].checkIn.unevaluatedRuleIds).toContain("offering-requirements-unconfigured");
+  });
   it.each(["name", "email"] as const)("combines search, status, %s sorting and pagination through the directory action", async sortBy => {
     seedAttendance(); signInSuperAdmin();
     // Twelve flagged learners span two pages; other enrollments stay unevaluated.
