@@ -15,6 +15,16 @@ import { canAccessAdminPanel } from "@/lib/roles";
  * Only switches into tracks the signed-in student is actually enrolled in.
  */
 export async function GET(req: NextRequest) {
+  // This GET writes the program cookie, so a router PREFETCH must not run it.
+  // Next prefetches every visible <Link> (Home -> /dashboard, which redirects
+  // staff in a running course here), and the browser stores Set-Cookie from a
+  // prefetch response like any other. That silently flipped a super-admin's
+  // switcher back to their own course's program on every admin page, so People
+  // showed the wrong roster under the right sidebar name. Answer prefetches
+  // with an uncacheable no-op; the real click makes a normal request.
+  if (req.headers.get("next-router-prefetch") || req.headers.get("sec-purpose")?.includes("prefetch")) {
+    return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  }
   const track = req.nextUrl.searchParams.get("track") ?? "";
   // DB-aware resolution: Course-Builder tracks (e.g. comptia-security) have no
   // TS config entry, so a config-only lookup would no-op the switch and strand
