@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, CheckCircle, Circle, ClipboardText, UserCheck, WarningCircle } from "@phosphor-icons/react";
 import type { EngagementLearner, WeekCell, WeekGrid as WeekGridData } from "./actions-analytics";
 import { getWeekPicture, type WeekPicture } from "./actions-tracks";
@@ -43,6 +43,32 @@ export function WeekGrid({
   const [openWeek, setOpenWeek] = useState<number | null>(null);
   const [pictures, setPictures] = useState<Record<number, WeekPicture | "loading" | "error">>({});
 
+  // The details row sits inside a table that scrolls sideways on narrow
+  // screens. Size it to the visible width of that scroller, never wider, so
+  // opening it can't make the whole table scroll.
+  const scroller = useRef<HTMLDivElement>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPaneWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Opening one row's details closes another's, which shifts the page. Keep
+  // whatever was clicked at the same spot on screen so nothing jumps.
+  const anchor = useRef<{ el: HTMLElement; top: number } | null>(null);
+  const pin = (el: HTMLElement) => (anchor.current = { el, top: el.getBoundingClientRect().top });
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    if (!a) return;
+    const drift = a.el.getBoundingClientRect().top - a.top;
+    if (drift !== 0) window.scrollBy({ top: drift, behavior: "instant" });
+  }, [openCell, openWeek]);
+  const pane = { width: paneWidth > 0 ? paneWidth - 32 : undefined };
+
   const loadPicture = (week: number) => {
     if (pictures[week]) return;
     setPictures((p) => ({ ...p, [week]: "loading" }));
@@ -74,7 +100,7 @@ export function WeekGrid({
       </div>
       <Legend />
 
-      <div className="panel overflow-x-auto">
+      <div ref={scroller} className="panel overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-rule">
@@ -88,7 +114,8 @@ export function WeekGrid({
                     <button
                       type="button"
                       aria-expanded={open}
-                      onClick={() => {
+                      onClick={(e) => {
+                        pin(e.currentTarget);
                         setOpenCell(null);
                         setOpenWeek(open ? null : w.week);
                       }}
@@ -109,7 +136,7 @@ export function WeekGrid({
               <tr className="border-b border-rule bg-paper-tint-soft/60">
                 <td colSpan={grid.weeks.length + 1} className="px-4 py-3">
                   {/* Pinned to the visible width: the table scrolls sideways on a phone. */}
-                  <div className="sticky left-4 w-[min(72rem,calc(100vw-4rem))]">
+                  <div className="sticky left-4" style={pane}>
                   <WeekViewers
                     week={grid.weeks.find((w) => w.week === openWeek)!}
                     unit={unit}
@@ -149,7 +176,8 @@ export function WeekGrid({
                             type="button"
                             aria-expanded={open}
                             aria-label={label}
-                            onClick={() => {
+                            onClick={(e) => {
+                              pin(e.currentTarget);
                               setOpenWeek(null);
                               setOpenCell(open ? null : { email: r.email, week: w.week });
                               if (!open && c.homework > 0) loadPicture(w.week);
@@ -173,7 +201,7 @@ export function WeekGrid({
                     <tr className="border-b border-rule bg-paper-tint-soft/60">
                       <td colSpan={grid.weeks.length + 1} className="px-4 py-3">
                   {/* Pinned to the visible width: the table scrolls sideways on a phone. */}
-                  <div className="sticky left-4 w-[min(72rem,calc(100vw-4rem))]">
+                  <div className="sticky left-4" style={pane}>
                         <LearnerWeek
                           name={nameOf(r.email)}
                           unit={unit}
@@ -256,7 +284,8 @@ function MaterialChecklist({
   const groups = grouped(materials);
   const text = compact ? "text-xs" : "text-sm";
   return (
-    <div className={`grid gap-x-8 gap-y-4 ${groups.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
+    <div className="@container">
+    <div className={`grid gap-x-8 gap-y-4 ${groups.length > 1 ? "@lg:grid-cols-2 @3xl:grid-cols-3" : ""}`}>
       {groups.map((g) => {
         const done = g.items.filter((it) => opened.includes(it.i)).length;
         return (
@@ -289,6 +318,7 @@ function MaterialChecklist({
         );
       })}
     </div>
+    </div>
   );
 }
 
@@ -307,34 +337,30 @@ function WeekViewers({
     return <p className="text-sm text-ink-soft">{unit} {week.week} has no materials.</p>;
   }
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="space-y-3">
       <p className="text-sm font-medium text-ink">Who opened each {unit.toLowerCase()} {week.week} material</p>
       {grouped(week.materials).map((g) => (
         <div key={g.kind}>
           <p className="mb-1 border-b border-rule pb-1 text-micro font-semibold text-ink-faint">{g.title}</p>
-          <ul className="divide-y divide-rule/60">
+          <ul>
             {g.items.map((it) => {
               const names = viewers(it.i);
               const pct = total > 0 ? (names.length / total) * 100 : 0;
               return (
-                <li key={it.url} className="grid gap-x-6 gap-y-1 py-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
-                  <div className="min-w-0">
-                    <p className="text-sm text-ink">
-                      {it.part && <span className="mr-1.5 text-micro font-semibold text-ink-faint">{it.part}</span>}
-                      {it.title}
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-micro text-ink-soft">
-                      {names.length > 0 ? names.map((n) => <span key={n}>{n}</span>) : <span className="text-ink-faint">Nobody yet</span>}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 sm:pt-1">
-                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-rule" aria-hidden>
-                      <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                    </span>
-                    <span className="w-14 text-right text-micro tabular-nums text-ink-soft">
-                      {names.length} of {total}
-                    </span>
-                  </div>
+                <li key={it.url} className="flex items-center gap-3 py-1.5 text-sm">
+                  <span className="h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-rule" aria-hidden>
+                    <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                  </span>
+                  <span className="w-12 shrink-0 text-micro tabular-nums text-ink-soft">
+                    {names.length} of {total}
+                  </span>
+                  {/* One line per material: the names trail the title and the
+                      full list is on hover, so the week reads at a glance. */}
+                  <span className="min-w-0 flex-1 truncate" title={names.join(", ") || "Nobody yet"}>
+                    {it.part && <span className="mr-1.5 text-micro font-semibold text-ink-faint">{it.part}</span>}
+                    <span className="text-ink">{it.title}</span>
+                    <span className="ml-2 text-micro text-ink-faint">{names.length > 0 ? names.join(", ") : "Nobody yet"}</span>
+                  </span>
                 </li>
               );
             })}
