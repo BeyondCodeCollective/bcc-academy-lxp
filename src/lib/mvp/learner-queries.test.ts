@@ -134,6 +134,51 @@ describe("Learners loader access boundary", () => {
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "super_admin" } });
     tables.students[0].role = "super_admin";
   };
+  it.each(["name", "email"] as const)("combines search, status, %s sorting and pagination through the directory action", async sortBy => {
+    seedAttendance(); signInSuperAdmin();
+    // Twelve flagged learners span two pages; other enrollments stay unevaluated.
+    const reviews = tables.mvp_attendance_reviews.filter(row => row.track_slug === "a");
+    tables.mvp_attendance_reviews = Array.from({ length: 12 }, (_, i) => reviews.map(row => ({
+      ...row, id: `s${String(i).padStart(2, "0")}${row.id}`, student_id: `s${String(i).padStart(2, "0")}`, outcome: "absent",
+    }))).flat();
+    for (const row of tables.student_tracks) (row.students as Row).email = `person${25 - Number(String(row.student_id).slice(1))}@example.test`;
+    const run = async (params: Parameters<typeof searchMvpLearners>[0]) => {
+      requests = [];
+      const result = await searchMvpLearners(params);
+      if (!result.ok) throw new Error("Expected successful directory response");
+      return result;
+    };
+    const base = { search: " LEARNER ", status: "needs_check_in", sortBy, pageSize: "10" };
+    for (const sortOrder of ["asc", "desc"]) {
+      const expected = Array.from({ length: 12 }, (_, i) => `s${String(i).padStart(2, "0")}`);
+      if ((sortBy === "name") === (sortOrder === "desc")) expected.reverse();
+      const first = await run({ ...base, sortOrder, page: "1" });
+      const last = await run({ ...base, sortOrder, page: "2" });
+      expect(first.directory.map(row => row.id)).toEqual(expected.slice(0, 10));
+      expect(last.directory.map(row => row.id)).toEqual(expected.slice(10));
+      expect(first.pagination).toMatchObject({ page: 1, totalMatching: 12, totalPages: 2, hasPrevious: false, hasNext: true });
+      expect(last.pagination).toMatchObject({ page: 2, totalMatching: 12, start: 11, end: 12, hasPrevious: true, hasNext: false });
+      for (const result of [first, last]) {
+        expect(result.summary).toMatchObject({ totalEnrolled: 12, needsCheckIn: 12 });
+        expect(result.directory.every(row => row.enrollments.length === 1 && row.enrollments[0].courseSlug === "a")).toBe(true);
+      }
+      const resized = await run({ ...base, sortOrder, pageSize: "25", page: "1" });
+      expect(resized.directory.map(row => row.id)).toEqual(expected);
+    }
+    const narrowed = await run({ ...base, search: "PERSON25@EXAMPLE.TEST", page: "99" });
+    expect(narrowed.directory.map(row => row.id)).toEqual(["s00"]);
+    expect(narrowed.pagination).toMatchObject({ page: 1, totalMatching: 1 });
+    const unknown = await run({ ...base, status: "not_evaluated", search: "Learner00" });
+    expect(unknown.directory[0].enrollments.map(e => e.courseSlug)).toEqual(["b"]);
+    for (const params of [{ ...base, status: "on_track" }, { ...base, search: "no matching name" }]) {
+      const empty = await run({ ...params, page: "2" });
+      expect(empty.directory).toEqual([]);
+      expect(empty.pagination).toMatchObject({ page: 1, totalMatching: 0, start: 0, end: 0, hasNext: false, hasPrevious: false });
+    }
+    const cleared = await run({});
+    expect(cleared.pagination).toMatchObject({ page: 1, pageSize: 25, totalMatching: 26 });
+    expect(cleared.directory[0].enrollments).toHaveLength(2);
+  });
   it("keeps duplicate multi-course enrollments consistent between directory and evidence responses", async () => {
     seedAttendance(); signInSuperAdmin();
     const params = { search: "Learner00" };
