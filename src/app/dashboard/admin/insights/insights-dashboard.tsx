@@ -38,6 +38,9 @@ interface Props {
    *  enrolled learners and every link/export carries the slug so a CSV can't
    *  come back program-wide. */
   scope?: { trackSlug: string; trackName: string; enrolledCount: number; returnTo: string };
+  /** Courses with the session pulse on. Its answers have their own page, so
+   *  picking one in the Form select navigates there. */
+  pulseCourses?: { slug: string; name: string }[];
 }
 
 // Program breakdown stays in the cobalt family (shared palette) —
@@ -97,8 +100,10 @@ function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; cou
 // Sentinel for "every form" in the Form select. A real survey id can never
 // collide with it.
 const ALL_FORMS = "__all__";
+// Form-select values that open a course's session pulse page instead.
+const PULSE_PREFIX = "__pulse__:";
 
-export function InsightsDashboard({ sections, programs, scope }: Props) {
+export function InsightsDashboard({ sections, programs, scope, pulseCourses = [] }: Props) {
   // Distinct cohorts across all responses — needed to color the per-survey
   // breakdown consistently.
   const allCohorts = useMemo(() => {
@@ -134,6 +139,10 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
   }, [ledger]);
 
   function selectSurvey(id: string) {
+    if (id.startsWith(PULSE_PREFIX)) {
+      window.location.assign(`/dashboard/admin/exit-surveys?track=${encodeURIComponent(id.slice(PULSE_PREFIX.length))}`);
+      return;
+    }
     setActiveId(id);
     setCohortFilter("all");
     if (typeof window !== "undefined") history.replaceState(null, "", `#${id}`);
@@ -178,9 +187,14 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
   // The tiles describe the CURRENT selection. A summary that ignores the
   // controls above it is just a number you have to mentally discount.
   const scopedRespondents = useMemo(() => {
-    const emails = new Set<string>();
-    for (const r of scopedResponses) if (r.email) emails.add(r.email.toLowerCase());
-    return emails.size;
+    // Participant-coded forms blank the email, so a person is their code there.
+    // Counting emails alone read 0 respondents beside 24 responses.
+    const people = new Set<string>();
+    for (const r of scopedResponses) {
+      const key = r.email ? r.email.toLowerCase() : r.participant_code;
+      if (key) people.add(key);
+    }
+    return people.size;
   }, [scopedResponses]);
   const scopedCohortCount = useMemo(
     () => new Set(scopedResponses.map((r) => cohortOf(r))).size,
@@ -302,8 +316,19 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               >
                 <option value={ALL_FORMS}>All forms</option>
                 {ledger.map((row) => (
-                  <option key={row.id} value={row.id}>{row.title}</option>
+                  <option key={row.id} value={row.id}>
+                    {row.count === 0 ? `${row.title} (no responses yet)` : row.title}
+                  </option>
                 ))}
+                {pulseCourses.length > 0 && (
+                  <optgroup label="Session pulse (opens its own page)">
+                    {pulseCourses.map((c) => (
+                      <option key={c.slug} value={`${PULSE_PREFIX}${c.slug}`}>
+                        Session pulse: {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
             {cohortSelectable && (

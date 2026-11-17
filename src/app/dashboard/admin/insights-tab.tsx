@@ -26,6 +26,7 @@ export function InsightsTab({
           sections={insightsData.sections}
           programs={insightsData.programs}
           totalResponses={insightsData.totalResponses}
+          pulseCourses={insightsData.pulseCourses}
         />
       ) : canViewInsights(userRole) ? (
         <div className="panel p-8 text-center space-y-2">
