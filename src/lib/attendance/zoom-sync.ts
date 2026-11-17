@@ -8,14 +8,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseZoomLink } from "@/lib/zoom";
-import { easternDayKey } from "@/lib/utils";
 import {
+  getParticipantsOnDay,
   getPastMeetingParticipants,
   zoomReportConfigured,
   type ZoomParticipant,
 } from "@/lib/zoom-report";
 
-type EnrolledStudent = {
+export type EnrolledStudent = {
   id: string;
   email: string | null;
   first_name: string | null;
@@ -34,7 +34,7 @@ export type ZoomSyncResult = {
 // parens ("Ada Lovelace (she/her)"), collapse whitespace. Not exact science —
 // email is the primary key; this only rescues participants who joined without a
 // Zoom email.
-function normName(s: string): string {
+export function normName(s: string): string {
   return s
     .toLowerCase()
     .replace(/\([^)]*\)/g, "")
@@ -82,34 +82,21 @@ export async function syncZoomAttendanceForSession(
     return { ok: false, reason: "no-zoom-meeting-link", ...empty };
   }
 
+  // With a date, union every instance that started that day: a host who
+  // restarts the meeting (Nov 9: seven instances) or re-opens it in the
+  // evening (Nov 12) splits the class across instances, and the numeric id
+  // only reports the LATEST one. Date-filtered instances also mean a
+  // cancelled session can't inherit the previous session's roster.
   let participants: ZoomParticipant[];
   try {
-    participants = await getPastMeetingParticipants(parsed.meetingNumber);
+    participants = unitDate
+      ? await getParticipantsOnDay(parsed.meetingNumber, unitDate)
+      : await getPastMeetingParticipants(parsed.meetingNumber);
   } catch (e) {
     return { ok: false, reason: `zoom-report-error: ${(e as Error).message}`, ...empty };
   }
   if (participants.length === 0) {
     return { ok: true, reason: "no-participants-yet", ...empty };
-  }
-
-  // Occurrence-date guard: the report must be for THIS unit's day. Take the
-  // most common join date across participants (robust to a stray early
-  // joiner) and compare to the unit date in ET.
-  if (unitDate) {
-    const days = new Map<string, number>();
-    for (const p of participants) {
-      if (!p.joinTime) continue;
-      const d = easternDayKey(new Date(p.joinTime));
-      days.set(d, (days.get(d) ?? 0) + 1);
-    }
-    const reportDay = [...days.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-    if (reportDay && reportDay !== unitDate) {
-      return {
-        ok: true,
-        reason: `report-is-for-${reportDay}-not-${unitDate}`,
-        ...empty,
-      };
-    }
   }
 
   // Enrolled roster (real learners; is_test excluded so QA logins never mark).
@@ -127,35 +114,14 @@ export async function syncZoomAttendanceForSession(
     .eq("is_test", false);
   const students = (studentRows ?? []) as EnrolledStudent[];
 
-  const byEmail = new Map<string, EnrolledStudent>();
-  const byName = new Map<string, EnrolledStudent>();
-  for (const s of students) {
-    if (s.email) byEmail.set(s.email.toLowerCase(), s);
-    const full = normName(`${s.first_name ?? ""} ${s.last_name ?? ""}`);
-    if (full) byName.set(full, s);
-  }
-
-  const matchedIds = new Set<string>();
-  const unmatched: ZoomSyncResult["unmatched"] = [];
-  for (const p of participants) {
-    const hit =
-      (p.email && byEmail.get(p.email)) || byName.get(normName(p.name)) || null;
-    if (hit) matchedIds.add(hit.id);
-    else unmatched.push({ name: p.name, email: p.email });
-  }
+  const { matchedIds, joinTimeById, unmatched } = matchParticipants(participants, students);
 
   if (matchedIds.size === 0) {
     return { ok: true, reason: "no-matches", matched: 0, marked: 0, unmatched };
   }
 
   // checked_in_at = the participant's real Zoom join time, not the cron
-  // run time — so heatmaps and "last here" read the session, not midnight.
-  const joinTimeById = new Map<string, string>();
-  for (const p of participants) {
-    const hit =
-      (p.email && byEmail.get(p.email)) || byName.get(normName(p.name)) || null;
-    if (hit && p.joinTime && !joinTimeById.has(hit.id)) joinTimeById.set(hit.id, p.joinTime);
-  }
+  // run time, so heatmaps and "last here" read the session, not midnight.
   const rows = Array.from(matchedIds).map((student_id) => ({
     program_id: programId,
     student_id,
@@ -176,4 +142,37 @@ export async function syncZoomAttendanceForSession(
   }
 
   return { ok: true, matched: matchedIds.size, marked: rows.length, unmatched };
+}
+
+/** Match Zoom participants to enrolled students: email first, then
+ *  normalized "first last" (SDK joins arrive with a blank user_email). */
+export function matchParticipants(
+  participants: ZoomParticipant[],
+  students: EnrolledStudent[],
+): {
+  matchedIds: Set<string>;
+  joinTimeById: Map<string, string>;
+  unmatched: { name: string; email: string | null }[];
+} {
+  const byEmail = new Map<string, EnrolledStudent>();
+  const byName = new Map<string, EnrolledStudent>();
+  for (const s of students) {
+    if (s.email) byEmail.set(s.email.toLowerCase(), s);
+    const full = normName(`${s.first_name ?? ""} ${s.last_name ?? ""}`);
+    if (full) byName.set(full, s);
+  }
+  const matchedIds = new Set<string>();
+  const joinTimeById = new Map<string, string>();
+  const unmatched: { name: string; email: string | null }[] = [];
+  for (const p of participants) {
+    const hit = (p.email && byEmail.get(p.email)) || byName.get(normName(p.name)) || null;
+    if (!hit) {
+      unmatched.push({ name: p.name, email: p.email });
+      continue;
+    }
+    matchedIds.add(hit.id);
+    const prev = joinTimeById.get(hit.id);
+    if (p.joinTime && (!prev || p.joinTime < prev)) joinTimeById.set(hit.id, p.joinTime);
+  }
+  return { matchedIds, joinTimeById, unmatched };
 }

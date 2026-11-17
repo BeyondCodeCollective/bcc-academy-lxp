@@ -15,8 +15,11 @@ import { syncZoomAttendanceForSession } from "@/lib/attendance/zoom-sync";
 // LATEST occurrence, so asking for today's session at midnight returned
 // yesterday's roster and wrote it into today's slot — every cron-synced course
 // carried session N-1's attendance under session N (found 2026-08-18). The
-// sync also now refuses a report whose join times don't fall on the unit's
-// date, so a cancelled session can't inherit the previous one either.
+// sync now reads every Zoom instance that started on the unit's date and
+// unions their participants: restarts (Nov 9: seven instances) and an evening
+// re-open (Nov 12) each create a new instance, and the numeric id only ever
+// reported the last one. A cancelled session has no instance that day, so it
+// can't inherit the previous session's roster either.
 //
 // Auth mirrors the other crons: Vercel Cron sends `Authorization: Bearer
 // <CRON_SECRET>`; with no secret set we accept all (preview/local).

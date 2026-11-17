@@ -8,6 +8,8 @@
 import { isLearnerOnCourse } from "@/lib/programs/staff-cohort";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { meetingAutoRecording, meetingIdFromLink } from "@/lib/zoom-recordings";
+import { easternDayKey } from "@/lib/utils";
+import { zoomAttendanceMismatches } from "./zoom-attendance";
 
 type Svc = ReturnType<typeof createServiceClient>;
 
@@ -549,6 +551,23 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
         notCloud,
       );
     }
+  }
+
+  // ── Yesterday's attendance disagrees with Zoom ───────────────────────────
+  // A Zoom outage must not take the whole audit down with it.
+  try {
+    const yesterday = easternDayKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const mismatches = await zoomAttendanceMismatches(svc, yesterday);
+    if (mismatches.length) {
+      report(
+        "zoom-attendance-mismatch",
+        "medium",
+        "Yesterday's attendance doesn't match Zoom. Check each name: mark the learner present, fix their profile name so it matches Zoom, or confirm the hand-marked attendance.",
+        mismatches,
+      );
+    }
+  } catch (err) {
+    console.error("[sentinel] zoom attendance check failed", err);
   }
 
   findings.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
