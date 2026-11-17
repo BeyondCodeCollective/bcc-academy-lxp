@@ -78,7 +78,12 @@ export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }:
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const id = useId();
-  useEffect(() => { dialog.current?.scrollTo({ top: 0 }); }, [learner.id]);
+  useEffect(() => {
+    dialog.current?.scrollTo({ top: 0 });
+    // A navigation button can become disabled at either end of the selection.
+    if (document.activeElement instanceof HTMLButtonElement && document.activeElement.disabled &&
+      dialog.current?.contains(document.activeElement)) close.current?.focus();
+  }, [learner.id]);
   useEffect(() => {
     const element = dialog.current!;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -93,10 +98,24 @@ export function LearnerEvidenceDrawer({ learner, onClose, filters, navigation }:
     };
   }, []);
   return <dialog ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-person`} onCancel={event => { event.preventDefault(); onClose(); }}
-    className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-2xl overflow-y-auto border-l border-rule bg-white p-0 text-ink shadow-2xl backdrop:bg-black/40">
+    onKeyDown={event => {
+      if (event.key !== "Tab") return;
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
+      )).filter(element => element.tabIndex >= 0 && element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first) { event.preventDefault(); close.current?.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement as HTMLElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !controls.includes(document.activeElement as HTMLElement))) {
+        event.preventDefault(); first.focus();
+      }
+    }}
+    className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-2xl overflow-y-auto [overflow-wrap:anywhere] border-l border-rule bg-white p-0 text-ink shadow-2xl backdrop:bg-black/40">
     <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-rule bg-white p-5">
-      <div><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} aria-live="polite" aria-atomic="true" className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
-      <button ref={close} type="button" onClick={onClose} className="min-h-11 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
+      <div className="min-w-0 flex-1"><h2 id={`${id}-title`} className="text-xl font-semibold">Learner evidence</h2><p id={`${id}-person`} aria-live="polite" aria-atomic="true" className="mt-1 break-words text-sm">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}<span className="block break-all text-ink-soft">{learner.email || "Email unavailable"}</span></p></div>
+      <button ref={close} type="button" onClick={onClose} className="min-h-11 shrink-0 rounded-lg border border-rule px-4 py-2 focus-visible:outline-2 focus-visible:outline-primary" aria-label="Close learner evidence">Close</button>
     </header>
     {navigation && <nav aria-label="Selected learners" className="flex flex-wrap items-center justify-between gap-2 border-b border-rule p-4">
       <p role="status" aria-live="polite">{navigation.index + 1} of {navigation.total} learners</p>
