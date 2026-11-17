@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CaretLeft, Download, LockSimple } from "@phosphor-icons/react/dist/ssr";
+import { Download, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import { requireAdmin, allowedTrackSlugsForActor } from "@/app/dashboard/admin/actions-shared";
 import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
@@ -59,14 +58,6 @@ export default async function ExitSurveyResultsPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 sm:px-5">
-      <Link
-        href="/dashboard/admin"
-        className="inline-flex items-center gap-1 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline"
-      >
-        <CaretLeft size={14} aria-hidden />
-        Admin panel
-      </Link>
-
       <PageHeader
         title={`Session pulse: ${courseName}`}
         subtitle="How each live session landed, from the short survey learners answer afterwards."

@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
-import { ArrowLeft } from "lucide-react";
 import {
   ArrowLeft as ArrowLeftIcon,
   ArrowRight,
@@ -147,13 +146,6 @@ export default async function TrackWeekPage({
       });
       return (
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-          <Link
-            href={`/dashboard/track/${trackSlug}`}
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
-          >
-            <ArrowLeft size={16} />
-            Back to {track.shortName}
-          </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
               {unitName}
@@ -210,13 +202,6 @@ export default async function TrackWeekPage({
         if (!intakeStatus.completed) {
           return (
             <div className="mx-auto w-full max-w-2xl py-4">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-2 py-2 px-4 sm:px-5"
-              >
-                <ArrowLeft size={16} />
-                Back to Dashboard
-              </Link>
               <IntakeForm
                 trackSlug={trackSlug}
                 trackName={track.name}
@@ -264,13 +249,6 @@ export default async function TrackWeekPage({
     if (weekNum > unlockedThrough) {
       return (
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-          <Link
-            href={`/dashboard/track/${trackSlug}`}
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
-          >
-            <ArrowLeft size={16} />
-            Back to {track.shortName}
-          </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
               {unitName}
