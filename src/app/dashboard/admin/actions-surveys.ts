@@ -872,7 +872,7 @@ export async function getDashboardAllSurveyResponses(
   let authQuery = svc
     .from("survey_responses")
     .select(
-      "survey_type, student_id, responses, completed_at, program_id, participant_code, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
+      "survey_type, student_id, responses, completed_at, program_id, participant_code, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth, is_test)",
     )
     .in("survey_type", surveyTypes)
     .not("completed_at", "is", null);
@@ -919,15 +919,19 @@ export async function getDashboardAllSurveyResponses(
     });
   }
 
-  const authData = authRes.data as {
+  // QA logins (is_test) answer real forms to check the flow. Their rows are
+  // not learner data: one tagged "Field Ready: Intro" showed up as a second
+  // cohort and pushed Insights to 24 while the course tab, which counts the
+  // roster, said 23.
+  const authData = (authRes.data as {
     survey_type: string;
     student_id: string;
     responses: Record<string, unknown>;
     completed_at: string | null;
     programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
     participant_code: string | null;
-    students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
-  }[] | null;
+    students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null; is_test: boolean | null } | null;
+  }[] | null)?.filter((r) => !r.students?.is_test) ?? null;
 
   // Read-time cohort fallback. Submission stamps `program_variant` from the
   // student's enrollment, but that misses anyone who took a survey BEFORE being

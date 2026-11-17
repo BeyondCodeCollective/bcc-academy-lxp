@@ -31,6 +31,10 @@ export type InsightsData = {
   trackSlug?: string;
   /** Enrolled learners in that course — the response-rate denominator. */
   enrolledCount?: number;
+  /** Courses in scope with the session pulse on. Pulse answers live in
+   *  session_exit_surveys, not survey_responses, so the picker links out to
+   *  their own page rather than pretending to be a form here. */
+  pulseCourses?: { slug: string; name: string }[];
 };
 
 /**
@@ -130,6 +134,50 @@ export async function buildInsightsData(
     aggregatedSlugs.includes(p.slug),
   );
 
+  // The course Surveys tab lists every form a course is assigned, answered or
+  // not; this page only knew forms with responses, so a just-assigned
+  // post-survey existed on one tab and not the other. Add assigned forms with
+  // no answers yet as empty sections (course scope drops them below, which is
+  // right for exports: nothing to export).
+  const svc = createServiceClient();
+  const [{ data: courseRows }, { data: hiddenRows }] = await Promise.all([
+    svc
+      .from("track_overrides")
+      .select("track_slug, name, exit_survey_enabled")
+      .in("program_id", programIds),
+    svc.from("hidden_courses").select("track_slug"),
+  ]);
+  const hidden = new Set((hiddenRows ?? []).map((r) => r.track_slug as string));
+  const courses = ((courseRows ?? []) as {
+    track_slug: string;
+    name: string | null;
+    exit_survey_enabled: boolean | null;
+  }[]).filter((c) => !hidden.has(c.track_slug));
+  const scopeTracks = new Set([
+    ...courses.map((c) => c.track_slug),
+    ...visiblePrograms.flatMap((p) => p.tracks.map((t) => t.slug)),
+  ]);
+  const present = new Set(sections.map((s) => s.survey.id));
+  const assignedUnanswered = Array.from(allSurveysById.values()).filter(
+    (s) =>
+      !present.has(s.id) &&
+      !EXCLUDED_FROM_INSIGHTS.has(s.id) &&
+      !/agreement/i.test(s.id) &&
+      (s.appliesToTracks?.some((t) => scopeTracks.has(t)) ||
+        s.appliesToPrograms?.some((p) => aggregatedSlugs.includes(p)) ||
+        visiblePrograms.some((p) => p.surveys?.some((x) => x.id === s.id))),
+  );
+  sections = [
+    ...sections,
+    ...assignedUnanswered
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((survey) => ({ survey, schema: getSurveySchema(survey.id), responses: [] })),
+  ];
+  const pulseCourses = courses
+    .filter((c) => c.exit_survey_enabled)
+    .map((c) => ({ slug: c.track_slug, name: c.name ?? c.track_slug }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   let enrolledCount: number | undefined;
   if (trackSlug) {
     const scoped = await scopeSectionsToTrack(sections, trackSlug);
@@ -141,6 +189,7 @@ export async function buildInsightsData(
     sections,
     programs: visiblePrograms.map((p) => ({ slug: p.slug, name: p.name })),
     totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
+    pulseCourses,
     ...(trackSlug ? { trackSlug, enrolledCount } : {}),
   };
 }

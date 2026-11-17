@@ -38,6 +38,7 @@ export type InsightsData = {
   }[];
   programs: { slug: string; name: string }[];
   totalResponses: number;
+  pulseCourses?: { slug: string; name: string }[];
 };
 
 type LunchLearnRow = {

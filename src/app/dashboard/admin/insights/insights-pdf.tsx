@@ -83,7 +83,12 @@ function compute(data: InsightsData, cohort: string): Computed {
   const cohortList = [...allCohorts];
 
   const emails = new Set<string>();
-  for (const s of scoped) for (const r of s.responses) if (r.email) emails.add(r.email.toLowerCase());
+  // Participant-coded rows carry a code, not an email: count the code.
+  for (const s of scoped)
+    for (const r of s.responses) {
+      const key = r.email ? r.email.toLowerCase() : r.participant_code;
+      if (key) emails.add(key);
+    }
 
   const rows = scoped
     .filter((s) => s.responses.length > 0)
