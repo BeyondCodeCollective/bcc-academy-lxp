@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import QRCode from "qrcode";
@@ -38,12 +37,6 @@ export default async function EventQrPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-8 text-center">
-      <Link
-        href={`/dashboard/admin/events/${event.id}/check-in`}
-        className="text-sm text-ink-soft hover:text-ink hover:underline print:hidden"
-      >
-        Back to check-in
-      </Link>
       <h1 className="mt-2 text-3xl font-bold text-ink">{event.title}</h1>
       <p className="mt-1 text-sm text-ink-soft">
         {formatEventWhen(event.starts_at, event.ends_at, event.timezone)}

@@ -75,6 +75,11 @@ export function buildTrail(
     const sectionLabel = ADMIN_SECTION_LABELS[section] ?? humanize(section);
     if (rest.length === 2) return [...out, { label: sectionLabel }];
     out.push({ label: sectionLabel, href: sectionHref });
+    // The event QR poster is opened from check-in and is the way back there,
+    // so check-in is its parent here rather than an in-page back link.
+    if (section === "events" && rest[3] === "qr") {
+      out.push({ label: "Check-in", href: `/dashboard/admin/events/${rest[2]}/check-in` });
+    }
     const leaf = rest[rest.length - 1];
     if (leaf === "new") out.push({ label: "New" });
     else if (leaf === "edit") out.push({ label: nameFor(path) ?? "Edit" });
@@ -164,7 +169,7 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label="Breadcrumb"
-      className={`mx-auto w-full max-w-2xl md:max-w-5xl px-4 pt-5 sm:px-5${homeOnly ? " md:hidden" : ""}`}
+      className={`print:hidden mx-auto w-full max-w-2xl md:max-w-5xl px-4 pt-5 sm:px-5${homeOnly ? " md:hidden" : ""}`}
     >
       <ol className="flex flex-wrap items-center gap-1 text-[12px] text-ink-faint">
         {trail.map((c, i) => (
