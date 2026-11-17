@@ -15,7 +15,6 @@ export function parseLearnerQuery(params: LearnerQueryParams) {
   };
   const filters = { programId: value("programId"), courseSlug: value("courseSlug"), cohortId: value("cohortId"), search: value("search"), status: value("status") || "all" };
   if (!["all", "not_evaluated", "on_track", "needs_check_in"].includes(filters.status)) throw new Error("Unsupported learner status.");
-  if (["on_track", "needs_check_in"].includes(filters.status)) throw new Error("Learner status evaluation is not connected yet.");
   if (filters.courseSlug && !filters.programId) throw new Error("Choose a program before a course.");
   if (filters.cohortId && !filters.courseSlug) throw new Error("Choose a course before a cohort.");
   return filters;

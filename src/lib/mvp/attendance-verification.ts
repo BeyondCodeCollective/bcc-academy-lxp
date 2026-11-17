@@ -1,6 +1,12 @@
 import type { MvpAttendanceRecord, MvpSessionSlot } from "./milestones";
 import type { MvpAttentionObservation } from "./attention";
 
+export type MvpAttendanceSessionState = {
+  weekNumber: number;
+  sessionNumber: number;
+  state: "verified_present" | "verified_absent" | "excused" | "unrecorded" | "unresolved" | "not_eligible";
+};
+
 // Matches the unapplied review migration. Decisions include historical
 // eligibility evidence, not merely membership in today's roster.
 export type MvpAttendanceReview = {
@@ -28,10 +34,12 @@ export function verifyMvpMissedSessions(input: {
   attendance: readonly MvpAttendanceRecord[];
   asOf: Date;
 }): MvpAttentionObservation & { unknownSessions: number; unavailableReason: string | null;
-  finalizedAttendance: { attended: number; held: number } | null } {
+  finalizedAttendance: { attended: number; held: number } | null;
+  sessionStates: MvpAttendanceSessionState[] | null } {
   const now = input.asOf.getTime();
   if (!Number.isFinite(now)) throw new Error("Invalid attendance verification date.");
   if (!input.heldRequiredSessions?.length) return { value: null, evidence: [], unknownSessions: 0, finalizedAttendance: null,
+    sessionStates: input.heldRequiredSessions === null ? null : [],
     unavailableReason: "No verified required sessions are available for evaluation." };
   const required = new Map(input.heldRequiredSessions.map((slot) => [`${slot.weekNumber}:${slot.sessionNumber}`, slot]));
   const scoped = input.reviews.filter((row) => row.program_id === input.programId &&
@@ -40,11 +48,23 @@ export function verifyMvpMissedSessions(input: {
   let unknownSessions = 0;
   let presentSessions = 0;
   let unresolvedActivePolicy = false;
+  const sessionStates: MvpAttendanceSessionState[] = [];
   for (const [key, slot] of required) {
+    // Default to unresolved; only validated evidence may establish an outcome.
+    // Return identifiers and states only, never review notes or staff identity.
+    const session: MvpAttendanceSessionState = { weekNumber: slot.weekNumber, sessionNumber: slot.sessionNumber, state: "unresolved" };
+    sessionStates.push(session);
+    const hasCheckIn = input.attendance.some((record) => record.student_id === input.learnerId &&
+      record.track === input.courseSlug && record.week_number === slot.weekNumber && record.session_number === slot.sessionNumber &&
+      (record.checked_in_at === null || !Number.isFinite(Date.parse(record.checked_in_at)) || Date.parse(record.checked_in_at) <= now));
     const history = scoped.filter((row) => `${row.week_number}:${row.session_number}` === key &&
       !(Date.parse(row.recorded_at) > now));
+    if (!history.length) {
+      session.state = hasCheckIn ? "unresolved" : "unrecorded";
+      unknownSessions++; continue;
+    }
     // Bad revisions/timestamps must not expose a stale earlier absence.
-    if (!history.length || history.some((row) => !Number.isSafeInteger(row.revision) || row.revision <= 0 ||
+    if (history.some((row) => !Number.isSafeInteger(row.revision) || row.revision <= 0 ||
       !Number.isFinite(Date.parse(row.recorded_at)))) { unknownSessions++; continue; }
     const latest = Math.max(...history.map((row) => row.revision));
     const candidates = history.filter((row) => row.revision === latest);
@@ -55,20 +75,18 @@ export function verifyMvpMissedSessions(input: {
       row.eligibility === "unknown" || !row.eligibility_basis?.trim()) { unknownSessions++; continue; }
     // Excused/ineligible sessions need an explicit active-denominator policy.
     // They can clear absence flags without proving active or inactive status.
-    if (row.eligibility === "not_eligible" && row.outcome === "unknown") { unresolvedActivePolicy = true; continue; }
+    if (row.eligibility === "not_eligible" && row.outcome === "unknown") { session.state = "not_eligible"; unresolvedActivePolicy = true; continue; }
     if (row.eligibility !== "eligible" || !["present", "absent", "excused"].includes(row.outcome)) { unknownSessions++; continue; }
-    if (row.outcome === "present") { presentSessions++; continue; }
-    if (row.outcome === "excused") { unresolvedActivePolicy = true; continue; }
-    const conflictingCheckIn = input.attendance.some((record) => record.student_id === input.learnerId &&
-      record.track === input.courseSlug && record.week_number === slot.weekNumber && record.session_number === slot.sessionNumber &&
-      (record.checked_in_at === null || !Number.isFinite(Date.parse(record.checked_in_at)) || Date.parse(record.checked_in_at) <= now));
-    if (conflictingCheckIn) { unknownSessions++; continue; }
+    if (row.outcome === "present") { session.state = "verified_present"; presentSessions++; continue; }
+    if (row.outcome === "excused") { session.state = "excused"; unresolvedActivePolicy = true; continue; }
+    if (hasCheckIn) { unknownSessions++; continue; }
+    session.state = "verified_absent";
     evidence.push({ sourceRecordId: row.id, label: `Staff-confirmed absence: ${slot.label}`, href: null });
   }
   // Two confirmed absences establish the existing threshold even if other
   // sessions remain unknown. Below it, incomplete coverage cannot clear a flag.
   return { value: evidence.length >= 2 || unknownSessions === 0 ? evidence.length : null,
     finalizedAttendance: unknownSessions === 0 && !unresolvedActivePolicy ? { attended: presentSessions, held: required.size } : null,
-    evidence, unknownSessions,
+    evidence, unknownSessions, sessionStates: sessionStates.sort((a, b) => a.weekNumber - b.weekNumber || a.sessionNumber - b.sessionNumber),
     unavailableReason: unknownSessions ? "Some required sessions have missing, unresolved, or conflicting staff review evidence." : null };
 }

@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { BarChart3, ShieldCheck } from "lucide-react";
-import type { AttendanceChartRow, LearnerChartData, MilestoneChartRow } from "@/lib/mvp/learner-chart-data";
+import { protectLearnerAttendance, protectLearnerMilestones, type AttendanceChartRow, type LearnerChartData, type MilestoneChartRow } from "@/lib/mvp/learner-chart-data";
 
 const NOT_CONNECTED = { state: "unavailable" } as const;
 const attendanceSeries = [
@@ -30,10 +30,15 @@ function ChartMessage({ state }: { state: "unavailable" | "empty" | "suppressed"
 // Only privacy-processed aggregates belong in these props. No learner IDs,
 // contacts, raw answers, or hidden counts. Selection currently inspects a safe
 // aggregate; directory drill-down will require a separately authorized loader.
-export function LearnerCharts({ attendance = NOT_CONNECTED, milestones = NOT_CONNECTED }: {
+export function LearnerCharts({ attendance: attendanceInput = NOT_CONNECTED, milestones: milestonesInput = NOT_CONNECTED }: {
   attendance?: LearnerChartData<AttendanceChartRow>;
   milestones?: LearnerChartData<MilestoneChartRow>;
 }) {
+  // Defense in depth for every rendered surface (including native/SVG titles
+  // and accessible tables). This cannot replace server-side suppression: raw
+  // small counts must never be serialized into these props in the first place.
+  const attendance = attendanceInput.state === "ready" ? protectLearnerAttendance(attendanceInput.rows) : attendanceInput;
+  const milestones = milestonesInput.state === "ready" ? protectLearnerMilestones(milestonesInput.rows) : milestonesInput;
   const id = useId();
   const [selection, setSelection] = useState<{ source: string; label: string; count: number } | null>(null);
   // A changed/suppressed dataset must never leave a previous count visible.

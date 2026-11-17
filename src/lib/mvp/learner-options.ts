@@ -4,7 +4,7 @@ import { getEveryProgramConfig } from "@/lib/programs";
 import type { LearnerProgramScope } from "./learner-queries";
 import { learnerCourseBatches } from "./learner-batches";
 
-// Internal helper: scope must come from getMvpLearnersData, never request input.
+// Internal helper: scope must come from the authorized learner context, never request input.
 export async function loadLearnerOptions(db: ReturnType<typeof createServiceClient>, scope: LearnerProgramScope[]) {
   const options = {
     programs: scope.map(({ id, name }) => ({ id, name })),
