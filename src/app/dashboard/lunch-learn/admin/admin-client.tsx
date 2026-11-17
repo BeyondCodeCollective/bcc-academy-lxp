@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash } from "@phosphor-icons/react";
+import { Trash } from "@phosphor-icons/react";
 import { createLunchLearn, deleteLunchLearn, updateLunchLearn, type LunchLearnInput } from "../actions";
 
 type Recording = {
@@ -86,14 +85,6 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
     <div className={embedded ? "w-full" : "mx-auto w-full max-w-2xl md:max-w-4xl px-4 sm:px-5 py-10 md:py-14"}>
       {!embedded && (
         <>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink mb-6"
-          >
-            <ArrowLeft size={14} weight="bold" aria-hidden />
-            Back to Lunch &amp; Learns
-          </Link>
-
           <header className="mb-10">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
               Admin
