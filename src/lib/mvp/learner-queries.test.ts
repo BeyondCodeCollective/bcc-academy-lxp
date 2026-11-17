@@ -125,6 +125,53 @@ describe("Learners loader access boundary", () => {
     requests = [];
     expect((await getMvpLearnersData({ search: "No match" })).weeklyMilestones).toEqual({ state: "empty" });
   });
+  it("filters live attendance counts before pagination and scopes evidence to the selected offering", async () => {
+    seedSummary(); signInSuperAdmin();
+    const chartSelection = JSON.stringify({ kind: "attendance", programId: "p1", courseSlug: "a", weekNumber: 1, sessionNumber: 1, measure: "unrecorded" });
+    const result = await searchMvpLearners({ chartSelection, page: "3", pageSize: "10", sortOrder: "desc" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.pagination).toMatchObject({ totalMatching: 26, page: 3 });
+    expect(result.directory).toHaveLength(6);
+    expect(result.charts.attendance.state).toBe("ready");
+    expect(result.directory.every(row => row.enrollments.length === 1 && row.enrollments[0].courseSlug === "a")).toBe(true);
+    requests = [];
+    const evidence = await getMvpLearnerEvidence("s00", { chartSelection });
+    expect(evidence?.enrollments.map(e => e.courseSlug)).toEqual(["a"]);
+    requests = [];
+    expect((await searchMvpLearners({ chartSelection, search: "Learner00" })).ok).toBe(false);
+    requests = [];
+    await expect(getMvpLearnerEvidence("s00", { chartSelection, search: "Learner00" })).rejects.toThrow("Chart selection is unavailable");
+  });
+  it("filters milestone participants, excludes nonparticipants, and preserves the base chart counts", async () => {
+    seedSummary(); signInSuperAdmin();
+    tables.submissions = Array.from({ length: 10 }, (_, i) => ({ id: `sub-${String(i).padStart(2, "0")}`, program_id: "p1", student_id: `s${String(i).padStart(2, "0")}`, track_slug: "a", week_number: 1, submitted_at: "2000-01-01T12:00:00Z" }));
+    const chartSelection = JSON.stringify({ kind: "milestone", programId: "p1", courseSlug: "a", weekNumber: 1, measure: "submissions" });
+    const result = await searchMvpLearners({ chartSelection, status: "not_evaluated", pageSize: "10" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.pagination.totalMatching).toBe(10);
+    expect(result.summary.totalEnrolled).toBe(10);
+    expect(result.charts.milestones).toMatchObject({ state: "ready", rows: [{ total: 26, submissions: 10 }] });
+    expect(result.directory.every(row => row.enrollments.length === 1 && row.enrollments[0].courseSlug === "a")).toBe(true);
+    requests = [];
+    expect(await getMvpLearnerEvidence("s25", { chartSelection })).toBeNull();
+    requests = [];
+    const cleared = await searchMvpLearners({});
+    expect(cleared.ok && cleared.pagination.totalMatching).toBe(26);
+  });
+  it.each([
+    { kind: "attendance", programId: "p2", courseSlug: "a", weekNumber: 1, sessionNumber: 1, measure: "unrecorded" },
+    { kind: "attendance", programId: "p1", courseSlug: "a", weekNumber: 999, sessionNumber: 1, measure: "unrecorded" },
+    { kind: "attendance", programId: "p1", courseSlug: "a", weekNumber: 1, sessionNumber: 1, measure: "verified_present" },
+    { kind: "milestone", programId: "p1", courseSlug: "a", weekNumber: 1, measure: "unknown" },
+  ])("rejects forged or unavailable chart selection %j", async selection => {
+    seedSummary(); signInSuperAdmin();
+    const chartSelection = JSON.stringify(selection);
+    expect((await searchMvpLearners({ chartSelection })).ok).toBe(false);
+    requests = [];
+    await expect(getMvpLearnerEvidence("s00", { chartSelection })).rejects.toThrow();
+  });
   const seedAttendance = () => {
     seedSummary();
     tables.mvp_attendance_reviews = ["a", "b"].flatMap(track_slug => [1, 2, 3, 4].map(week_number => ({

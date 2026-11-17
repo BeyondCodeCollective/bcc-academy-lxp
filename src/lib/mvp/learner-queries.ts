@@ -13,8 +13,8 @@ import { loadLearnerActivity } from "./learner-activity";
 import { loadLearnerSessionContext, summarizeLearnerSessionContext } from "./learner-summary";
 import { loadLearnerAttendance } from "./learner-attendance";
 import { evaluateLearnerCheckIns } from "./learner-check-ins";
-import { aggregateLearnerAttendance } from "./learner-attendance-aggregates";
-import { aggregateLearnerMilestones } from "./learner-milestone-aggregates";
+import { filterLearnersByChart } from "./learner-chart-filter";
+import { parseChartSelection } from "./learner-chart-selection";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -37,6 +37,7 @@ async function loadAuthorizedLearnerContext(params: LearnerQueryParams = {}) {
   const filters = parseLearnerQuery(params);
   const requestedPage = parseLearnerPagination(params);
   const sorting = parseLearnerSort(params);
+  const chartSelection = parseChartSelection(params.chartSelection);
   const db = createServiceClient();
   let homeId: string | null = null;
   const grants: ProgramGrant[] = [];
@@ -84,7 +85,7 @@ async function loadAuthorizedLearnerContext(params: LearnerQueryParams = {}) {
   }
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
-  return { db, programs, options, filters, requestedPage, sorting, requested };
+  return { db, programs, options, filters, requestedPage, sorting, requested, chartSelection };
 }
 
 // Options-only page entry point: rechecks access/preview mode, but never reads
@@ -96,16 +97,21 @@ export async function getMvpLearnerFilterOptions() {
 // Resolve membership before reading evidence. A browser-supplied ID is never
 // an authorization grant, and directory pagination does not constrain this read.
 export async function getMvpLearnerEvidence(learnerId: string, params: LearnerQueryParams = {}) {
-  const { db, programs, options, filters } = await loadAuthorizedLearnerContext(params);
+  const { db, programs, options, filters, chartSelection } = await loadAuthorizedLearnerContext(params);
   if (typeof learnerId !== "string" || !learnerId.trim() || learnerId.length > 200) throw new Error("Invalid learner.");
-  const learner = (await loadLearnerRoster(db, options, filters)).find(row => row.id === learnerId);
+  const roster = await loadLearnerRoster(db, options, filters);
+  const learner = roster.find(row => row.id === learnerId);
   if (!learner) return null;
   const asOf = new Date();
-  const sessions = await loadLearnerSessionContext(db, [learner], asOf);
-  const activity = await loadLearnerActivity(db, [learner], asOf);
+  const population = chartSelection ? roster : [learner];
+  const sessions = await loadLearnerSessionContext(db, population, asOf);
+  const activity = await loadLearnerActivity(db, population, asOf);
   const attendance = await loadLearnerAttendance(db, activity, sessions.heldByOffering, asOf);
-  const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf)[0];
-  const enrollments = evaluated.enrollments.filter(e => filters.status === "all" || e.status === filters.status);
+  const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf).map(row => ({ ...row,
+    enrollments: row.enrollments.filter(e => filters.status === "all" || e.status === filters.status),
+  })).filter(row => row.enrollments.length > 0);
+  const selected = chartSelection ? filterLearnersByChart(evaluated, chartSelection).learners : evaluated;
+  const enrollments = selected.find(row => row.id === learnerId)?.enrollments ?? [];
   if (!enrollments.length) return null;
   // Only metadata from the safe attendance/activity/check-in projections leaves
   // this boundary. No raw records, review notes, content, or storage URLs.
@@ -122,7 +128,7 @@ export async function getMvpLearnerEvidence(learnerId: string, params: LearnerQu
 }
 
 export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
-  const { db, programs, options, filters, requestedPage, sorting, requested } = await loadAuthorizedLearnerContext(params);
+  const { db, programs, options, filters, requestedPage, sorting, requested, chartSelection } = await loadAuthorizedLearnerContext(params);
   const matching = await loadLearnerRoster(db, options, filters);
   const asOf = new Date();
   const sessionContext = await loadLearnerSessionContext(db, matching, asOf);
@@ -131,15 +137,16 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const activity = await loadLearnerActivity(db, matching, asOf);
   const attendance = await loadLearnerAttendance(db, activity, sessionContext.heldByOffering, asOf);
   const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf);
-  const filtered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,
+  const baseFiltered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,
     enrollments: learner.enrollments.filter(enrollment => enrollment.status === filters.status),
   })).filter(learner => learner.enrollments.length > 0);
+  const { learners: filtered, charts } = filterLearnersByChart(baseFiltered, chartSelection);
   const needsCheckIn = new Set(filtered.filter(learner => learner.enrollments.some(enrollment =>
     enrollment.status === "needs_check_in" && enrollment.checkIn.attentionFlags.length > 0)).map(learner => learner.id)).size;
   const page = paginateLearners(sortLearners(filtered, sorting), requestedPage);
   const directory = await loadLearnerProgress(page.directory, programs);
-  const summary = { ...(filters.status === "all" ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf)), needsCheckIn };
-  const attendanceBySession = aggregateLearnerAttendance(filtered);
-  const weeklyMilestones = aggregateLearnerMilestones(filtered);
+  const summary = { ...(filters.status === "all" && !chartSelection ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf)), needsCheckIn };
+  const attendanceBySession = charts.attendance;
+  const weeklyMilestones = charts.milestones;
   return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession, weeklyMilestones };
 }

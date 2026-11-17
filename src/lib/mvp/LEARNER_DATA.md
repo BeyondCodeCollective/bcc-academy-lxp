@@ -15,7 +15,7 @@ Changed or suppressed datasets invalidate the displayed selection. Server-side
 guards remain mandatory before serialization; hiding in the browser is not a
 privacy boundary. Legacy chart guards explicitly project approved fields rather
 than copying arbitrary source metadata. Repeated-query differencing protection
-and chart data wiring remain separate work.
+remains outside the existing suppression guarantee. Chart wiring is described below.
 
 ## Weekly milestone aggregates (November 5, 2026)
 
@@ -39,7 +39,7 @@ five. No learner IDs, timestamps, submission content, reflections, or file links
 are returned. This does not protect against differencing across repeated queries.
 The aggregate reuses already-loaded evidence without additional database reads.
 It inherits the activity loader's learner/course attribution (not historical
-enrollment-attempt attribution). Chart UI/action wiring remains a separate step.
+enrollment-attempt attribution). Chart UI/action wiring is now connected; see the November 17 section below.
 
 ## Attendance-by-session aggregates (November 5, 2026)
 
@@ -58,8 +58,8 @@ and totals, preventing complementary-cell reconstruction within that dataset.
 This does not guarantee protection against differencing across repeated filters.
 Raw learner IDs and review details never appear in the aggregate rows.
 
-This is a server-side data contract only; chart/action wiring is not enabled by
-this step. The PR #1295 program-scoped attendance and delivery fixes have been
+The original aggregate step supplied the server-side contract. Chart/action wiring
+is now connected as described in the November 17 section below. The PR #1295 program-scoped attendance and delivery fixes have been
 ported to this branch. No additional database reads are introduced here.
 
 ## Connected Needs Check-In count (November 5, 2026)
@@ -607,3 +607,39 @@ checkpoints are still pending. No live offering or signal registry entries are p
 by this change. Missing configuration or insufficient evidence remains Not evaluated.
 Mica’s proposed historical capstone Yes/No recording and optional URL are not implemented
 by this policy change. Assessment flags and synthetic progress remain deferred.
+
+
+## Connected chart filtering (November 17, 2026)
+
+The Learners page now consumes privacy-protected attendance/session and weekly
+milestone aggregates from the directory action. Each count is a keyboard-accessible
+filter control. Attendance keeps verified present, verified absent, excused,
+not eligible, unrecorded, and unresolved distinct. Milestones count recorded
+submissions, reflections, and learner-marked watching; they do not assert completion.
+
+`chartSelection` identifies one offering/week/measure (and session for attendance).
+The server parses it and checks it against freshly computed, unsuppressed aggregates
+from the complete authorized search/program/course/cohort/status population.
+Unknown, zero, suppressed, and unavailable selections fail closed. Matching learners
+and matching enrollments are selected before sorting and pagination; summary cards
+reflect that selection. Charts retain their base population so switching a selection
+does not change the chart denominator. Evidence uses the same selection check and
+never broadens back to a learner's other enrollments.
+
+Selecting or clearing a chart resets page 1 and clears selected learners/drawer state.
+Changing applied base filters or search remounts the connection and clears the chart
+filter. Late responses are ignored. On a now-invalid selection, error/retry and Clear
+chart filter remain available; no prior results are displayed. Only protected aggregate
+fields are sent to the browser, with a second defensive check before rendering.
+
+Regression coverage includes the live directory/evidence actions with synthetic data,
+all six attendance states, milestone participants, pagination, duplicate enrollments,
+altered selectors, search-induced suppression, and unavailable evidence. Signed-in
+production-data acceptance remains a separate check; these tests make no live-data claim.
+
+Browser interaction check: the real filter bar and connected directory were exercised
+with an isolated fictional-data action on November 17. Keyboard activation from page 2
+reset to page 1, switching attendance to milestones cleared selected learners, Clear
+chart filter restored the base list, and searching for one learner cleared the chart
+selection and rendered two suppressed charts with zero selection targets. Server
+membership/privacy behavior is covered by the separate action integration tests above.

@@ -1,5 +1,6 @@
 "use server";
 
+import { protectDirectoryCharts } from "@/lib/mvp/learner-chart-selection";
 import { getSessionContext } from "@/lib/auth/session";
 import { getMvpLearnersData } from "@/lib/mvp/learner-queries";
 import type { LearnerQueryParams } from "@/lib/mvp/learner-roster";
@@ -15,6 +16,7 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
     const actorUserId = await requireCurrentMvpLearnerAccess();
     const result = await getMvpLearnersData(params);
     const response = { ok: true as const, pagination: result.pagination,
+      charts: protectDirectoryCharts({ attendance: result.attendanceBySession ?? { state: "unavailable" }, milestones: result.weeklyMilestones ?? { state: "unavailable" } }),
       summary: { totalEnrolled: result.summary.totalEnrolled, sessionsHeld: result.summary.sessionsHeld,
         needsCheckIn: result.summary.needsCheckIn,
         sessionsHeldUnavailableReason: result.summary.sessionsHeldUnavailableReason, asOf: result.summary.asOf },

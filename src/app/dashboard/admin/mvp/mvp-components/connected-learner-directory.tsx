@@ -5,6 +5,7 @@ import type { searchMvpLearners } from "../learner-actions";
 import { LearnerDirectory, type DirectorySorting } from "./learner-directory";
 import type { LearnerFilters } from "./learner-filters";
 import { startLearnerRequest } from "./learner-request";
+import { chartSelectionKey, chartSelectionLabel, type ChartSelection, type DirectoryCharts } from "@/lib/mvp/learner-chart-selection";
 import type { LearnerSummaryData } from "./learner-summary";
 
 export function LearnerRequestState({ state, onRetry }: { state: "loading" | "error"; onRetry: () => void }) {
@@ -25,11 +26,14 @@ export function LearnerRequestState({ state, onRetry }: { state: "loading" | "er
 // Parent keys this component by applied filters, clearing rows and drawer state
 // immediately. Cleanup prevents a late response from replacing a newer request.
 export function ConnectedLearnerDirectory({ filters, searchAction, beforeDirectory }: { filters: LearnerFilters; searchAction: typeof searchMvpLearners;
-  beforeDirectory?: (summary: LearnerSummaryData | undefined, state: "loading" | "error" | "ready") => ReactNode }) {
+  beforeDirectory?: (summary: LearnerSummaryData | undefined, state: "loading" | "error" | "ready", charts?: DirectoryCharts, selection?: string, onSelect?: (selection: ChartSelection) => void) => ReactNode }) {
+  const [chart, setChart] = useState<ChartSelection | null>(null);
+  const chartSelection = chart ? chartSelectionKey(chart) : "";
+  const scopedFilters = { ...filters, chartSelection };
   const [paging, setPaging] = useState({ page: 1, pageSize: 25 });
   const [sorting, setSorting] = useState<DirectorySorting>({ sortBy: "name", sortOrder: "asc" });
   const [retry, setRetry] = useState(0);
-  const requestKey = JSON.stringify([filters, paging, sorting, retry]);
+  const requestKey = JSON.stringify([scopedFilters, paging, sorting, retry]);
   const [response, setResponse] = useState<{ key: string; result: Awaited<ReturnType<typeof searchMvpLearners>> } | null>(null);
   useEffect(() => {
     const [query, page, sort] = JSON.parse(requestKey) as [LearnerFilters, typeof paging, DirectorySorting, number];
@@ -42,8 +46,12 @@ export function ConnectedLearnerDirectory({ filters, searchAction, beforeDirecto
   const result = response?.key === requestKey ? response.result : null;
   // Do not display error payloads or stale rows/counts. Retry preserves the
   // current request and changes its key, immediately returning to loading.
-  if (!result || !result.ok) return <>{beforeDirectory?.(undefined, result ? "error" : "loading")}<LearnerRequestState state={result ? "error" : "loading"} onRetry={() => setRetry(value => value + 1)} /></>;
-  return <>{beforeDirectory?.(result.summary, "ready")}<LearnerDirectory key={requestKey} filters={filters} learners={result.directory}
+  const chartNotice = chart ? <section className="panel mt-6 p-4" aria-label="Active chart filter">
+    <p role="status" className="break-words text-sm">Chart filter: {chartSelectionLabel(chart)}</p>
+    <button type="button" className="mt-2 min-h-11 rounded-lg border border-rule px-4 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => { setChart(null); setPaging(current => ({ ...current, page: 1 })); }}>Clear chart filter</button>
+  </section> : null;
+  if (!result || !result.ok) return <>{chartNotice}{beforeDirectory?.(undefined, result ? "error" : "loading")}<LearnerRequestState state={result ? "error" : "loading"} onRetry={() => setRetry(value => value + 1)} /></>;
+  return <>{chartNotice}{beforeDirectory?.(result.summary, "ready", result.charts, chartSelection, value => { setChart(value); setPaging(current => ({ ...current, page: 1 })); })}<LearnerDirectory key={requestKey} filters={scopedFilters} learners={result.directory}
     sorting={sorting} onSortChange={value => { setSorting(value); setPaging(current => ({ ...current, page: 1 })); }}
     serverPagination={result.pagination} onPageChange={(page, pageSize) => setPaging({ page, pageSize })} /></>;
 }

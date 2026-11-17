@@ -82,8 +82,11 @@ IDs, directory rows, evidence payloads, or individual-record export metrics.
   Obtain approved offering requirements, deadlines, and checkpoints before
   populating the registries. Keep Not evaluated wherever configuration or evidence
   is insufficient; assessment flags and synthetic progress percentages stay deferred.
-- Complete Integration testing and review afterward. Track the missing
-  chart-to-directory connection as an open integration item; suppression tests
-  alone do not verify a drill-down path that is not connected.
+- Chart-to-directory filtering is connected. Every selection is checked against
+  the complete authorized, base-filtered aggregates before pagination. Suppressed,
+  zero, unavailable, or unknown cells cannot be used to retrieve learners or evidence.
+  Evidence requests recheck membership and suppression using the same population.
+  Repeated-query disclosure protections remain limited to the existing minimum-five
+  and complementary-cell policy; this is not a differential privacy guarantee.
 - Identifiable exports remain excluded unless separately approved; they are not
   a prerequisite for finishing the timestamp-and-attendance MVP.

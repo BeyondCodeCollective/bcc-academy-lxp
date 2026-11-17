@@ -3,12 +3,14 @@
 import { useEffect, useId, useReducer, useState } from "react";
 import { Search } from "lucide-react";
 import { LearnerSummary, type LearnerSummaryData } from "./learner-summary";
-import { LearnerCharts } from "./learner-charts";
+import { LearnerDirectoryCharts } from "./learner-directory-charts";
+import type { ChartSelection, DirectoryCharts } from "@/lib/mvp/learner-chart-selection";
 import { LearnerDirectory } from "./learner-directory";
 import { ConnectedLearnerDirectory, LearnerRequestState } from "./connected-learner-directory";
 import type { searchMvpLearners } from "../learner-actions";
 
 export type LearnerFilters = {
+  chartSelection?: string;
   search: string;
   programId: string;
   courseSlug: string;
@@ -57,7 +59,7 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
   const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
   const labelClass = "min-w-0 flex-1 basis-44 text-sm font-medium text-ink";
   const hasFilters = Object.entries(draft).some(([key, value]) => key === "status" ? value !== "all" : Boolean(value));
-  const beforeDirectory = (summary?: LearnerSummaryData, state: "disconnected" | "loading" | "error" | "ready" = "disconnected") => <>
+  const beforeDirectory = (summary?: LearnerSummaryData, state: "disconnected" | "loading" | "error" | "ready" = "disconnected", charts?: DirectoryCharts, selection?: string, onSelect?: (selection: ChartSelection) => void) => <>
     <LearnerSummary summary={summary} state={state} needsCheckInSelected={applied.status === "needs_check_in"} onNeedsCheckIn={() => {
       // Use applied status, not an unsaved dropdown edit. This quick filter
       // applies immediately; the changed directory key resets page and evidence.
@@ -69,7 +71,7 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
         : "All learner statuses selected. Other filters are unchanged."
         : "Status preview updated. Learner results are not connected yet.");
     }} />
-    <LearnerCharts />
+    <LearnerDirectoryCharts charts={charts} state={state} selection={selection} onSelect={onSelect} />
   </>;
   return <><section className="panel min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Search and filters</h2>
