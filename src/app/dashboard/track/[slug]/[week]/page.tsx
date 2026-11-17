@@ -1063,14 +1063,16 @@ export default async function TrackWeekPage({
                     weekNumber={weekNum}
                     sessionNumber={sel + 1}
                     title="Survey"
-                    initialRating={surveyRow?.understanding ?? null}
+                    initialRating={surveyRow?.application ?? null}
+                    initialBlocker={surveyRow?.blocker ?? null}
                     initialUnclear={surveyRow?.unclear_text ?? null}
+                    initialSaved={surveyRow?.application != null || surveyRow?.understanding != null}
                   />
                 ) : (
                   <>
                     <h2 className={weekHeading}>Survey</h2>
                     <p className="text-ink-faint">
-                      Two quick questions. Opens when the session starts.
+                      Three quick questions. Opens when the session starts.
                     </p>
                   </>
                 )}

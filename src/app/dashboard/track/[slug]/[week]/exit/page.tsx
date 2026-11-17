@@ -52,7 +52,7 @@ export default async function ExitSurveyPage({
         {weekContent.sessions.length > 1 ? ` · Session ${sessionNum}` : ""}
       </p>
       <h1 className="text-2xl font-bold tracking-tight text-ink">Session survey</h1>
-      <p className="mt-2 text-sm text-ink-soft">Two quick questions about today&apos;s session.</p>
+      <p className="mt-2 text-sm text-ink-soft">Three quick questions about today&apos;s session.</p>
 
       {rows === null ? (
         <p className="mt-8 text-sm text-ink-soft">
@@ -69,8 +69,10 @@ export default async function ExitSurveyPage({
             weekNumber={weekNum}
             sessionNumber={sessionNum}
             title={weekContent.sessions.length > 1 ? `Session ${sessionNum}` : "Today's session"}
-            initialRating={row?.understanding ?? null}
+            initialRating={row?.application ?? null}
+            initialBlocker={row?.blocker ?? null}
             initialUnclear={row?.unclear_text ?? null}
+            initialSaved={row?.application != null || row?.understanding != null}
           />
         </>
       )}

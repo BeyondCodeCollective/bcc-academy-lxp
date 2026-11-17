@@ -8,11 +8,15 @@ import {
   MAX_UNCLEAR_LENGTH,
   asksHours,
   cleanText,
+  parseBlocker,
   parseUnderstanding,
 } from "@/lib/exit-survey";
 
 export type ExitSurveyRow = {
+  /** The pre-2026-11-19 statement. Read only, to mark old sessions as answered. */
   understanding: number | null;
+  application: number | null;
+  blocker: string | null;
   unclear_text: string | null;
   hours_text: string | null;
 };
@@ -47,17 +51,20 @@ function validSlot(weekNumber: number, sessionNumber: number) {
   if (!Number.isInteger(sessionNumber) || sessionNumber < 1 || sessionNumber > 5) throw new Error("Bad session");
 }
 
-/** Rating plus "what was unclear". Leaves the hours column alone. */
+/** Rating, "what got in the way" and "what was unclear". Leaves the hours column alone. */
 export async function submitExitSurvey(
   trackSlug: string,
   weekNumber: number,
   sessionNumber: number,
-  understanding: number,
+  application: number,
+  blocker: string,
   unclear: string,
 ) {
   validSlot(weekNumber, sessionNumber);
-  const rating = parseUnderstanding(understanding);
+  const rating = parseUnderstanding(application);
   if (rating === null) throw new Error("Pick a rating from 1 to 5");
+  const reason = parseBlocker(blocker);
+  if (reason === null) throw new Error("Pick what got in the way");
   if (unclear.trim().length > MAX_UNCLEAR_LENGTH) throw new Error("That answer is too long");
   const { svc, userId, programId } = await requireEnrolledLearner(trackSlug);
 
@@ -68,7 +75,8 @@ export async function submitExitSurvey(
       track_slug: trackSlug,
       week_number: weekNumber,
       session_number: sessionNumber,
-      understanding: rating,
+      application: rating,
+      blocker: reason,
       unclear_text: cleanText(unclear, MAX_UNCLEAR_LENGTH),
       updated_at: new Date().toISOString(),
     },
@@ -125,7 +133,7 @@ export async function getMyExitSurveys(
       .maybeSingle(),
     svc
       .from("session_exit_surveys")
-      .select("session_number, understanding, unclear_text, hours_text")
+      .select("session_number, understanding, application, blocker, unclear_text, hours_text")
       .eq("student_id", ctx.userId)
       .eq("track_slug", trackSlug)
       .eq("week_number", weekNumber),

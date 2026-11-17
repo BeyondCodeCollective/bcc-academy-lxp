@@ -1,5 +1,11 @@
-import type { ExitSurveyResult } from "@/lib/exit-survey-results";
-import { UNCLEAR_PROMPT, UNDERSTANDING_PROMPT } from "@/lib/exit-survey";
+import { ratingOf, type ExitSurveyResult, type SessionSummary } from "@/lib/exit-survey-results";
+import {
+  APPLICATION_PROMPT,
+  BLOCKER_OPTIONS,
+  BLOCKER_PROMPT,
+  UNCLEAR_PROMPT,
+  UNDERSTANDING_PROMPT,
+} from "@/lib/exit-survey";
 
 const SCALE = [5, 4, 3, 2, 1];
 
@@ -10,8 +16,7 @@ export function SessionReport({
   dateLabel,
   topic,
   rows,
-  average,
-  rated,
+  ratings,
   answered,
   enrolled,
 }: {
@@ -21,14 +26,17 @@ export function SessionReport({
   dateLabel: string | null;
   topic?: string;
   rows: ExitSurveyResult[];
-  average: number | null;
-  rated: number;
+  /** One per statement this session was rated under, current statement first. */
+  ratings: SessionSummary[];
   answered: number | null;
   enrolled: number | null;
 }) {
-  const counts = new Map<number, number>();
-  for (const r of rows) if (r.understanding !== null) counts.set(r.understanding, (counts.get(r.understanding) ?? 0) + 1);
-  const maxCount = Math.max(1, ...counts.values());
+  const blockerCounts = BLOCKER_OPTIONS.map((o) => ({
+    ...o,
+    n: rows.filter((r) => r.blocker === o.value).length,
+  }));
+  const blockerTotal = blockerCounts.reduce((sum, o) => sum + o.n, 0);
+  const blockerMax = Math.max(1, ...blockerCounts.map((o) => o.n));
   // Lowest ratings first: the struggles are what a debrief is for.
   const comments = rows.filter((r) => r.unclear_text?.trim());
   const answeredPct = answered !== null && enrolled ? Math.round((answered / enrolled) * 100) : null;
@@ -44,67 +52,109 @@ export function SessionReport({
         {meta && <p className="text-sm text-ink-faint">{meta}</p>}
       </header>
 
-      <div className="grid gap-8 px-5 py-6 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-12">
-        <div>
-          {average !== null ? (
-            <p className="font-display text-ink">
-              <span className="text-6xl font-bold leading-none tracking-[-0.03em] tabular-nums">
-                {average.toFixed(1)}
-              </span>
-              <span className="ml-1.5 text-lg font-medium text-ink-faint">/ 5</span>
-            </p>
-          ) : (
-            <p className="text-sm text-ink-soft">No ratings for this session.</p>
-          )}
-          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-ink-soft">
-            Average agreement with &ldquo;{UNDERSTANDING_PROMPT}&rdquo;
-          </p>
-
-          {answered !== null && enrolled !== null && enrolled > 0 && (
-            <div className="mt-6">
-              <p className="text-sm text-ink">
-                <span className="font-semibold tabular-nums">{answered}</span>
-                <span className="text-ink-soft"> of {enrolled} enrolled answered</span>
+      {(ratings.length > 0 ? ratings : [null]).map((summary, i) => {
+        const question = summary?.question ?? "application";
+        const counts = new Map<number, number>();
+        for (const r of rows) {
+          const v = r[question];
+          if (v !== null) counts.set(v, (counts.get(v) ?? 0) + 1);
+        }
+        const maxCount = Math.max(1, ...counts.values());
+        const rated = summary?.responses ?? 0;
+        return (
+          <div
+            key={question}
+            className={`grid gap-8 px-5 py-6 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-12 ${
+              i > 0 ? "border-t border-rule-soft" : ""
+            }`}
+          >
+            <div>
+              {summary?.average != null ? (
+                <p className="font-display text-ink">
+                  <span className="text-6xl font-bold leading-none tracking-[-0.03em] tabular-nums">
+                    {summary.average.toFixed(1)}
+                  </span>
+                  <span className="ml-1.5 text-lg font-medium text-ink-faint">/ 5</span>
+                </p>
+              ) : (
+                <p className="text-sm text-ink-soft">No ratings for this session.</p>
+              )}
+              <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-ink-soft">
+                Average agreement with &ldquo;{question === "application" ? APPLICATION_PROMPT : UNDERSTANDING_PROMPT}&rdquo;
+                {question === "understanding" && " (asked before Nov 19)"}
               </p>
-              <div
-                className="mt-2 h-1.5 w-full max-w-[16rem] overflow-hidden rounded-full bg-[#f0f0f2]"
-                role="img"
-                aria-label={`${answeredPct}% answered`}
-              >
-                <div className="h-full rounded-full bg-cobalt" style={{ width: `${answeredPct}%` }} />
-              </div>
-            </div>
-          )}
-        </div>
 
-        {rated > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-ink">
-              How {rated} {rated === 1 ? "person" : "people"} rated it
-            </h3>
-            <p className="mt-0.5 text-xs text-ink-faint">5 is strongly agree, 1 is strongly disagree</p>
-            <ul className="mt-4 space-y-3">
-              {SCALE.map((score) => {
-                const n = counts.get(score) ?? 0;
-                return (
-                  <li key={score} className="grid grid-cols-[1.25rem_minmax(0,1fr)_1.75rem] items-center gap-3">
-                    <span className="text-sm font-medium tabular-nums text-ink-soft">{score}</span>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-[#f0f0f2]">
-                        {n > 0 && (
-                          <div
-                            className="h-full rounded-full bg-cobalt"
-                            style={{ width: `${(n / maxCount) * 100}%`, opacity: 0.4 + (score / 5) * 0.6 }}
-                          />
-                        )}
-                    </div>
-                    <span className="text-right text-sm tabular-nums text-ink">{n}</span>
-                  </li>
-                );
-              })}
-            </ul>
+              {i === 0 && answered !== null && enrolled !== null && enrolled > 0 && (
+                <div className="mt-6">
+                  <p className="text-sm text-ink">
+                    <span className="font-semibold tabular-nums">{answered}</span>
+                    <span className="text-ink-soft"> of {enrolled} enrolled answered</span>
+                  </p>
+                  <div
+                    className="mt-2 h-1.5 w-full max-w-[16rem] overflow-hidden rounded-full bg-[#f0f0f2]"
+                    role="img"
+                    aria-label={`${answeredPct}% answered`}
+                  >
+                    <div className="h-full rounded-full bg-cobalt" style={{ width: `${answeredPct}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {rated > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-ink">
+                  How {rated} {rated === 1 ? "person" : "people"} rated it
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-faint">5 is strongly agree, 1 is strongly disagree</p>
+                <ul className="mt-4 space-y-3">
+                  {SCALE.map((score) => {
+                    const n = counts.get(score) ?? 0;
+                    return (
+                      <li key={score} className="grid grid-cols-[1.25rem_minmax(0,1fr)_1.75rem] items-center gap-3">
+                        <span className="text-sm font-medium tabular-nums text-ink-soft">{score}</span>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-[#f0f0f2]">
+                          {n > 0 && (
+                            <div
+                              className="h-full rounded-full bg-cobalt"
+                              style={{ width: `${(n / maxCount) * 100}%`, opacity: 0.4 + (score / 5) * 0.6 }}
+                            />
+                          )}
+                        </div>
+                        <span className="text-right text-sm tabular-nums text-ink">{n}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })}
+
+      {blockerTotal > 0 && (
+        <div className="border-t border-rule-soft px-5 py-6 sm:px-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h3 className="text-base font-semibold text-ink">{BLOCKER_PROMPT}</h3>
+            <p className="text-sm text-ink-faint">
+              {blockerTotal} {blockerTotal === 1 ? "answer" : "answers"}
+            </p>
+          </div>
+          <ul className="mt-4 max-w-2xl space-y-3">
+            {blockerCounts.map((o) => (
+              <li key={o.value} className="grid grid-cols-[minmax(0,13rem)_minmax(0,1fr)_1.75rem] items-center gap-3">
+                <span className="text-sm text-ink-soft">{o.label}</span>
+                <div className="h-2.5 overflow-hidden rounded-full bg-[#f0f0f2]">
+                  {o.n > 0 && (
+                    <div className="h-full rounded-full bg-cobalt" style={{ width: `${(o.n / blockerMax) * 100}%` }} />
+                  )}
+                </div>
+                <span className="text-right text-sm tabular-nums text-ink">{o.n}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="border-t border-rule-soft px-5 py-6 sm:px-6">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -121,9 +171,9 @@ export function SessionReport({
               <li key={i} className="flex gap-4 py-4 first:pt-1 last:pb-0">
                 <span
                   className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-paper-tint text-xs font-semibold tabular-nums text-ink-soft"
-                  aria-label={r.understanding !== null ? `Rated ${r.understanding} of 5` : "No rating"}
+                  aria-label={ratingOf(r) !== null ? `Rated ${ratingOf(r)} of 5` : "No rating"}
                 >
-                  {r.understanding ?? "–"}
+                  {ratingOf(r) ?? "–"}
                 </span>
                 <div className="min-w-0">
                   <p className="max-w-[68ch] whitespace-pre-line text-base leading-relaxed text-ink">

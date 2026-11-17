@@ -4,7 +4,13 @@ import { useState } from "react";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { submitExitSurvey } from "@/app/dashboard/track/exit-survey-actions";
 import { weekBtnPrimary, weekHeading, weekState, weekStateDone } from "@/components/week-page-ui";
-import { MAX_UNCLEAR_LENGTH, UNCLEAR_PROMPT, UNDERSTANDING_PROMPT } from "@/lib/exit-survey";
+import {
+  APPLICATION_PROMPT,
+  BLOCKER_OPTIONS,
+  BLOCKER_PROMPT,
+  MAX_UNCLEAR_LENGTH,
+  UNCLEAR_PROMPT,
+} from "@/lib/exit-survey";
 
 export function ExitSurveyForm({
   trackSlug,
@@ -12,7 +18,9 @@ export function ExitSurveyForm({
   sessionNumber,
   title,
   initialRating,
+  initialBlocker,
   initialUnclear,
+  initialSaved,
   variant = "card",
 }: {
   trackSlug: string;
@@ -21,15 +29,19 @@ export function ExitSurveyForm({
   /** Shown above the questions, e.g. "Session 2 exit survey". */
   title: string;
   initialRating: number | null;
+  initialBlocker: string | null;
   initialUnclear: string | null;
+  /** Already answered, including under the old rating statement. */
+  initialSaved: boolean;
   /** "plain" is the week page's Survey block: the title becomes the block
    *  heading, with "Sent" or "Not sent yet" beside it, and no card chrome. */
   variant?: "card" | "plain";
 }) {
   const [rating, setRating] = useState<number | null>(initialRating);
+  const [blocker, setBlocker] = useState<string | null>(initialBlocker);
   const [unclear, setUnclear] = useState(initialUnclear ?? "");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(initialRating !== null);
+  const [saved, setSaved] = useState(initialSaved);
   // True only after a save in this visit, so the confirmation is not shown on load.
   const [savedThisVisit, setSavedThisVisit] = useState(false);
   const [error, setError] = useState("");
@@ -40,10 +52,14 @@ export function ExitSurveyForm({
       setError("Pick a rating from 1 to 5.");
       return;
     }
+    if (blocker === null) {
+      setError("Pick what got in the way.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
-      await submitExitSurvey(trackSlug, weekNumber, sessionNumber, rating, unclear);
+      await submitExitSurvey(trackSlug, weekNumber, sessionNumber, rating, blocker, unclear);
       setSaved(true);
       setSavedThisVisit(true);
     } catch (e) {
@@ -56,7 +72,7 @@ export function ExitSurveyForm({
   const form = (
     <>
       <p id={labelId} className="mb-2.5 font-medium text-ink">
-        {UNDERSTANDING_PROMPT}
+        {APPLICATION_PROMPT}
       </p>
       {/* The end labels sit under the scale, at its width: beside five 48px
          buttons they ran off a phone screen. */}
@@ -86,6 +102,31 @@ export function ExitSurveyForm({
           <span>Strongly disagree</span>
           <span>Strongly agree</span>
         </div>
+      </div>
+
+      <p id={`${labelId}-blocker`} className="mb-2.5 mt-6 font-medium text-ink">
+        {BLOCKER_PROMPT}
+      </p>
+      <div role="radiogroup" aria-labelledby={`${labelId}-blocker`} className="flex flex-wrap gap-2">
+        {BLOCKER_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={blocker === o.value}
+            onClick={() => {
+              setBlocker(o.value);
+              setSaved(false);
+            }}
+            className={`min-h-12 rounded-lg border px-4 text-left font-medium transition-colors ${
+              blocker === o.value
+                ? "border-ink bg-ink text-white"
+                : "border-rule bg-surface-elevated text-ink hover:border-ink"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
 
       <label className="mb-2.5 mt-6 block font-medium text-ink" htmlFor={`${labelId}-unclear`}>
