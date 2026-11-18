@@ -2329,6 +2329,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   // Cohort 2 answers the SAME instrument under its own survey_type, so the two
   // cohorts stay comparable while their responses stay separable.
   "mass-sept-2026-pre": MASS_FALL_2026_PRE,
+  "mass-sept-2026-post": MASS_FALL_2026_POST,
   "field-ready-staff-pre": FIELD_READY_PRE_PAGES.flatMap((p) => p.questions),
   "field-ready-staff-post": FIELD_READY_POST_PAGES.flatMap((p) => p.questions),
   [CATALYST_LABS_POST_SURVEY_ID]: CATALYST_LABS_POST_PAGES.flatMap((p) => p.questions),

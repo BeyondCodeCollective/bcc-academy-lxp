@@ -12,3 +12,10 @@ describe("mass-fall-2026-post", () => {
     expect(PLATFORM_AUTH_SURVEYS["mass-fall-2026-post"]?.appliesToTracks).toEqual(["mass-fall-2026"]);
   });
 });
+
+describe("mass-sept-2026-post", () => {
+  it("reuses the cohort 1 instrument, scoped to cohort 2 only", () => {
+    expect(getSurveySchema("mass-sept-2026-post")).toBe(getSurveySchema("mass-fall-2026-post"));
+    expect(PLATFORM_AUTH_SURVEYS["mass-sept-2026-post"]?.appliesToTracks).toEqual(["mass-sept-2026"]);
+  });
+});

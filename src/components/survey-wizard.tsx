@@ -1891,7 +1891,7 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "mass-fall-2026-pre" || surveyId === "mass-sept-2026-pre") {
     return MASS_PRE_PAGES;
   }
-  if (surveyId === "mass-fall-2026-post") {
+  if (surveyId === "mass-fall-2026-post" || surveyId === "mass-sept-2026-post") {
     return MASS_POST_PAGES;
   }
   if (surveyId === "field-ready-staff-pre") return FIELD_READY_PRE_PAGES;
