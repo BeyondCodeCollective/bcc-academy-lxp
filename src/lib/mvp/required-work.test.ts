@@ -42,9 +42,9 @@ describe("required submissions with grace", () => {
     expect(evaluateMvpRequiredWork({ ...config, requiredAssignments: [] }, "learner", [], after)).toBe(true);
     expect(evaluateMvpRequiredWork(config, "learner", null, after)).toBeNull();
   });
-  it("requires every due assignment and honors program-specific grace", () => {
+  it("requires every due assignment under the approved 14-day grace", () => {
     const work = [record("2026-09-03T12:00:00Z")];
-    expect(evaluateMvpRequiredWork({ ...config, submissionGraceDays: 1 }, "learner", work, after)).toBe(false);
+    expect(evaluateMvpRequiredWork(config, "learner", work, after)).toBe(true);
     expect(evaluateMvpRequiredWork({ ...config, requiredAssignments: [...config.requiredAssignments!,
       { id: "two", label: "Second work", weekNumber: 2, dueAt: "2026-09-01T12:00:00Z" }],
     }, "learner", work, after)).toBe(false);

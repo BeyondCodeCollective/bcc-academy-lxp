@@ -5,6 +5,27 @@ import { LearnerCharts } from "./learner-charts";
 import { protectLearnerAttendance, protectLearnerMilestones } from "@/lib/mvp/learner-chart-data";
 
 describe("Learner chart release and rendering", () => {
+  it.each([1, 2, 3, 4])("rejects ready-marked unsafe cells and complements of %i on all display surfaces", n => {
+    const html = renderToStaticMarkup(createElement(LearnerCharts, {
+      attendance: { state: "ready", rows: [
+        { id: "secret-session", label: "PRIVATE session", eligible: 100, present: 100 - n, absent: n, unrecorded: 0 },
+        { id: "related-session", label: "RELATED session", eligible: 100, present: 50, absent: 50, unrecorded: 0 },
+      ] },
+      milestones: { state: "ready", rows: [
+        { id: "secret-week", label: "PRIVATE week", eligible: 100, submissions: 100 - n, reflections: 50, markedWatched: 50 },
+        { id: "related-week", label: "RELATED week", eligible: 100, submissions: 50, reflections: 50, markedWatched: 50 },
+      ] },
+    }));
+    expect(html.match(/Data withheld for privacy/g)).toHaveLength(2);
+    for (const hidden of ["PRIVATE", "RELATED", "secret-", "related-", "<table", "<button", "<title", "title=", "<circle", "<polyline"])
+      expect(html).not.toContain(hidden);
+  });
+  it("projects only approved fields before a safe dataset is serialized", () => {
+    const attendance = { id: "s", label: "Session", eligible: 10, present: 5, absent: 5, unrecorded: 0 };
+    const milestones = { id: "w", label: "Week", eligible: 10, submissions: 5, reflections: 0, markedWatched: 10 };
+    expect(protectLearnerAttendance([{ ...attendance, ...{ rawCount: 1, tooltip: "PRIVATE" } }])).toEqual({ state: "ready", rows: [attendance] });
+    expect(protectLearnerMilestones([{ ...milestones, ...{ learnerIds: ["PRIVATE"], rawCount: 1 } }])).toEqual({ state: "ready", rows: [milestones] });
+  });
   it("renders both empty frontend panels without sample counts or selections", () => {
     const html = renderToStaticMarkup(createElement(LearnerCharts));
     expect(html).toContain("Attendance by session");

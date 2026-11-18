@@ -10,6 +10,15 @@ const cohort = (work: readonly MvpRequiredAssignment[] | null = [assignment]): M
 });
 
 describe("MVP active configuration", () => {
+  it.each([0, 1, 7, 13, 15, 19])("rejects an unapproved %i-day grace override", submissionGraceDays => {
+    const config = cohort();
+    if (config.kind !== "cohort") throw new Error("Expected cohort fixture");
+    expect(() => validateMvpActiveConfigs([{ ...config, submissionGraceDays }])).toThrow("14-day");
+  });
+  it("uses 14 days for every configured offering without a program-length exception", () => {
+    expect(MVP_ACTIVE_DEFAULTS.submissionGraceDays).toBe(14);
+    expect(() => validateMvpActiveConfigs([cohort(), { ...cohort(), courseSlug: "short-course" }])).not.toThrow();
+  });
   it("does not auto-configure a real offering", () => {
     expect(getMvpOfferingActiveConfig("catalyst", "example-course")).toBeNull();
   });

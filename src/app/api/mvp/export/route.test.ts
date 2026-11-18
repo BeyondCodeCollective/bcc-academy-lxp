@@ -20,6 +20,26 @@ beforeEach(() => {
   mocks.pdf.mockResolvedValue(Buffer.from("%PDF-test"));
 });
 describe("MVP export endpoint", () => {
+  it.each(["csv", "pdf"])("rejects identifiable %s export requests before loading or rendering", async format => {
+    const aggregate = { ...body, format };
+    for (const value of [
+      { ...aggregate, learnerIds: ["PRIVATE learner"] },
+      { ...aggregate, directory: [{ email: "PRIVATE email" }] },
+      { ...aggregate, evidence: { notes: "PRIVATE notes" } },
+      { ...aggregate, view: "learners" },
+      { ...aggregate, filters: { learnerId: "PRIVATE learner" } },
+      ...["learnerId", "email", "firstName", "attendanceSessions", "weeklyMilestones", "fileUrl"].map(key =>
+        ({ ...aggregate, selection: { metricKeys: [key] } })),
+    ]) {
+      const response = await POST(request(value));
+      expect(response.status).toBe(400);
+      expect(response.headers.has("Content-Disposition")).toBe(false);
+      expect(await response.text()).not.toContain("PRIVATE");
+    }
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.pdf).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
+  });
   it.each(["csv", "pdf"])("logs each successful %s export once using server identity and scope", async format => {
     const response = await POST(request({ ...body, format }));
     expect(response.status).toBe(200);
