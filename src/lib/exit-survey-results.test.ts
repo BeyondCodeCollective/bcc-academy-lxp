@@ -15,6 +15,8 @@ const row = (
   week_number: week,
   session_number: session,
   understanding,
+  application: null,
+  blocker: null,
   unclear_text,
   hours_text: null,
 });
@@ -23,9 +25,17 @@ describe("summarizeBySession", () => {
   it("averages ratings per session, ordered by week then session", () => {
     const out = summarizeBySession([row(2, 1, 5), row(1, 2, 3), row(1, 2, 4), row(1, 1, 2)]);
     expect(out).toEqual([
-      { week: 1, session: 1, responses: 1, average: 2 },
-      { week: 1, session: 2, responses: 2, average: 3.5 },
-      { week: 2, session: 1, responses: 1, average: 5 },
+      { week: 1, session: 1, question: "understanding", responses: 1, average: 2 },
+      { week: 1, session: 2, question: "understanding", responses: 2, average: 3.5 },
+      { week: 2, session: 1, question: "understanding", responses: 1, average: 5 },
+    ]);
+  });
+
+  it("never averages the old and new statements together", () => {
+    const out = summarizeBySession([row(1, 1, 2), { ...row(1, 1, null), application: 4 }, { ...row(1, 1, null), application: 5 }]);
+    expect(out).toEqual([
+      { week: 1, session: 1, question: "application", responses: 2, average: 4.5 },
+      { week: 1, session: 1, question: "understanding", responses: 1, average: 2 },
     ]);
   });
 
@@ -48,7 +58,7 @@ describe("sortUntraceable", () => {
   it("carries no per-person or time fields", () => {
     const [r] = sortUntraceable([row(1, 1, 3)]);
     expect(Object.keys(r).sort()).toEqual(
-      ["hours_text", "session_number", "unclear_text", "understanding", "week_number"],
+      ["application", "blocker", "hours_text", "session_number", "unclear_text", "understanding", "week_number"],
     );
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asksHours, cleanText, parseUnderstanding } from "./exit-survey";
+import { BLOCKER_OPTIONS, asksHours, cleanText, parseBlocker, parseUnderstanding } from "./exit-survey";
 
 describe("asksHours", () => {
   it("asks only on the first session of a week after week 1", () => {
@@ -30,5 +30,17 @@ describe("cleanText", () => {
     expect(cleanText("   ", 20)).toBeNull();
     expect(cleanText(5, 20)).toBeNull();
     expect(cleanText("x".repeat(21), 20)).toBeNull();
+  });
+});
+
+describe("parseBlocker", () => {
+  it("accepts every option key", () => {
+    for (const o of BLOCKER_OPTIONS) expect(parseBlocker(o.value)).toBe(o.value);
+  });
+
+  it("rejects labels, blanks and unknown keys", () => {
+    for (const v of ["Not enough time", "", null, undefined, "other", 1]) {
+      expect(parseBlocker(v)).toBeNull();
+    }
   });
 });

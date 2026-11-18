@@ -91,7 +91,7 @@ export default async function ExitSurveyResultsPage({
       ) : (
         sessionKeys.map(([week, session]) => {
           const sessionRows = rows.filter((r) => r.week_number === week && r.session_number === session);
-          const s = summary.find((x) => x.week === week && x.session === session);
+          const ratings = summary.filter((x) => x.week === week && x.session === session);
           const c = completion.find((x) => x.week === week && x.session === session);
           const unit = units[week];
           return (
@@ -103,8 +103,7 @@ export default async function ExitSurveyResultsPage({
               dateLabel={formatUnitDate(unit?.date)}
               topic={unit?.topic}
               rows={sessionRows}
-              average={s?.average ?? null}
-              rated={s?.responses ?? 0}
+              ratings={ratings}
               answered={c?.answered ?? null}
               enrolled={c?.enrolled ?? null}
             />

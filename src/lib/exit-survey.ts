@@ -2,7 +2,20 @@
 // imports so the client form, the server actions and the tests agree on one
 // definition.
 
+/** The 1 to 5 statement, stored in `application`. */
+export const APPLICATION_PROMPT = "I could use today's main idea on a real task this week.";
+/** The statement asked before 2026-11-19, stored in `understanding`. Results only. */
 export const UNDERSTANDING_PROMPT = "I could explain today's main idea to a colleague.";
+export const BLOCKER_PROMPT = "If you didn't do the prep or follow-up this week, what got in the way?";
+/** Stored keys and labels. The keys are pinned by a check constraint on `blocker`. */
+export const BLOCKER_OPTIONS = [
+  { value: "no_time", label: "Not enough time" },
+  { value: "unclear_task", label: "Wasn't clear what it was" },
+  { value: "unclear_why", label: "Didn't see why it mattered" },
+  { value: "tool_broken", label: "Couldn't get the tool to work" },
+  { value: "did_it", label: "I did it" },
+] as const;
+export type Blocker = (typeof BLOCKER_OPTIONS)[number]["value"];
 export const UNCLEAR_PROMPT = "What was unclear or went too fast?";
 export const HOURS_PROMPT =
   "About how many hours did you spend on the program since the last Monday session, not counting live sessions?";
@@ -23,6 +36,11 @@ export function asksHours(weekNumber: number, sessionNumber: number): boolean {
 export function parseUnderstanding(value: unknown): number | null {
   const n = typeof value === "string" ? Number(value) : value;
   return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+}
+
+/** One of the BLOCKER_OPTIONS keys, or null for anything else. */
+export function parseBlocker(value: unknown): Blocker | null {
+  return BLOCKER_OPTIONS.find((o) => o.value === value)?.value ?? null;
 }
 
 /** Trimmed text, null when blank, null when over the limit. */

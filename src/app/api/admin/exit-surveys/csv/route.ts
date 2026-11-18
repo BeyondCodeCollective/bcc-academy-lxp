@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin, allowedTrackSlugsForActor } from "@/app/dashboard/admin/actions-shared";
 import { toCsv, fileSlug } from "@/lib/csv";
 import { loadExitSurveyResults } from "@/lib/exit-survey-results";
-import { HOURS_PROMPT, UNCLEAR_PROMPT, UNDERSTANDING_PROMPT } from "@/lib/exit-survey";
+import {
+  APPLICATION_PROMPT,
+  BLOCKER_OPTIONS,
+  BLOCKER_PROMPT,
+  HOURS_PROMPT,
+  UNCLEAR_PROMPT,
+  UNDERSTANDING_PROMPT,
+} from "@/lib/exit-survey";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +32,15 @@ export async function GET(req: NextRequest) {
   const rows = await loadExitSurveyResults(actor.svc, track);
   const csv = toCsv(
     // Anonymous like the results page: no code, name or timestamp per row.
-    ["Week", "Session", UNDERSTANDING_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT],
+    ["Week", "Session", APPLICATION_PROMPT, BLOCKER_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT, UNDERSTANDING_PROMPT],
     rows.map((r) => [
       r.week_number,
       r.session_number,
-      r.understanding,
+      r.application,
+      BLOCKER_OPTIONS.find((o) => o.value === r.blocker)?.label ?? null,
       r.unclear_text,
       r.hours_text,
+      r.understanding,
     ]),
   );
   return new NextResponse(csv, {

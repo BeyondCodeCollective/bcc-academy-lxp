@@ -10,17 +10,30 @@ import type { createServiceClient } from "@/lib/supabase/server";
 export type ExitSurveyResult = {
   week_number: number;
   session_number: number;
+  /** Old statement ("explain to a colleague"), answered before 2026-11-19. */
   understanding: number | null;
+  /** Current statement ("use on a real task this week"). */
+  application: number | null;
+  blocker: string | null;
   unclear_text: string | null;
   hours_text: string | null;
 };
 
+/** The two 1 to 5 statements. Different questions, so never averaged together. */
+export type RatingKey = "application" | "understanding";
+
 export type SessionSummary = {
   week: number;
   session: number;
+  question: RatingKey;
   responses: number;
   average: number | null;
 };
+
+/** The row's rating, whichever statement it answered. */
+export function ratingOf(r: ExitSurveyResult): number | null {
+  return r.application ?? r.understanding;
+}
 
 /**
  * Answers for one course, grouped by week and session. Within a session they
@@ -33,7 +46,7 @@ export async function loadExitSurveyResults(
 ): Promise<ExitSurveyResult[]> {
   const { data } = await svc
     .from("session_exit_surveys")
-    .select("week_number, session_number, understanding, unclear_text, hours_text")
+    .select("week_number, session_number, understanding, application, blocker, unclear_text, hours_text")
     .eq("track_slug", trackSlug);
   return sortUntraceable((data ?? []) as ExitSurveyResult[]);
 }
@@ -43,27 +56,41 @@ export function sortUntraceable(rows: ExitSurveyResult[]): ExitSurveyResult[] {
     (a, b) =>
       a.week_number - b.week_number ||
       a.session_number - b.session_number ||
-      (a.understanding ?? 0) - (b.understanding ?? 0) ||
+      (ratingOf(a) ?? 0) - (ratingOf(b) ?? 0) ||
+      (a.blocker ?? "").localeCompare(b.blocker ?? "") ||
       (a.unclear_text ?? "").localeCompare(b.unclear_text ?? "") ||
       (a.hours_text ?? "").localeCompare(b.hours_text ?? ""),
   );
 }
 
-/** Average rating per session, counting only rows that carry a rating. */
+/**
+ * Average rating per session and statement, counting only rows that carry
+ * that rating. A session answered under both statements gets two entries,
+ * current statement first.
+ */
 export function summarizeBySession(rows: ExitSurveyResult[]): SessionSummary[] {
-  const groups = new Map<string, { week: number; session: number; ratings: number[] }>();
+  const groups = new Map<string, { week: number; session: number; question: RatingKey; ratings: number[] }>();
   for (const r of rows) {
-    if (r.understanding === null) continue;
-    const key = `${r.week_number}:${r.session_number}`;
-    const g = groups.get(key) ?? { week: r.week_number, session: r.session_number, ratings: [] };
-    g.ratings.push(r.understanding);
-    groups.set(key, g);
+    for (const question of ["application", "understanding"] as const) {
+      const v = r[question];
+      if (v === null) continue;
+      const key = `${r.week_number}:${r.session_number}:${question}`;
+      const g = groups.get(key) ?? { week: r.week_number, session: r.session_number, question, ratings: [] };
+      g.ratings.push(v);
+      groups.set(key, g);
+    }
   }
   return [...groups.values()]
-    .sort((a, b) => a.week - b.week || a.session - b.session)
+    .sort(
+      (a, b) =>
+        a.week - b.week ||
+        a.session - b.session ||
+        (a.question === b.question ? 0 : a.question === "application" ? -1 : 1),
+    )
     .map((g) => ({
       week: g.week,
       session: g.session,
+      question: g.question,
       responses: g.ratings.length,
       average: Math.round((g.ratings.reduce((s, n) => s + n, 0) / g.ratings.length) * 10) / 10,
     }));
@@ -113,7 +140,7 @@ export async function loadExitSurveyCompletion(
       .from("session_exit_surveys")
       .select("student_id, week_number, session_number")
       .eq("track_slug", trackSlug)
-      .not("understanding", "is", null),
+      .or("understanding.not.is.null,application.not.is.null"),
     svc
       .from("student_tracks")
       .select("student_id, students(is_test)")
