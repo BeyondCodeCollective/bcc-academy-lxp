@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { setPreviewTrackSlug, togglePreviewTrackSlug } from "@/app/dashboard/preview-actions";
-import { Eye, EyeOff, ChevronUp } from "lucide-react";
+import { Eye, EyeOff, ChevronUp, ArrowRight, GraduationCap } from "lucide-react";
 
 type TrackOption = { slug: string; name: string };
 type ProgramGroup = {
@@ -18,11 +20,14 @@ export function PreviewToggle({
   previewingSlugs,
   groups,
   enrolledSlugs = [],
+  learnerHref = null,
 }: {
   previewingSlugs: string[];
   groups: ProgramGroup[];
   /** Courses this staffer is actually enrolled in. */
   enrolledSlugs?: string[];
+  /** The course this staffer takes as a learner, when one is running. */
+  learnerHref?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -36,11 +41,17 @@ export function PreviewToggle({
   }, [open]);
 
   const active = previewingSlugs.length > 0;
+  const onAdmin = usePathname().startsWith("/dashboard/admin");
+  // A staffer on their own course's pages is not previewing: they are a
+  // learner here. Say so, and keep the way back to admin one click away.
+  const ownLearnerView = !active && !onAdmin && !!learnerHref;
   const firstName =
     groups
       .flatMap((g) => g.tracks)
       .find((t) => t.slug === previewingSlugs[0])?.name ?? previewingSlugs[0];
-  const buttonLabel = !active
+  const buttonLabel = ownLearnerView
+    ? "Your learner view"
+    : !active
     ? "Preview as student"
     : previewingSlugs.length === 1
       ? `Previewing: ${firstName}`
@@ -52,8 +63,18 @@ export function PreviewToggle({
     <div ref={ref} className="fixed bottom-4 right-4 z-40">
       {open && (
         <div className="absolute bottom-full right-0 mb-2 w-64 overflow-hidden panel shadow-xl">
+          {onAdmin && !active && learnerHref && (
+            <Link
+              href={learnerHref}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 border-b border-rule-soft px-3 py-2.5 text-xs font-semibold text-ink hover:bg-paper-tint-soft"
+            >
+              <GraduationCap size={13} />
+              Your learner view
+            </Link>
+          )}
           <p className="border-b border-rule-soft px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Preview as enrolled in
+            Preview as student, enrolled in
           </p>
           {/* Each click toggles that course in/out of the preview set — pick
              two or more (same program) to see the multi-course learner home. */}
@@ -116,23 +137,37 @@ export function PreviewToggle({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-colors ${
-          active
-            ? "bg-primary text-white hover:bg-primary-hover"
-            : "bg-ink text-white hover:bg-ink/90"
+      <div
+        className={`inline-flex items-stretch overflow-hidden rounded-full text-xs font-semibold text-white shadow-sm ${
+          active ? "bg-primary" : "bg-ink"
         }`}
-        title={buttonLabel}
       >
-        <Eye size={13} />
-        <span className="max-w-[160px] truncate">{buttonLabel}</span>
-        <ChevronUp
-          size={12}
-          className={`transition-transform ${open ? "" : "rotate-180"}`}
-        />
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`inline-flex items-center gap-2 py-2 pl-4 transition-colors ${ownLearnerView ? "pr-3" : "pr-4"} ${
+            active ? "hover:bg-primary-hover" : "hover:bg-ink/90"
+          }`}
+          title={buttonLabel}
+        >
+          {ownLearnerView ? <GraduationCap size={13} /> : <Eye size={13} />}
+          <span className="max-w-[160px] truncate">{buttonLabel}</span>
+          <ChevronUp
+            size={12}
+            className={`transition-transform ${open ? "" : "rotate-180"}`}
+          />
+        </button>
+        {ownLearnerView && (
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 border-l border-white/20 py-2 pl-3 pr-4 transition-colors hover:bg-ink/90"
+          >
+            Admin
+            <ArrowRight size={12} />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

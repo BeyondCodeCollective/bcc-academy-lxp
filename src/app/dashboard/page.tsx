@@ -32,7 +32,7 @@ import { HomeBand } from "@/components/home-band";
 import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/home-band";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
-import { isStaffEmail } from "@/lib/auth/admins";
+import { isMasterEmail, isStaffEmail } from "@/lib/auth/admins";
 import { administersProgram } from "@/lib/auth/program-access";
 import { runningLearnerCourse } from "@/lib/auth/learner-first";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -87,7 +87,9 @@ export default async function DashboardPage({
   // switch-program repoints the cookie and opens the course.
   // Field Ready (weeks open one at a time) learners of any role: coming back
   // to bccacademy.io opens their current week, not the dashboard home.
-  const current = ctx?.userId ? await runningLearnerCourse(ctx.userId) : null;
+  // Master accounts run the platform first: they land on the admin panel even
+  // while taking a course, and reach it from the preview pill.
+  const current = ctx?.userId && !isMasterEmail(email) ? await runningLearnerCourse(ctx.userId) : null;
   const learnerCourse =
     current &&
     (canAccessAdminPanel(role) || !!ctx?.student?.is_staff || setup === "1" || current.weekGated)
