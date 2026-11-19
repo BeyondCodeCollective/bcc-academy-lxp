@@ -1032,6 +1032,19 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   const enrolledSlugs = ((myEnrollments ?? []) as { track_slug: string }[]).map(
     (r) => r.track_slug,
   );
+  // A course this staffer takes as a learner. The pill names that view on
+  // learner pages and links back to it from the admin panel. Same href rule as
+  // NavShell's Home: a course homed elsewhere goes through switch-program.
+  let learnerHref: string | null = null;
+  if (canShowPreview && validPreviewSlugs.length === 0) {
+    const course = await runningLearnerCourse(ctx.userId);
+    if (course) {
+      const home = await resolveHomeProgramSlug(course.slug);
+      const slug = encodeURIComponent(course.slug);
+      learnerHref =
+        home && home !== program.slug ? `/dashboard/switch-program?track=${slug}` : `/dashboard/track/${slug}`;
+    }
+  }
 
   return (
     <>
@@ -1052,6 +1065,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
           previewingSlugs={validPreviewSlugs}
           groups={previewGroups}
           enrolledSlugs={enrolledSlugs}
+          learnerHref={learnerHref}
         />
       )}
     </>
