@@ -208,7 +208,7 @@ body {
   will-change: padding-left;
 }
 .nav-collapsible {
-  transition: opacity 120ms ease;
+  transition: opacity 120ms ease, visibility 120ms;
 }
 @media (min-width: 768px) {
   html[data-nav-collapsed="true"] .js-sidebar {
@@ -220,6 +220,9 @@ body {
   html[data-nav-collapsed="true"] .nav-collapsible {
     pointer-events: none;
     opacity: 0;
+    /* visibility hides it outright (and from assistive tech) so no clipped
+       fragment of a label can show at the rail's edge. */
+    visibility: hidden;
     width: 0;
     overflow: hidden;
     white-space: nowrap;
