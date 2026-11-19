@@ -27,7 +27,7 @@ export function CommitmentGroups() {
       <div className="flex flex-wrap items-center gap-3">
         <span className="shrink-0 rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">Layout preview</span>
         <NewCommitment onCreate={draft => {
-          setCommitments(current => [...current, { id: `commitment-${current.length + 1}`, metrics: ["metric-1"], draft }]);
+          setCommitments(current => [...current, { id: `commitment-${current.length + 1}`, metrics: draft.metrics.map((_, index) => `metric-${index + 1}`), draft }]);
           setNotice("Preview commitment added below. It will not be saved after a refresh.");
         }} />
       </div>
@@ -49,19 +49,19 @@ export function CommitmentGroups() {
             </ul>}
           </div>
           <div className="mt-5">
-            <h4 id={`${id}-metrics-heading`} className="text-sm font-semibold text-ink">Metric</h4>
+            <h4 id={`${id}-metrics-heading`} className="text-sm font-semibold text-ink">{metrics.length === 1 ? "Metric" : "Metrics"}</h4>
             <ul className="mt-3 space-y-3" aria-labelledby={`${id}-metrics-heading`}>
               {metrics.map((metricId, index) => <li key={metricId} className="min-w-0 rounded-lg border border-rule bg-white p-4">
                 <div className="flex min-w-0 flex-wrap items-start gap-x-6 gap-y-4">
                   <div className="min-w-0 grow basis-48">
                     <p className="text-xs text-ink-soft">Metric {index + 1}</p>
-                    <h5 className="mt-1 break-words text-sm font-semibold text-ink">{draft?.metric || "[] metric name"}</h5>
-                    <p className="mt-2 break-words text-xs text-ink-soft">Source: {draft ? draft.source || "Not specified" : "[] data source"}</p>
+                    <h5 className="mt-1 break-words text-sm font-semibold text-ink">{draft?.metrics[index]?.name || "[] metric name"}</h5>
+                    <p className="mt-2 break-words text-xs text-ink-soft">Source: {draft ? draft.metrics[index]?.source || "Not specified" : "[] data source"}</p>
                   </div>
                   <dl className="flex min-w-0 grow basis-72 flex-wrap gap-x-6 gap-y-4 text-sm">
                     <div className="min-w-0 grow basis-28">
                       <dt className="text-xs text-ink-soft">Actual / Target</dt>
-                      <dd className="mt-1 font-semibold tabular-nums text-ink"><span aria-label="Actual unavailable">—</span> / {draft?.target || <span aria-label="Target unavailable">—</span>}</dd>
+                      <dd className="mt-1 font-semibold tabular-nums text-ink"><span aria-label="Actual unavailable">—</span> / {draft?.metrics[index]?.target || <span aria-label="Target unavailable">—</span>}</dd>
                       <dd className="mt-1 text-xs text-ink-soft">Progress unavailable</dd>
                     </div>
                     <div className="min-w-0 grow basis-36">
