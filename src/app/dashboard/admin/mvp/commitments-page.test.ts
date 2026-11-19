@@ -25,7 +25,8 @@ describe("Commitments workspace", () => {
     expect(commitmentLink).toContain('aria-current="page"');
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).toContain(">Commitments</h1>");
-    expect(html).toContain("Commitment records are not available here yet.");
+    expect(html).toContain("No commitments yet.");
+    expect(html).not.toContain("[] partner");
     expect(html).not.toContain("PRIVATE");
     expect(html).not.toContain("Search and filters");
     expect(mocks.load).not.toHaveBeenCalled();
