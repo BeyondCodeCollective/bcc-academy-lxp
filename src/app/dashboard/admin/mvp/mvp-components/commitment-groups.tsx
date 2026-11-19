@@ -36,7 +36,15 @@ export function CommitmentGroups() {
     <ul className="mt-5 space-y-4" aria-label="Example commitments">
       {commitments.map(({ id, metrics, draft }) => <li key={id}>
         <article className="min-w-0 rounded-lg border border-rule bg-slate-50 p-4 sm:p-5" aria-labelledby={`${id}-heading`}>
-          <p className="break-words text-sm font-semibold text-ink">{draft?.partner || "[] partner"}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <p className="break-words text-sm font-semibold text-ink">{draft?.partner || "[] partner"}</p>
+            <NewCommitment editing initialDraft={draft} onCreate={updated => {
+              setCommitments(current => current.map(commitment => commitment.id === id
+                ? { ...commitment, draft: updated, metrics: updated.metrics.map((_, index) => `metric-${index + 1}`) }
+                : commitment));
+              setNotice("Preview commitment updated. Changes will not be saved after a refresh.");
+            }} />
+          </div>
           <h3 id={`${id}-heading`} className="mt-2 break-words text-lg font-semibold text-ink">{draft?.name || "commitment name"}</h3>
           <div className="mt-4">
             <p className="text-sm font-medium text-ink-soft">Linked Program</p>
