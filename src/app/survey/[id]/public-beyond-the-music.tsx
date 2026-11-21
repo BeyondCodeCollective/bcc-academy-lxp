@@ -3,7 +3,7 @@
 import { type SurveyQuestion } from "@/components/survey-fields";
 import { PublicSurveyWizard, type Page } from "./public-survey-wizard";
 
-// Beyond the Music (a Catalyst Lab): one-page session feedback, given at the
+// Field Ready Lab (a Catalyst Lab): one-page session feedback, given at the
 // end of the session. Public, no login; the contact page makes name and email
 // required.
 
