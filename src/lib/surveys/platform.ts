@@ -18,7 +18,7 @@ const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 const CYBERDECK_PRE_SURVEY_ID = "cyberdeck-pre";
 const CYBERDECK_POST_SURVEY_ID = "cyberdeck-post";
 const BGC_PARTICIPANT_2026_SURVEY_ID = "bgc-participant-2026";
-const BEYOND_THE_MUSIC_SURVEY_ID = "beyond-the-music";
+const FIELD_READY_LAB_SURVEY_ID = "field-ready-lab";
 
 /** A learner skips a program survey when EVERY course they're enrolled in opts
  *  out via the survey's skipForTracks. Empty enrollment never skips, so this
@@ -358,8 +358,8 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
   },
   // Field Ready Lab (a Catalyst Lab): end-of-session feedback, link shared in
   // the room. Public with required name + email so answers tie to attendees.
-  [BEYOND_THE_MUSIC_SURVEY_ID]: {
-    id: BEYOND_THE_MUSIC_SURVEY_ID,
+  [FIELD_READY_LAB_SURVEY_ID]: {
+    id: FIELD_READY_LAB_SURVEY_ID,
     title: "Field Ready Lab: Session Feedback",
     description: "1 min. Tell us how today's session went.",
     required: false,
