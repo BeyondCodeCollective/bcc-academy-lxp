@@ -18,6 +18,7 @@ const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 const CYBERDECK_PRE_SURVEY_ID = "cyberdeck-pre";
 const CYBERDECK_POST_SURVEY_ID = "cyberdeck-post";
 const BGC_PARTICIPANT_2026_SURVEY_ID = "bgc-participant-2026";
+const BEYOND_THE_MUSIC_SURVEY_ID = "beyond-the-music";
 
 /** A learner skips a program survey when EVERY course they're enrolled in opts
  *  out via the survey's skipForTracks. Empty enrollment never skips, so this
@@ -354,6 +355,15 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     appliesToPrograms: ["bgc"],
     organization: "Black Girls Code",
     anonymous: true,
+  },
+  // Beyond the Music (a Catalyst Lab): end-of-session feedback, link shared in
+  // the room. Public with required name + email so answers tie to attendees.
+  [BEYOND_THE_MUSIC_SURVEY_ID]: {
+    id: BEYOND_THE_MUSIC_SURVEY_ID,
+    title: "Beyond the Music: Session Feedback",
+    description: "1 min. Tell us how today's session went.",
+    required: false,
+    organization: "Beyond Code Collective",
   },
   // Collected via /apply/sbft (custom form, not /survey/<id>).
   [SBFT_APPLICATION_SURVEY_ID]: {
