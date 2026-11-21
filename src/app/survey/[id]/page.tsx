@@ -14,7 +14,7 @@ import { PublicImpactSurvey } from "./public-impact-survey";
 import { PublicCyberdeckPre } from "./public-cyberdeck-pre";
 import { PublicCyberdeckPost } from "./public-cyberdeck-post";
 import { PublicBgcParticipantSurvey } from "./public-bgc-participant-survey";
-import { PublicBeyondTheMusic } from "./public-beyond-the-music";
+import { PublicFieldReadyLab } from "./public-field-ready-lab";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "cyberdeck-pre": "Cyberdeck Series — Pre-Program Survey",
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
     "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
-    "beyond-the-music": "Field Ready Lab Session Feedback",
+    "field-ready-lab": "Field Ready Lab Session Feedback",
   };
   const title = titles[SURVEY_ALIASES[id] ?? id] ?? "Survey";
   return {
@@ -65,7 +65,7 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "cyberdeck-pre": PublicCyberdeckPre,
   "cyberdeck-post": PublicCyberdeckPost,
   "bgc-participant-2026": PublicBgcParticipantSurvey,
-  "beyond-the-music": PublicBeyondTheMusic,
+  "field-ready-lab": PublicFieldReadyLab,
 };
 
 // post-survey-spring-2026 is retired: it's no longer assigned to a program, so
@@ -88,8 +88,6 @@ const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
 // pre-survey every cohort takes; "Spring" in the link confused Fall staff.
 const SURVEY_ALIASES: Record<string, string> = {
   "ai-fundamentals": "pre-survey-spring-2026",
-  // Shared link for the renamed survey; answers stay filed under the original id.
-  "field-ready-lab": "beyond-the-music",
 };
 
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {

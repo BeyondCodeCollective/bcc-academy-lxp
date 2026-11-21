@@ -53,7 +53,7 @@ interface Props {
   programSlug: string;
 }
 
-export function PublicBeyondTheMusic({ surveyId, programSlug }: Props) {
+export function PublicFieldReadyLab({ surveyId, programSlug }: Props) {
   return (
     <PublicSurveyWizard
       surveyId={surveyId}
