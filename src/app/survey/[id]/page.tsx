@@ -88,6 +88,8 @@ const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
 // pre-survey every cohort takes; "Spring" in the link confused Fall staff.
 const SURVEY_ALIASES: Record<string, string> = {
   "ai-fundamentals": "pre-survey-spring-2026",
+  // Shared link for the renamed survey; answers stay filed under the original id.
+  "field-ready-lab": "beyond-the-music",
 };
 
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
