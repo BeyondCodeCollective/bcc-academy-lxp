@@ -356,11 +356,11 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     organization: "Black Girls Code",
     anonymous: true,
   },
-  // Beyond the Music (a Catalyst Lab): end-of-session feedback, link shared in
+  // Field Ready Lab (a Catalyst Lab): end-of-session feedback, link shared in
   // the room. Public with required name + email so answers tie to attendees.
   [BEYOND_THE_MUSIC_SURVEY_ID]: {
     id: BEYOND_THE_MUSIC_SURVEY_ID,
-    title: "Beyond the Music: Session Feedback",
+    title: "Field Ready Lab: Session Feedback",
     description: "1 min. Tell us how today's session went.",
     required: false,
     organization: "Beyond Code Collective",

@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "cyberdeck-pre": "Cyberdeck Series — Pre-Program Survey",
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
     "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
-    "beyond-the-music": "Beyond the Music Session Feedback",
+    "beyond-the-music": "Field Ready Lab Session Feedback",
   };
   const title = titles[SURVEY_ALIASES[id] ?? id] ?? "Survey";
   return {
