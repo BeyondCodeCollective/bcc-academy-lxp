@@ -51,12 +51,11 @@ export default async function MvpDashboardPage({ searchParams }: {
         return <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager showMvp={role === "super_admin"} />
             <WorkspaceLayout navigation={
-                <nav aria-label="MVP workspace" className="space-y-2">
-                    <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
-                    <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview<LinkPending /></Link>
-                    <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs<LinkPending /></Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners<LinkPending /></Link>
-                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments<LinkPending /></Link>
+                <nav aria-label="MVP workspace" className="flex w-max gap-1 rounded-xl border border-rule bg-white p-1">
+                    <Link href="/dashboard/admin/mvp" className="flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm text-ink-soft">Overview<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm text-ink-soft">Programs<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments<LinkPending /></Link>
                 </nav>
             }>
                 <header className="mb-6">
@@ -106,12 +105,11 @@ export default async function MvpDashboardPage({ searchParams }: {
         <main className={`mx-auto w-full px-6 py-8 ${isPrograms ? "max-w-7xl" : "max-w-[1600px]"}`}>
             <AdminTopTabs current="mvp" showInsights isManager showMvp={role === "super_admin"}/>
             <WorkspaceLayout navigation={
-                <nav aria-label="MVP workspace" className="space-y-2">
-                    <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
-                    <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview<LinkPending /></Link>
-                    <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs<LinkPending /></Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners<LinkPending /></Link>
-                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Commitments<LinkPending /></Link>
+                <nav aria-label="MVP workspace" className="flex w-max gap-1 rounded-xl border border-rule bg-white p-1">
+                    <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview<LinkPending /></Link>
+                    <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm text-ink-soft">Learners<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm text-ink-soft">Commitments<LinkPending /></Link>
                 </nav>
             }>
                     {isPrograms ? <><MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} /><MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} /></>
