@@ -36,7 +36,8 @@ export async function listAccessGrants(): Promise<AccessGrantRow[]> {
   const { svc } = await requireMaster();
   const { data, error } = await svc
     .from("staff_program_access")
-    .select("id, role, track_slug, students(id, first_name, last_name, email), programs(slug)")
+    // Two FKs point at students (student_id and granted_by), so name the one we mean.
+    .select("id, role, track_slug, students!staff_program_access_student_id_fkey(id, first_name, last_name, email), programs(slug)")
     .order("created_at", { ascending: true });
   if (error) {
     console.error("listAccessGrants error:", error.message);
