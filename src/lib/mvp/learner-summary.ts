@@ -72,7 +72,8 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
     const startDate = override?.start_date ?? base?.startDate;
     const totalWeeks = override?.total_weeks ?? base?.totalWeeks;
     const sessionsPerWeek = override?.sessions_per_week ?? base?.sessionsPerWeek;
-    const lastSessionDayOffset = override?.last_session_day_offset ?? base?.lastSessionDayOffset;
+    // Builder courses leave the offset unset; the platform reads that as 0 (programs/server.ts).
+    const lastSessionDayOffset = override?.last_session_day_offset ?? base?.lastSessionDayOffset ?? 0;
     const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && lastSessionDayOffset != null ? {
       slug: courseSlug, name: courseSlug, shortName: courseSlug, startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset,
       startDateTbd: override?.start_date ? false : base?.startDateTbd,

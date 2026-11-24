@@ -352,7 +352,8 @@ const prefetched = await mapLimit(candidateRows, MVP_DB_CONCURRENCY, async (row)
     const startDate = o?.start_date ?? base?.startDate;
     const totalWeeks = o?.total_weeks ?? base?.totalWeeks;
     const sessionsPerWeek = o?.sessions_per_week ?? base?.sessionsPerWeek;
-    const dayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset;
+    // Builder courses leave the offset unset; the platform reads that as 0 (programs/server.ts).
+  const dayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset ?? 0;
     const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && dayOffset != null ? {
       slug: row.courseSlug, name: row.courseName ?? row.courseSlug, shortName: row.courseName ?? row.courseSlug,
       startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset: dayOffset,
