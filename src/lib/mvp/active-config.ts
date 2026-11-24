@@ -23,7 +23,8 @@ export type MvpOfferingActiveConfig = {
     }
 );
 
-// Mica's approved starting values. These do not enroll any offering into a
+// Approved values: 14-day grace applies regardless of program duration.
+// These do not enroll any offering into a
 // rule automatically; each registry entry must explicitly select its policy.
 export const MVP_ACTIVE_DEFAULTS = {
   attendanceThreshold: 80,
@@ -50,8 +51,8 @@ export function validateMvpActiveConfigs(configs: readonly MvpOfferingActiveConf
     if (!Number.isFinite(config.attendanceThreshold) || config.attendanceThreshold <= 0 || config.attendanceThreshold > 100) {
       throw new Error("Invalid active attendance threshold.");
     }
-    if (!Number.isInteger(config.submissionGraceDays) || config.submissionGraceDays < 0) {
-      throw new Error("Submission grace days must be a nonnegative integer.");
+    if (config.submissionGraceDays !== MVP_ACTIVE_DEFAULTS.submissionGraceDays) {
+      throw new Error("Submission grace days must follow the approved 14-day policy.");
     }
     const ids = new Set<string>();
     const weeks = new Set<number>();

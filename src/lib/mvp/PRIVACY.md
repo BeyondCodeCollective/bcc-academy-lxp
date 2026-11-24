@@ -46,3 +46,47 @@ Automated tests cover audit invocation for both formats, denial/render failures,
 privacy rejections, and suppression through the report loader, CSV records,
 PDF document content, and rendered survey table. These use synthetic data;
 they do not verify live database audit persistence.
+
+## Connected Learners sensitive views
+
+Successful directory and evidence actions apply the same `logAdminAccess`
+best-effort policy with action `view`, using the freshly authenticated actor.
+Resources are `mvp/learners/directory` and `mvp/learners/evidence`.
+Each returned program receives one event counting distinct returned learners
+(the directory page, not the full matching population). Reopening evidence or
+repeating a successful request records another view. Empty results, unavailable
+evidence, and denied/failed requests do not record successful identifiable views.
+
+Audit metadata contains only `rowUnit: returned_learners`. No learner IDs,
+names, emails, search text, review notes, evidence timestamps, or file links are
+copied into audit records. Program scope comes from authorized returned
+enrollments, not unchecked request filters. Audit setup failures are non-blocking
+and emit a generic server message; asynchronous insert failures retain the
+shared helper's existing handling. Synthetic tests verify invocation and
+metadata, not live audit persistence or durable delivery.
+
+## Identifiable exports: not approved and out of scope
+
+The Learners MVP supports authorized on-screen directory and evidence access
+only. Do not add learner/contact CSVs, selected-learner downloads, evidence
+exports, or file-link exports without separate explicit approval. Permission to
+view records, select learners, or export aggregate reports is not approval to
+export identifiable records. The existing MVP CSV/PDF endpoint remains limited
+to its allowed aggregate report metrics and sections; it does not accept learner
+IDs, directory rows, evidence payloads, or individual-record export metrics.
+
+### Remaining completion sequence
+
+- The November 14 policy update applies universal 14-day submission grace and
+  excludes validated excused/ineligible sessions from attendance denominators.
+  Obtain approved offering requirements, deadlines, and checkpoints before
+  populating the registries. Keep Not evaluated wherever configuration or evidence
+  is insufficient; assessment flags and synthetic progress percentages stay deferred.
+- Chart-to-directory filtering is connected. Every selection is checked against
+  the complete authorized, base-filtered aggregates before pagination. Suppressed,
+  zero, unavailable, or unknown cells cannot be used to retrieve learners or evidence.
+  Evidence requests recheck membership and suppression using the same population.
+  Repeated-query disclosure protections remain limited to the existing minimum-five
+  and complementary-cell policy; this is not a differential privacy guarantee.
+- Identifiable exports remain excluded unless separately approved; they are not
+  a prerequisite for finishing the timestamp-and-attendance MVP.
