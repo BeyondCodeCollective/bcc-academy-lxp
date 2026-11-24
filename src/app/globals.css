@@ -14,6 +14,13 @@ body {
   overflow-x: clip;
 }
 
+/* Base text scale (100%). TextScaleProvider only writes the root font size
+   inline once a reader has saved a preference, so the default lives here. A
+   route can raise it with a `:root` rule (see src/lib/accessibility/scale.ts). */
+html {
+  font-size: 16px;
+}
+
 /* Global keyboard focus indicator.
    Admin controls were hand-rolling `focus:outline-none` with only a 1px grey
    border tint left as the indicator — 22 of them, with zero `focus-visible` in

@@ -4,6 +4,11 @@
 //
 // The scale is applied by setting the root <html> font-size. Tailwind v4
 // sizes default to rem, so text-sm, text-base, etc. all scale proportionally.
+//
+// Three layers, weakest first: globals.css sets the 100% base, a route may
+// ship its own default as a `:root` rule (the assessment preview opens at
+// 125%), and a saved preference is written inline by TextScaleProvider, which
+// beats both.
 
 export const TEXT_SCALE_COOKIE = "text-scale";
 

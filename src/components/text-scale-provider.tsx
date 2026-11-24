@@ -8,8 +8,10 @@ export function TextScaleProvider() {
     const match = document.cookie.match(
       new RegExp(`(?:^|;\\s*)${TEXT_SCALE_COOKIE}=([^;]+)`),
     );
-    const raw = match ? match[1] : null;
-    document.documentElement.style.fontSize = rootFontSizeFor(parseTextScale(raw));
+    // No saved preference: leave the root to the stylesheet, so a route that
+    // ships its own default is not overwritten back to 100%.
+    if (!match) return;
+    document.documentElement.style.fontSize = rootFontSizeFor(parseTextScale(match[1]));
   }, []);
 
   return null;
