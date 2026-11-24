@@ -8,6 +8,7 @@ import { scoreAssessment } from "@/lib/assessment/scoring";
 import { ResultsProfile } from "@/app/dashboard/assessment/results/results-profile";
 import { AssessmentA11yBar, SpeakButton, useReadAloud } from "@/components/assessment-a11y-bar";
 import type { RawResponses, ScoredOutput } from "@/lib/assessment/types";
+import type { TextScale } from "@/lib/accessibility/scale";
 
 type WizardStage = "m1a" | "m1b" | "m2" | "m3" | "transitioning" | "done";
 
@@ -44,7 +45,7 @@ const SECTION_META = {
   },
 } as const;
 
-export function AssessmentPreviewWizard() {
+export function AssessmentPreviewWizard({ defaultTextScale }: { defaultTextScale?: TextScale }) {
   const [responses, setResponses] = useState<RawResponses>({});
   const [stage, setStage] = useState<WizardStage>("m1a");
   const [transitionMsg, setTransitionMsg] = useState("");
@@ -135,7 +136,7 @@ export function AssessmentPreviewWizard() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 space-y-8">
-      <AssessmentA11yBar enabled={readAloud} onToggle={() => { setReadAloud(!readAloud); if (readAloud) stop(); }} />
+      <AssessmentA11yBar defaultTextScale={defaultTextScale} enabled={readAloud} onToggle={() => { setReadAloud(!readAloud); if (readAloud) stop(); }} />
       <div className="space-y-3">
         <div className="flex items-baseline justify-between">
           <p className="text-xs font-semibold uppercase tracking-widest text-accent">

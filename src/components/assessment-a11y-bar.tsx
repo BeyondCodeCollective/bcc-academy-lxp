@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 const subscribeNoop = () => () => {};
 import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
+import type { TextScale } from "@/lib/accessibility/scale";
 
 export function useReadAloud() {
   const [enabled, setEnabled] = useState(false);
@@ -33,9 +34,11 @@ export function useReadAloud() {
 export function AssessmentA11yBar({
   enabled,
   onToggle,
+  defaultTextScale,
 }: {
   enabled: boolean;
   onToggle: () => void;
+  defaultTextScale?: TextScale;
 }) {
   // Server snapshot is false and the client snapshot reads window, so the
   // hydrating render matches the HTML and the button appears on the next
@@ -48,7 +51,7 @@ export function AssessmentA11yBar({
 
   return (
     <div className="flex items-center justify-end gap-3 pb-4 border-b border-ink/10 mb-6">
-      <TextScaleToggle compact tone="light" />
+      <TextScaleToggle compact tone="light" defaultScale={defaultTextScale} />
       {supported && (
         <button
           type="button"

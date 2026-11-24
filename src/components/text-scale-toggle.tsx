@@ -19,17 +19,21 @@ import {
 export function TextScaleToggle({
   compact = false,
   tone = "light",
+  defaultScale = DEFAULT_TEXT_SCALE,
 }: {
   compact?: boolean;
   tone?: "light" | "dark";
+  /** The size this page opens at when the reader has not picked one. The page
+   *  sets the matching root font size itself; this only marks the button. */
+  defaultScale?: TextScale;
 }) {
-  const [scale, setScale] = useState<TextScale>(DEFAULT_TEXT_SCALE);
+  const [scale, setScale] = useState<TextScale>(defaultScale);
 
   useEffect(() => {
     const match = document.cookie.match(
       new RegExp(`(?:^|; )${TEXT_SCALE_COOKIE}=(\\d+)`),
     );
-    setScale(parseTextScale(match?.[1]));
+    if (match) setScale(parseTextScale(match[1]));
   }, []);
 
   function apply(next: TextScale) {
