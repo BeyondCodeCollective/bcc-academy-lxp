@@ -17,6 +17,7 @@ export function AdminTopTabs({
   showInsights,
   actions,
   isManager = true,
+  showMvp = false,
 }: {
   current: "courses" | "students" | "student-work" | "analytics" | "mvp";
   sub?: "attendance" | "insights" | "analytics" | "course-progress";
@@ -27,6 +28,9 @@ export function AdminTopTabs({
    *  own Students / Attendance / Progress / Work views, so the cross-course
    *  People, Student work, and Analytics tabs render for managers only. */
   isManager?: boolean;
+  /** Super admins only while the MVP dashboard is being built. The page
+   *  enforces its own access checks; this only controls the link. */
+  showMvp?: boolean;
 }) {
   const allTabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
@@ -47,9 +51,8 @@ export function AdminTopTabs({
       Icon: ChartLineUpIcon,
     },
   ] as const;
-  // Preserve the local MVP preview; production visibility is a separate rollout.
-  // The destination continues to enforce its server-side access checks.
-  const previewTabs = process.env.NODE_ENV === "development"
+  // Local dev keeps the MVP preview for everyone; production shows it to super admins.
+  const previewTabs = showMvp || process.env.NODE_ENV === "development"
     ? [...allTabs, { id: "mvp", label: "MVP Dashboard", href: "/dashboard/admin/mvp", Icon: ChartLineUpIcon }]
     : allTabs;
   const tabs = isManager ? previewTabs : previewTabs.filter((t) => t.id === "courses");

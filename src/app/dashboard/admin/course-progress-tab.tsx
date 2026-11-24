@@ -18,7 +18,7 @@ export function CourseProgressTab({
 }: CourseProgressTabProps) {
   return (
     <div className="space-y-6">
-      <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} />
+      <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} showMvp={userRole === "super_admin"} isManager={isManager} />
       {coursesData ? (
         <CoursesDashboard data={coursesData} />
       ) : (

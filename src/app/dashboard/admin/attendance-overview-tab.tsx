@@ -29,7 +29,7 @@ export function AttendanceOverviewTab({
   );
   return (
     <div className="space-y-6">
-      <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
+      <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} showMvp={userRole === "super_admin"} isManager={isManager} />
       <ProgramAttendanceOverview
         students={students.filter((s) => isLearner(s) || staffCohortIds.has(s.id))}
         // Self-paced (VOD) courses have no sessions to attend — their
