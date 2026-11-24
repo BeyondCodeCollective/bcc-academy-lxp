@@ -32,7 +32,6 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: "/dashboard/admin/announcements", label: "Announcements" },
       { href: "/dashboard/admin/landing", label: "Landing pages" },
       { href: "/dashboard/admin/media", label: "Photo library", superOnly: true },
-      { href: "/dashboard/admin/landing-signups", label: "Signups" },
       { href: "/dashboard/admin/resources", label: "Resources" },
     ],
   },
@@ -40,17 +39,18 @@ const GROUPS: { label: string; items: Item[] }[] = [
     label: "People",
     items: [
       { href: "/dashboard/admin/applications", label: "Applications" },
+      { href: "/dashboard/admin/landing-signups", label: "Signups" },
       { href: "/dashboard/admin/events", label: "Events" },
       { href: "/dashboard/admin/locations", label: "Participant locations", programs: ["catalyst", "atg", "beyond-code-centers"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
-      { href: "/dashboard/admin/instructor", label: "Instructor queue" },
+      { href: "/dashboard/admin/instructor", label: "AI tutor handoffs" },
       { href: "/dashboard/admin/access", label: "Program access", master: true },
     ],
   },
   {
     label: "Platform",
     items: [
-      { href: "/dashboard/admin/features", label: "Tools", superOnly: true },
+      { href: "/dashboard/admin/features", label: "Settings", superOnly: true },
       { href: "/dashboard/admin/organizations", label: "Organizations", master: true },
       { href: "/dashboard/admin/platform-analytics", label: "Platform analytics", master: true },
       { href: "/dashboard/admin/health", label: "Platform health", master: true },

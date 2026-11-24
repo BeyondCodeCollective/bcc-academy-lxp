@@ -3,6 +3,7 @@ import type { createServiceClient } from "@/lib/supabase/server";
 import type { loadLearnerOptions } from "./learner-options";
 import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { learnerCourseBatches } from "./learner-batches";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 export type LearnerQueryParams = Partial<Record<"programId" | "courseSlug" | "cohortId" | "search" | "status" | "page" | "pageSize" | "sortBy" | "sortOrder" | "chartSelection", string | string[]>>;
 export function parseLearnerQuery(params: LearnerQueryParams) {
@@ -36,15 +37,17 @@ export async function loadLearnerRoster(db: ReturnType<typeof createServiceClien
   const staffCohortSlugs = await getStaffCohortSlugs(db);
   const search = filters.search.toLocaleLowerCase("en-US");
   const selectedCourses = options.courses.filter(c => (!filters.programId || c.programId === filters.programId) && (!filters.courseSlug || c.slug === filters.courseSlug));
-  for (const batch of learnerCourseBatches(selectedCourses)) {
+  // Batches are read in parallel, then merged in batch order so enrollment order stays stable.
+  const pages = await mapLimit(learnerCourseBatches(selectedCourses), MVP_DB_CONCURRENCY, async batch => {
     const programId = batch[0].programId;
-    const bySlug = new Map(batch.map(course => [course.slug, course]));
     const batchHasStaffCohort = batch.some(course => staffCohortSlugs.has(course.slug));
+    const slugs = batch.map(course => course.slug);
+    const rows: { id: string; student_id: string; program_id: string; track_slug: string; students: unknown }[] = [];
     let cursor: string | null = null;
     while (true) {
       let query = db.from("student_tracks")
         .select("id, student_id, program_id, track_slug, students!inner(id, first_name, last_name, email, cohort_id, role, is_test, is_staff)")
-        .eq("program_id", programId).in("track_slug", [...bySlug.keys()])
+        .eq("program_id", programId).in("track_slug", slugs)
         .or("is_test.is.null,is_test.eq.false", { referencedTable: "students" })
         .order("id").limit(500);
       // A staff cohort's learners ARE staff: only filter role/staff in SQL when no such course is in the batch
@@ -55,7 +58,15 @@ export async function loadLearnerRoster(db: ReturnType<typeof createServiceClien
       const { data, error } = await query;
       if (error || !Array.isArray(data)) throw new Error("Unable to load the complete learner directory.");
       if (!data.length) break;
-      for (const row of data) {
+      rows.push(...data);
+      const next: string = data[data.length - 1].id;
+      if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner pagination did not advance.");
+      cursor = next;
+    }
+    return { programId, bySlug: new Map(batch.map(course => [course.slug, course])), rows };
+  });
+  for (const { programId, bySlug, rows } of pages) {
+      for (const row of rows) {
         const course = bySlug.get(row.track_slug);
         const embedded = row.students as unknown as Profile | Profile[] | null;
         const profile = Array.isArray(embedded) ? (embedded.length === 1 ? embedded[0] : null) : embedded;
@@ -77,10 +88,6 @@ export async function loadLearnerRoster(db: ReturnType<typeof createServiceClien
         });
         learners.set(person.id, target);
       }
-      const next: string = data[data.length - 1].id;
-      if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner pagination did not advance.");
-      cursor = next;
-    }
   }
   return [...learners.values()];
 }

@@ -5,6 +5,7 @@ import { calculateMvpSessionsRemaining } from "./sessions-remaining";
 import { buildMvpSchedule, type MvpScheduleInput } from "./schedule";
 import type { MvpSessionSlot } from "./milestones";
 import type { MvpSessionDelivery } from "./course-performance";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 type Learner = { id: string; enrollments: { programId: string; courseSlug: string }[] };
 type Db = ReturnType<typeof createServiceClient>;
@@ -25,6 +26,24 @@ async function loadOverride(db: Db, programId: string, courseSlug: string) {
   return first;
 }
 
+async function loadDelivery(db: Db, ownerId: string, courseSlug: string) {
+  const delivery: MvpSessionDelivery[] = [];
+  let cursor: string | null = null;
+  while (true) {
+    let query = db.from("session_content").select("id, week_number, status, status_2, status_3")
+      .eq("program_id", ownerId).eq("track", courseSlug).order("id").limit(500);
+    if (cursor) query = query.gt("id", cursor);
+    const { data, error } = await query;
+    if (error || !Array.isArray(data)) throw new Error("Unable to verify delivered learner sessions.");
+    if (!data.length) break;
+    const next: unknown = data[data.length - 1].id;
+    if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner session pagination did not advance.");
+    delivery.push(...data);
+    cursor = next;
+  }
+  return delivery;
+}
+
 // Internal only: matching must be the complete authorized and filtered roster,
 // before sorting/pagination. Count session opportunities once per program/course,
 // never once per learner. Current cohort links do not establish a cohort schedule.
@@ -32,8 +51,9 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
   const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; reason: string | null; sessionsHeld: number | null }>();
   const offerings = new Map(matching.flatMap(learner => learner.enrollments.map(enrollment =>
     [JSON.stringify([enrollment.programId, enrollment.courseSlug]), enrollment] as const)));
-  const deliveryByCourse = new Map<string, MvpSessionDelivery[]>();
-  for (const { programId, courseSlug } of offerings.values()) {
+  // Offerings resolve in parallel; a shared course's delivery is read once and awaited by each.
+  const deliveryByCourse = new Map<string, Promise<MvpSessionDelivery[]>>();
+  await mapLimit([...offerings.values()], MVP_DB_CONCURRENCY, async ({ programId, courseSlug }) => {
     // Match the dashboard's canonical owner/override resolution, including shared
     // courses and DB-only builder courses. Owner reads contain schedule metadata only.
     const home = getHomeProgramForTrack(courseSlug);
@@ -61,30 +81,18 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
       selfPaced: override?.self_paced ?? base?.selfPaced,
     } : null;
     const deliveryKey = JSON.stringify([ownerId, courseSlug]);
-    let delivery = deliveryByCourse.get(deliveryKey);
-    if (!delivery) {
-      delivery = [];
-      let cursor: string | null = null;
-      while (true) {
-        let query = db.from("session_content").select("id, week_number, status, status_2, status_3")
-          .eq("program_id", ownerId).eq("track", courseSlug).order("id").limit(500);
-        if (cursor) query = query.gt("id", cursor);
-        const { data, error } = await query;
-        if (error || !Array.isArray(data)) throw new Error("Unable to verify delivered learner sessions.");
-        if (!data.length) break;
-        const next: unknown = data[data.length - 1].id;
-        if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner session pagination did not advance.");
-        delivery.push(...data);
-        cursor = next;
-      }
-      deliveryByCourse.set(deliveryKey, delivery);
+    let pending = deliveryByCourse.get(deliveryKey);
+    if (!pending) {
+      pending = loadDelivery(db, ownerId, courseSlug);
+      deliveryByCourse.set(deliveryKey, pending);
     }
+    const delivery = await pending;
     const result = calculateMvpSessionsRemaining(track, delivery, asOf);
     const confirmed = delivery.flatMap(row => [row.status, row.status_2, row.status_3].flatMap((status, index) =>
       status === "completed" ? [{ weekNumber: row.week_number, sessionNumber: index + 1, label: `Session ${row.week_number}.${index + 1}` }] : []));
     const slots = result.delivered === null ? null : buildMvpSchedule({ track, asOf, verifiedStartSessions: null, confirmedHeldSessions: confirmed }).heldRequiredSessions;
     heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, reason: result.unavailableReason, sessionsHeld: result.delivered });
-  }
+  });
   return { heldByOffering, summary: summarizeLearnerSessionContext(matching, heldByOffering, asOf) };
 }
 

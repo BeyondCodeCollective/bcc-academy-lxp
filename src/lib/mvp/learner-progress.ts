@@ -1,6 +1,7 @@
 import "server-only";
 import { getMvpProgramParticipants } from "./detail-queries";
 import { calculateParticipantProgress, getParticipantProgressPolicy } from "./participant-progress";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 type Progress = { percent: number | null; completedSessions: number | null;
   applicableSessions: number | null; unavailableReason: string | null };
@@ -18,7 +19,7 @@ export async function loadLearnerProgress<T extends Learner>(
   const results = new Map<string, Map<string, Progress>>();
   const unavailable = new Map<string, Progress>();
   const asOf = new Date();
-  for (const [offeringKey, enrollment] of offerings) {
+  await mapLimit([...offerings], MVP_DB_CONCURRENCY, async ([offeringKey, enrollment]) => {
     const program = programs.find(row => row.id === enrollment.programId);
     if (!program) throw new Error("Learner progress scope is unavailable.");
     const policy = getParticipantProgressPolicy(program.slug, enrollment.courseSlug);
@@ -27,9 +28,9 @@ export async function loadLearnerProgress<T extends Learner>(
         programSlug: program.slug, courseSlug: enrollment.courseSlug, learnerId: "",
         asOf, policy: null, heldSessions: null, activities: [], attendance: () => null,
       }));
-      continue;
+      return;
     }
-    // One sequential request per configured offering, not one per learner.
+    // One request per configured offering, not one per learner.
     // Existing participant reads are batched and cursor-paginated internally.
     const data = await getMvpProgramParticipants({ programId: enrollment.programId, courseSlug: enrollment.courseSlug });
     const selected = new Set(directory.filter(learner => learner.enrollments.some(row => key(row) === offeringKey)).map(learner => learner.id));
@@ -44,7 +45,7 @@ export async function loadLearnerProgress<T extends Learner>(
     }
     if (byLearner.size !== selected.size) throw new Error("Selected learner progress is unavailable.");
     results.set(offeringKey, byLearner);
-  }
+  });
   return directory.map(learner => ({ ...learner, enrollments: learner.enrollments.map(enrollment => ({
     ...(enrollment as T["enrollments"][number]),
     caughtUp: unavailable.get(key(enrollment)) ?? results.get(key(enrollment))!.get(learner.id)!,

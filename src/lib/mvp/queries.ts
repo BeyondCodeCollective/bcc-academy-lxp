@@ -39,6 +39,7 @@ import { calculateMvpCompletion } from "./completion";
 import { calculateMvpCompletionSummary, type MvpOfferingCompletions } from "./completion-summary";
 import { resolveMvpLifecycle, countMvpUpcomingEnrollments } from "./lifecycle";
 import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-queries";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 // This data slice accepts program/course/profile-location/date filters. Unsupported
 // filters are rejected instead of labeling unfiltered results as filtered.
@@ -321,115 +322,127 @@ let undatedExcluded = 0;
 let statusUnknownExcluded = 0;
 const activityScopes = new Map<string, string[]>();
 
-for (const row of candidateRows) {
+// Schedule resolution and delivered sessions depend only on the row, so they
+// load concurrently up front. The fold below stays sequential because rows can
+// share membership-filtered course records.
+const prefetched = await mapLimit(candidateRows, MVP_DB_CONCURRENCY, async (row) => {
+  if (!row.courseSlug) return null;
+    // Resolve the canonical course owner's overrides, including shared courses.
+    // Missing required builder settings remain unknown instead of using defaults.
+    const home = getHomeProgramForTrack(row.courseSlug);
+    const base = home?.tracks.find((track) => track.slug === row.courseSlug);
+    let ownerId = row.programId;
+    if (home) {
+      const owner = await db.from("programs").select("id").eq("slug", home.slug).single();
+      if (owner.error || !owner.data) throw new Error("Unable to resolve course schedule ownership.");
+      ownerId = owner.data.id;
+    }
+    const override = await db.from("track_overrides")
+      .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
+      .eq("program_id", ownerId).eq("track_slug", row.courseSlug).maybeSingle();
+    if (override.error) throw new Error("Unable to resolve course schedule overrides.");
+    let o = override.data;
+    if (!o && ownerId !== row.programId) {
+      const fallback = await db.from("track_overrides")
+        .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
+        .eq("program_id", row.programId).eq("track_slug", row.courseSlug).maybeSingle();
+      if (fallback.error) throw new Error("Unable to resolve shared course overrides.");
+      o = fallback.data;
+    }
+    const startDate = o?.start_date ?? base?.startDate;
+    const totalWeeks = o?.total_weeks ?? base?.totalWeeks;
+    const sessionsPerWeek = o?.sessions_per_week ?? base?.sessionsPerWeek;
+    const dayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset;
+    const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && dayOffset != null ? {
+      slug: row.courseSlug, name: row.courseName ?? row.courseSlug, shortName: row.courseName ?? row.courseSlug,
+      startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset: dayOffset,
+      startDateTbd: o?.start_date ? false : base?.startDateTbd,
+      unitLabel: o?.unit_label ?? base?.unitLabel,
+      weekSummaries: o?.week_summaries ?? base?.weekSummaries ?? [],
+      selfPaced: o?.self_paced ?? base?.selfPaced,
+    } : null;
+
+  const overlap = matchesMvpDateWindow(resolveMvpLifecycle(track, asOf, false), dateWindow);
+  if (overlap !== true) return { track, overlap, delivery: [] as MvpSessionDelivery[] };
+    // Session content is paginated as well as attendance. No delivery metadata
+    // means no verified attendance denominator, rather than zero attendance.
+    const delivery: MvpSessionDelivery[] = [];
+    let deliveryCursor: string | null = null;
+    while (true) {
+      let request = db.from("session_content")
+        .select("id, week_number, status, status_2, status_3")
+        .eq("track", row.courseSlug).order("id").limit(500);
+      if (deliveryCursor) request = request.gt("id", deliveryCursor);
+      const result = await request;
+      if (result.error || !Array.isArray(result.data)) throw new Error("Unable to verify delivered course sessions.");
+      if (!result.data.length) break;
+      const nextCursor: string = result.data[result.data.length - 1].id;
+      if (!nextCursor || (deliveryCursor !== null && nextCursor <= deliveryCursor)) {
+        throw new Error("Delivered-session pagination did not advance.");
+      }
+      delivery.push(...result.data);
+      deliveryCursor = nextCursor;
+    }
+  return { track, overlap, delivery };
+});
+
+for (const [rowIndex, row] of candidateRows.entries()) {
   if (!row.courseSlug) {
     offeringStarts.push({ programId: row.programId, startedLearnerIds: null });
     offeringCompletions.push({ programId: row.programId, completedLearnerIds: null });
     continue;
   }
 
-  // Resolve the canonical course owner's overrides, including shared courses.
-  // Missing required builder settings remain unknown instead of using defaults.
-  const home = getHomeProgramForTrack(row.courseSlug);
-  const base = home?.tracks.find((track) => track.slug === row.courseSlug);
-  let ownerId = row.programId;
-  if (home) {
-    const owner = await db.from("programs").select("id").eq("slug", home.slug).single();
-    if (owner.error || !owner.data) throw new Error("Unable to resolve course schedule ownership.");
-    ownerId = owner.data.id;
-  }
-  const override = await db.from("track_overrides")
-    .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
-    .eq("program_id", ownerId).eq("track_slug", row.courseSlug).maybeSingle();
-  if (override.error) throw new Error("Unable to resolve course schedule overrides.");
-  let o = override.data;
-  if (!o && ownerId !== row.programId) {
-    const fallback = await db.from("track_overrides")
-      .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
-      .eq("program_id", row.programId).eq("track_slug", row.courseSlug).maybeSingle();
-    if (fallback.error) throw new Error("Unable to resolve shared course overrides.");
-    o = fallback.data;
-  }
-  const startDate = o?.start_date ?? base?.startDate;
-  const totalWeeks = o?.total_weeks ?? base?.totalWeeks;
-  const sessionsPerWeek = o?.sessions_per_week ?? base?.sessionsPerWeek;
-  const dayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset;
-  const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && dayOffset != null ? {
-    slug: row.courseSlug, name: row.courseName ?? row.courseSlug, shortName: row.courseName ?? row.courseSlug,
-    startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset: dayOffset,
-    startDateTbd: o?.start_date ? false : base?.startDateTbd,
-    unitLabel: o?.unit_label ?? base?.unitLabel,
-    weekSummaries: o?.week_summaries ?? base?.weekSummaries ?? [],
-    selfPaced: o?.self_paced ?? base?.selfPaced,
-  } : null;
 
   // Apply the approved overlap rule before loading any learner evidence so
   // every aggregate and location option describes the same selected offerings.
-  const overlap = matchesMvpDateWindow(resolveMvpLifecycle(track, asOf, false), dateWindow);
+  const { track, overlap, delivery } = prefetched[rowIndex]!;
   if (overlap !== true) {
     if (overlap === null) undatedExcluded++;
     continue;
   }
   selectedRows.push(row);
-  if (includeCohorts) row.linkedCohorts = await loadMvpLinkedCohorts(db, row.programId, row.courseSlug);
   const program = programs.find((item) => item.id === row.programId)!;
   if (includeParticipants && !canManageStudents(effectiveRoleInProgram(role, homeId, mvpGrants, program.id))) {
     throw new Error("Participant roster access is required.");
   }
-  let activitySlugs = activityScopes.get(program.id);
-  if (!activitySlugs) {
-    activitySlugs = await resolveScopeTrackSlugs({ ids: [program.id], slugs: [program.slug] });
-    activityScopes.set(program.id, activitySlugs);
-  }
-  if (!activitySlugs.includes(row.courseSlug)) throw new Error("Unable to establish the course activity scope.");
   const recordsKey = `${row.programId}:${row.courseSlug}`;
-  let records = courseRecords.get(recordsKey);
-  if (!records) {
-    records = await loadMvpCourseRecords(db, row.courseSlug, row.programId);
-    courseRecords.set(recordsKey, records);
-  }
+  const [linkedCohorts, activitySlugs, loadedRecords] = await Promise.all([
+    includeCohorts ? loadMvpLinkedCohorts(db, row.programId, row.courseSlug) : undefined,
+    activityScopes.get(program.id) ?? resolveScopeTrackSlugs({ ids: [program.id], slugs: [program.slug] }),
+    courseRecords.get(recordsKey) ?? loadMvpCourseRecords(db, row.courseSlug, row.programId),
+  ]);
+  if (includeCohorts) row.linkedCohorts = linkedCohorts!;
+  activityScopes.set(program.id, activitySlugs);
+  if (!activitySlugs.includes(row.courseSlug)) throw new Error("Unable to establish the course activity scope.");
+  let records = loadedRecords;
+  courseRecords.set(recordsKey, records);
   row.totalParticipants = records.learnerIds.length;
 
-  // Session content is paginated as well as attendance. No delivery metadata
-  // means no verified attendance denominator, rather than zero attendance.
-  const delivery: MvpSessionDelivery[] = [];
-  let deliveryCursor: string | null = null;
-  while (true) {
-    let request = db.from("session_content")
-      .select("id, week_number, status, status_2, status_3")
-      .eq("track", row.courseSlug).order("id").limit(500);
-    if (deliveryCursor) request = request.gt("id", deliveryCursor);
-    const result = await request;
-    if (result.error || !Array.isArray(result.data)) throw new Error("Unable to verify delivered course sessions.");
-    if (!result.data.length) break;
-    const nextCursor: string = result.data[result.data.length - 1].id;
-    if (!nextCursor || (deliveryCursor !== null && nextCursor <= deliveryCursor)) {
-      throw new Error("Delivered-session pagination did not advance.");
-    }
-    delivery.push(...result.data);
-    deliveryCursor = nextCursor;
-  }
   // Read submission metadata only for offerings with confirmed requirements.
   // Date filters select offerings, never truncate their submission history.
   const activeConfig = getMvpOfferingActiveConfig(program.slug, row.courseSlug);
   const activeRule = toMvpActiveRule(activeConfig);
   const requiredWork = new Map<string, boolean | null>();
-  let submissions: Awaited<ReturnType<typeof loadMvpSubmissions>> = [];
-  if (activeConfig?.kind === "cohort" && activeConfig.requiredAssignments !== null) {
-    submissions = activeConfig.requiredAssignments.length
-      ? await loadMvpSubmissions(db, row.courseSlug, records.learnerIds) : [];
+  const readsRequiredWork = activeConfig?.kind === "cohort" && activeConfig.requiredAssignments !== null;
+  const configuredSignals = getMvpSignalPolicy(program.slug, row.courseSlug);
+  // Video checkpoints are valid only for explicitly self-paced offerings.
+  const signalPolicy = configuredSignals && !track?.selfPaced ? { ...configuredSignals, progress: undefined } : configuredSignals;
+  // Submissions, attendance reviews and signal evidence are independent reads.
+  const [submissions, reviews, signalEvidence] = await Promise.all([
+    readsRequiredWork && activeConfig.requiredAssignments?.length
+      ? loadMvpSubmissions(db, row.courseSlug, records.learnerIds) : [] as Awaited<ReturnType<typeof loadMvpSubmissions>>,
+    loadMvpAttendanceReviews(db, row.programId, row.courseSlug, records.learnerIds),
+    loadMvpSignalEvidence(db, row.courseSlug, records.learnerIds, signalPolicy, track?.selfPaced === true),
+  ]);
+  if (readsRequiredWork) {
     for (const learnerId of records.learnerIds) {
       requiredWork.set(learnerId, evaluateMvpRequiredWork(activeConfig, learnerId, submissions, asOf));
     }
   }
   // Evaluate membership against the full scoped roster first, then recompute
   // every learner-derived result using only matching learners in this offering.
-  const verification = { programId: row.programId,
-    reviews: await loadMvpAttendanceReviews(db, row.programId, row.courseSlug, records.learnerIds) };
-  const configuredSignals = getMvpSignalPolicy(program.slug, row.courseSlug);
-  // Video checkpoints are valid only for explicitly self-paced offerings.
-  const signalPolicy = configuredSignals && !track?.selfPaced ? { ...configuredSignals, progress: undefined } : configuredSignals;
-  const signalEvidence = await loadMvpSignalEvidence(db, row.courseSlug, records.learnerIds, signalPolicy, track?.selfPaced === true);
+  const verification = { programId: row.programId, reviews };
   const additionalSignals = new Map(records.learnerIds.map(learnerId => [learnerId,
     buildMvpAdditionalSignals({ learnerId, courseSlug: row.courseSlug!, asOf, activeConfig, submissions,
       policy: signalPolicy, ...signalEvidence })]));
