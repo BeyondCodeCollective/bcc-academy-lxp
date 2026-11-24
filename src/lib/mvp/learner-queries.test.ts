@@ -88,6 +88,14 @@ describe("Learners loader access boundary", () => {
     tables.session_content = ["a", "b"].flatMap(track => [1, 2, 3, 4].map(week_number => ({ id: `${track}${week_number}`, track, program_id: "p1",
       week_number, status: track === "b" && week_number === 2 ? "upcoming" : "completed", status_2: "upcoming", status_3: "upcoming" })));
   };
+  it("reads an unset last-session offset as 0, like the rest of the platform, instead of an unknown schedule", async () => {
+    seedSummary();
+    const withZero = await getMvpLearnersData({ pageSize: "10" });
+    tables.track_overrides = tables.track_overrides.map(row => ({ ...row, last_session_day_offset: null }));
+    const withNull = await getMvpLearnersData({ pageSize: "10" });
+    expect({ ...withNull.summary, asOf: null }).toEqual({ ...withZero.summary, asOf: null });
+    expect(withNull.summary.sessionsHeldUnavailableReason).toBeNull();
+  });
   it("summarizes the full matching population before pagination without multiplying sessions by learners", async () => {
     seedSummary();
     const first = await getMvpLearnersData({ pageSize: "10" });

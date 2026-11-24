@@ -51,7 +51,8 @@ async function verifyHeldSession(actor: Awaited<ReturnType<typeof authorize>>, d
   const startDate = o?.start_date ?? base?.startDate;
   const totalWeeks = o?.total_weeks ?? base?.totalWeeks;
   const sessionsPerWeek = o?.sessions_per_week ?? base?.sessionsPerWeek;
-  const lastSessionDayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset;
+  // Builder courses leave the offset unset; the platform reads that as 0 (programs/server.ts).
+  const lastSessionDayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset ?? 0;
   const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && lastSessionDayOffset != null ? {
     slug: decision.courseSlug, name: decision.courseSlug, shortName: decision.courseSlug,
     startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset,
