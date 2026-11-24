@@ -13,6 +13,8 @@ import { WorkspaceLayout } from "./mvp-components/workspace-layout";
 import { LearnerFilterBar } from "./mvp-components/learner-filters";
 import { getMvpLearnerFilterOptions } from "@/lib/mvp/learner-queries";
 import { searchMvpLearners } from "./learner-actions";
+import { CommitmentSummary } from "./mvp-components/commitment-summary";
+import { CommitmentGroups } from "./mvp-components/commitment-groups";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -26,18 +28,21 @@ export default async function MvpDashboardPage({ searchParams }: {
 
     const role = context?.student?.role ?? "student";
 
-    // Access follows the shared MVP role policy, narrowed to super-admins while
-    // the dashboard is being built. Everyone else goes to the dashboard home.
-    if (!canViewMvp(role) || role !== "super_admin") {
+    const params = await searchParams;
+    const isCommitments = params.view === "commitments";
+    // Commitments supports admins and super-admins. Other MVP views retain
+    // their existing super-admin restriction during development.
+    const allowedRole = role === "super_admin" || (isCommitments && role === "admin");
+    if (!canViewMvp(role) || !allowedRole) {
         redirect("/dashboard");
     }
-    const params = await searchParams;
     // Options are authorized independently; other pages' URL filters are not
     // inherited. Learners owns its local search/filter state and server requests.
-    if (params.view === "learners") {
+    // The Commitments shell loads no records.
+    if (params.view === "learners" || isCommitments) {
         let options: Awaited<ReturnType<typeof getMvpLearnerFilterOptions>> | undefined;
         try {
-            options = await getMvpLearnerFilterOptions();
+            options = isCommitments ? undefined : await getMvpLearnerFilterOptions();
         } catch {
             // Do not serialize database errors or inaccessible option details.
             options = undefined;
@@ -49,16 +54,16 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
                     <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview</Link>
                     <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs</Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" aria-current="page" className="flex min-h-11 items-center rounded-lg bg-primary/10 px-3 text-sm font-semibold text-primary">Learners</Link>
-                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
+                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners</Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments</Link>
                 </nav>
             }>
                 <header className="mb-6">
-                    <h1 className="text-2xl font-semibold text-ink">Learners</h1>
-                    <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
+                    <h1 className="text-2xl font-semibold text-ink">{isCommitments ? "Commitments" : "Learners"}</h1>
+                    <p className="mt-2 text-sm text-ink-soft">{isCommitments ? "Track what we promised funders and partners, with the evidence behind each result." : "Find learners and explore recorded course activity across your accessible programs."}</p>
                 </header>
-                {!options && <p role="alert" className="mb-4 text-sm text-ink">Unable to load authorized learner filters. Check your access and <Link href="/dashboard/admin/mvp?view=learners" className="underline">reload Learners</Link>.</p>}
-                <LearnerFilterBar options={options} searchAction={options ? searchMvpLearners : undefined} />
+                {isCommitments ? <><CommitmentSummary /><CommitmentGroups /></> : <>{!options && <p role="alert" className="mb-4 text-sm text-ink">Unable to load authorized learner filters. Check your access and <Link href="/dashboard/admin/mvp?view=learners" className="underline">reload Learners</Link>.</p>}
+                <LearnerFilterBar options={options} searchAction={options ? searchMvpLearners : undefined} /></>}
             </WorkspaceLayout>
         </main>;
     }
@@ -101,7 +106,7 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview</Link>
                     <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs</Link>
                     <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners</Link>
-                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
+                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Commitments</Link>
                 </nav>
             }>
                     {isPrograms ? <><MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} /><MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} /></>
