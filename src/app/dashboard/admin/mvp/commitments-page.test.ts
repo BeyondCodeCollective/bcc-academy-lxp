@@ -21,7 +21,7 @@ describe("Commitments workspace", () => {
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({
       view: "commitments", programId: "PRIVATE-program", city: "PRIVATE-location",
     }) }));
-    expect(html).toContain('aria-label="Resize Impact workspace"');
+    expect(html).toContain('aria-label="MVP workspace"');
     const commitmentLink = html.match(/<a\b[^>]*>Commitments<\/a>/)?.[0];
     expect(commitmentLink).toContain('href="/dashboard/admin/mvp?view=commitments"');
     expect(commitmentLink).toContain('aria-current="page"');
