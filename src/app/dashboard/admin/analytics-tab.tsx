@@ -20,7 +20,7 @@ export function AnalyticsTab({
 }: AnalyticsTabProps) {
   return (
     <div className="space-y-6">
-      <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
+      <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} showMvp={userRole === "super_admin"} isManager={isManager} />
       {analyticsData ? (
         <AnalyticsDashboard data={analyticsData} course={analyticsCourse} />
       ) : (

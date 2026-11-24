@@ -48,7 +48,7 @@ export default async function MvpDashboardPage({ searchParams }: {
             options = undefined;
         }
         return <main className="mx-auto w-full max-w-7xl px-6 py-8">
-            <AdminTopTabs current="mvp" showInsights isManager />
+            <AdminTopTabs current="mvp" showInsights isManager showMvp={role === "super_admin"} />
             <WorkspaceLayout navigation={
                 <nav aria-label="MVP workspace" className="space-y-2">
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
@@ -75,7 +75,7 @@ export default async function MvpDashboardPage({ searchParams }: {
     } catch (error) {
         if (!(error instanceof Error) || error.message !== MVP_SUPPRESSION_REASON) throw error;
         return <main className="mx-auto max-w-7xl px-6 py-8">
-            <AdminTopTabs current="mvp" showInsights isManager />
+            <AdminTopTabs current="mvp" showInsights isManager showMvp={role === "super_admin"} />
             <section className="panel mt-6 p-6" role="status">
                 <h1 className="text-xl font-semibold">Results withheld for privacy</h1>
                 <p className="my-3">{MVP_SUPPRESSION_REASON} Clear the location filter to broaden the selection.</p>
@@ -99,7 +99,7 @@ export default async function MvpDashboardPage({ searchParams }: {
         : startDate ? `From ${startDate}` : endDate ? `Through ${endDate}` : "All available history";
     return (
         <main className={`mx-auto w-full px-6 py-8 ${isPrograms ? "max-w-7xl" : "max-w-[1600px]"}`}>
-            <AdminTopTabs current="mvp" showInsights isManager/>
+            <AdminTopTabs current="mvp" showInsights isManager showMvp={role === "super_admin"}/>
             <WorkspaceLayout navigation={
                 <nav aria-label="MVP workspace" className="space-y-2">
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>

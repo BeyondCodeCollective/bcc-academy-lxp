@@ -713,7 +713,7 @@ export function AdminTabs({
       {/* People — compact cross-track roster */}
       {tab === "students" && (
         <div className="space-y-6">
-        <AdminTopTabs current="students" showInsights={canViewInsights(userRole)} isManager={isManager} />
+        <AdminTopTabs current="students" showInsights={canViewInsights(userRole)} showMvp={userRole === "super_admin"} isManager={isManager} />
         <PeopleTab
           students={students}
           cohorts={cohorts}
@@ -741,7 +741,7 @@ export function AdminTabs({
       {/* Standalone Student Work (from sidebar, all tracks) */}
       {tab === "student-work" && (
         <div className="space-y-6">
-          <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} showMvp={userRole === "super_admin"} isManager={isManager} />
           <StudentWorkTab tracks={tracks} programSlug={programSlug} />
         </div>
       )}

@@ -89,6 +89,7 @@ export function HomeTab({
         showInsights={canViewInsights(userRole)}
         actions={isManager && <ManageMenu isMaster={isMaster} isSuper={canSwitchPrograms(userRole)} programSlug={programSlug} />}
         isManager={isManager}
+        showMvp={userRole === "super_admin"}
       />
 
       {(() => {
