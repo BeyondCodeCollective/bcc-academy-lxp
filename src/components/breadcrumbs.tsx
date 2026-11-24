@@ -25,7 +25,8 @@ const ADMIN_SECTION_LABELS: Record<string, string> = {
   landing: "Landing pages",
   invites: "Invites",
   allowlist: "Allowlist",
-  features: "Features",
+  features: "Settings",
+  instructor: "AI tutor handoffs",
   assessments: "Assessments",
   surveys: "Surveys",
   insights: "Survey Insights",
@@ -71,6 +72,10 @@ export function buildTrail(
     // BackLink to its owning course.
     if (section === "surveys" && rest.length > 2) return [];
     if (section === "exams") return [];
+    // The MVP dashboard carries the admin top tabs, which already lead back to
+    // the admin home. A lone "Admin" crumb above them, aligned to a narrower
+    // column than this wide page, read as a stray label.
+    if (section === "mvp") return [];
     const sectionHref = `/dashboard/admin/${section}`;
     const sectionLabel = ADMIN_SECTION_LABELS[section] ?? humanize(section);
     if (rest.length === 2) return [...out, { label: sectionLabel }];

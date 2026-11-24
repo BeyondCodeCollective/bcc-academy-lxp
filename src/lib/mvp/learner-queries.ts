@@ -131,10 +131,13 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const { db, programs, options, filters, requestedPage, sorting, requested, chartSelection } = await loadAuthorizedLearnerContext(params);
   const matching = await loadLearnerRoster(db, options, filters);
   const asOf = new Date();
-  const sessionContext = await loadLearnerSessionContext(db, matching, asOf);
   // The check-in count and status filters require complete scoped evidence.
   // Batch loaders must finish before counting; only the returned directory is paginated.
-  const activity = await loadLearnerActivity(db, matching, asOf);
+  // Schedule context and activity are independent reads, so they load together.
+  const [sessionContext, activity] = await Promise.all([
+    loadLearnerSessionContext(db, matching, asOf),
+    loadLearnerActivity(db, matching, asOf),
+  ]);
   const attendance = await loadLearnerAttendance(db, activity, sessionContext.heldByOffering, asOf);
   const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf);
   const baseFiltered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,

@@ -45,7 +45,7 @@ export default async function InstructorQueuePage() {
   if (tracks.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
-        <PageHeader eyebrow="Instructor" title="Instructor queue" subtitle="No course is in instructor mode yet." />
+        <PageHeader eyebrow="Instructor" title="AI tutor handoffs" subtitle="No course is in instructor mode yet." />
       </div>
     );
   }
@@ -155,7 +155,7 @@ export default async function InstructorQueuePage() {
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         eyebrow="Instructor"
-        title="Instructor queue"
+        title="AI tutor handoffs"
         subtitle="What the AI instructor handed to a human. Open flags are the office-hours agenda; the four checkpoints are gates only you can pass. Every sign-off here changes what the learner hears on their next turn."
       />
       <SessionSentences rows={sentences} enrolled={enrollments.length} />

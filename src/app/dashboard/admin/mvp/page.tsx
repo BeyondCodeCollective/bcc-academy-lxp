@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { MVP_SUPPRESSION_REASON } from "@/lib/mvp/privacy";
 import Link from "next/link";
+import { LinkPending } from "@/components/link-pending";
 import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
 import { AdminTopTabs } from "../admin-top-tabs";  
@@ -52,10 +53,10 @@ export default async function MvpDashboardPage({ searchParams }: {
             <WorkspaceLayout navigation={
                 <nav aria-label="MVP workspace" className="space-y-2">
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
-                    <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview</Link>
-                    <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs</Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners</Link>
-                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments</Link>
+                    <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=learners" aria-current={!isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Learners<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" aria-current={isCommitments ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isCommitments ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Commitments<LinkPending /></Link>
                 </nav>
             }>
                 <header className="mb-6">
@@ -68,6 +69,10 @@ export default async function MvpDashboardPage({ searchParams }: {
         </main>;
     }
     const isPrograms = params.view === "programs";
+    // The unfiltered overview snapshot does not depend on the filtered load, so
+    // start it now instead of after. A failure still surfaces where it is awaited.
+    const overviewPromise = isPrograms ? Promise.resolve(null) : refreshMvpOverview();
+    overviewPromise.catch(() => {});
     let loaded: Awaited<ReturnType<typeof getMvpDashboardData>>;
     try {
         loaded = await getMvpDashboardData(params, { includeDemographics: !isPrograms, includeLocations: !isPrograms, includeCohorts: isPrograms,
@@ -85,7 +90,7 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
     // The workspace needs aggregates, not learner-level check-in evidence.
     const data = { ...loaded, checkInEvaluations: undefined };
-    const overviewSnapshot = isPrograms ? null : await refreshMvpOverview();
+    const overviewSnapshot = await overviewPromise;
     const navigation = new URLSearchParams();
     for (const [key, value] of Object.entries(data.appliedFilters)) {
         if (value && value !== "all") navigation.set(key, value);
@@ -103,10 +108,10 @@ export default async function MvpDashboardPage({ searchParams }: {
             <WorkspaceLayout navigation={
                 <nav aria-label="MVP workspace" className="space-y-2">
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
-                    <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview</Link>
-                    <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs</Link>
-                    <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners</Link>
-                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Commitments</Link>
+                    <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview<LinkPending /></Link>
+                    <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners<LinkPending /></Link>
+                    <Link href="/dashboard/admin/mvp?view=commitments" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Commitments<LinkPending /></Link>
                 </nav>
             }>
                     {isPrograms ? <><MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} /><MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} /></>

@@ -1,6 +1,7 @@
 import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { participantLastActivity, type ParticipantActivity } from "./participant-progress";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 type Enrollment = { programId: string; courseSlug: string };
 type Learner = { id: string; enrollments: Enrollment[] };
@@ -31,14 +32,15 @@ export async function loadLearnerActivity<T extends Learner>(
     courses.set(key, offering);
   }
   const results = new Map<string, Map<string, Result>>();
-  for (const [key, offering] of courses) {
+  await mapLimit([...courses], MVP_DB_CONCURRENCY, async ([key, offering]) => {
     const { programId, courseSlug, learnerIds } = offering;
     const ids = [...learnerIds];
     const byLearner = new Map<string, Result>();
     for (let offset = 0; offset < ids.length; offset += 100) {
       const batch = ids.slice(offset, offset + 100);
-      const activities: ParticipantActivity[] = [];
-      for (const source of ["submissions", "reflections", "week_progress"] as const) {
+      // The three sources are independent reads; concatenating in a fixed order keeps results stable.
+      const bySource = await Promise.all((["submissions", "reflections", "week_progress"] as const).map(async source => {
+        const found: ParticipantActivity[] = [];
         const video = source === "week_progress";
         let cursor: string | null = null;
         while (true) {
@@ -62,13 +64,15 @@ export async function loadLearnerActivity<T extends Learner>(
             const week = record.week_number;
             // Preserve unmapped historical activity without inventing a week.
             const weekNumber = typeof week === "number" && Number.isSafeInteger(week) && week > 0 ? week : 0;
-            activities.push({ learnerId, courseSlug, kind: video ? "video" : source === "submissions" ? "submission" : "reflection", weekNumber, at });
+            found.push({ learnerId, courseSlug, kind: video ? "video" : source === "submissions" ? "submission" : "reflection", weekNumber, at });
           }
           const next: unknown = data[data.length - 1].id;
           if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner activity pagination did not advance.");
           cursor = next;
         }
-      }
+        return found;
+      }));
+      const activities = bySource.flat();
       for (const learnerId of batch) {
         const scoped = activities.filter(activity => activity.learnerId === learnerId);
         const weeks = [...new Set(scoped.map(activity => activity.weekNumber))].sort((a, b) =>
@@ -82,7 +86,7 @@ export async function loadLearnerActivity<T extends Learner>(
       }
     }
     results.set(key, byLearner);
-  }
+  });
   return directory.map(learner => ({ ...learner, enrollments: learner.enrollments.map(enrollment => ({
     ...(enrollment as T["enrollments"][number]), ...results.get(`${enrollment.programId}:${enrollment.courseSlug}`)!.get(learner.id)!,
   })) }));

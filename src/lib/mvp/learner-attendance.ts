@@ -3,6 +3,7 @@ import type { createServiceClient } from "@/lib/supabase/server";
 import { loadMvpAttendanceReviews } from "./attendance-review-queries";
 import { verifyMvpMissedSessions, type MvpAttendanceSessionState } from "./attendance-verification";
 import type { MvpAttendanceRecord, MvpSessionSlot } from "./milestones";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 type Learner = { id: string; enrollments: { programId: string; courseSlug: string }[] };
 type Result = { attendance: { present: number; eligibleHeld: number } | null; attendanceUnavailableReason: string | null;
@@ -21,7 +22,7 @@ export async function loadLearnerAttendance<T extends Learner>(
     offering.ids.add(learner.id); offerings.set(key, offering);
   }
   const results = new Map<string, Map<string, Result>>();
-  for (const [key, { programId, courseSlug, ids }] of offerings) {
+  await mapLimit([...offerings], MVP_DB_CONCURRENCY, async ([key, { programId, courseSlug, ids }]) => {
     const schedule = heldByOffering.get(key);
     const byLearner = new Map<string, Result>();
     results.set(key, byLearner);
@@ -29,12 +30,12 @@ export async function loadLearnerAttendance<T extends Learner>(
       for (const id of ids) byLearner.set(id, { attendance: schedule?.slots ? { present: 0, eligibleHeld: 0 } : null,
         attendanceSessions: schedule?.slots ? [] : null,
         attendanceUnavailableReason: schedule?.slots ? null : schedule?.reason ?? "Verified course schedule is unavailable." });
-      continue;
+      return;
     }
     const selected = [...ids];
     for (let offset = 0; offset < selected.length; offset += 100) {
       const batch = selected.slice(offset, offset + 100);
-      const reviews = await loadMvpAttendanceReviews(db, programId, courseSlug, batch);
+      const [reviews, attendance] = await Promise.all([loadMvpAttendanceReviews(db, programId, courseSlug, batch), (async () => {
       const attendance: MvpAttendanceRecord[] = [];
       let cursor: string | null = null;
       while (true) {
@@ -49,6 +50,8 @@ export async function loadLearnerAttendance<T extends Learner>(
         if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner attendance pagination did not advance.");
         attendance.push(...data as MvpAttendanceRecord[]); cursor = next;
       }
+      return attendance;
+      })()]);
       for (const learnerId of batch) {
         const verified = verifyMvpMissedSessions({ programId, courseSlug, learnerId, heldRequiredSessions: schedule.slots, reviews, attendance, asOf });
         byLearner.set(learnerId, { attendanceSessions: verified.sessionStates, attendance: verified.finalizedAttendance
@@ -56,7 +59,7 @@ export async function loadLearnerAttendance<T extends Learner>(
         attendanceUnavailableReason: verified.finalizedAttendance ? null : verified.unavailableReason ?? "Verified attendance is unavailable." });
       }
     }
-  }
+  });
   return directory.map(learner => ({ ...learner, enrollments: learner.enrollments.map(enrollment => ({
     ...(enrollment as T["enrollments"][number]),
     ...results.get(JSON.stringify([enrollment.programId, enrollment.courseSlug]))!.get(learner.id)!,

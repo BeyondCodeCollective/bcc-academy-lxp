@@ -3,6 +3,7 @@ import type { createServiceClient } from "@/lib/supabase/server";
 import { getEveryProgramConfig } from "@/lib/programs";
 import type { LearnerProgramScope } from "./learner-queries";
 import { learnerCourseBatches } from "./learner-batches";
+import { mapLimit, MVP_DB_CONCURRENCY } from "./concurrency";
 
 // Internal helper: scope must come from the authorized learner context, never request input.
 export async function loadLearnerOptions(db: ReturnType<typeof createServiceClient>, scope: LearnerProgramScope[]) {
@@ -12,7 +13,8 @@ export async function loadLearnerOptions(db: ReturnType<typeof createServiceClie
     cohorts: [] as { programId: string; courseSlug: string; id: string; name: string }[],
   };
   const configs = getEveryProgramConfig();
-  for (const program of scope) {
+  // Programs are independent; the final sorts make the merged order deterministic.
+  await mapLimit(scope, MVP_DB_CONCURRENCY, async program => {
     const courses = new Map<string, string>();
     const permitted = (slug: string) => program.courseSlugs === null || program.courseSlugs.includes(slug);
     for (const track of configs.find(config => config.slug === program.slug)?.tracks ?? []) {
@@ -37,13 +39,13 @@ export async function loadLearnerOptions(db: ReturnType<typeof createServiceClie
       if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Course pagination did not advance.");
       cursor = next;
     }
-    for (const [slug, name] of courses) {
+    const visible = await mapLimit([...courses], MVP_DB_CONCURRENCY, async ([slug, name]) => {
       // Existing application convention: hiding applies globally by track slug.
       const hidden = await db.from("hidden_courses").select("track_slug").eq("track_slug", slug).limit(1);
       if (hidden.error || !Array.isArray(hidden.data)) throw new Error("Unable to verify hidden courses.");
-      if (hidden.data.length) continue;
-      options.courses.push({ programId: program.id, slug, name });
-    }
+      return hidden.data.length ? null : { programId: program.id, slug, name };
+    });
+    for (const course of visible) if (course) options.courses.push(course);
     for (const batch of learnerCourseBatches(options.courses.filter(course => course.programId === program.id))) {
       const slugs = batch.map(course => course.slug);
       cursor = null;
@@ -62,7 +64,7 @@ export async function loadLearnerOptions(db: ReturnType<typeof createServiceClie
         cursor = next;
       }
     }
-  }
+  });
   options.programs.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   options.courses.sort((a, b) => a.name.localeCompare(b.name) || a.programId.localeCompare(b.programId) || a.slug.localeCompare(b.slug));
   options.cohorts.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));

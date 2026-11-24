@@ -96,7 +96,7 @@ export default async function FeaturesPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 space-y-12">
       <PageHeader
-        title="Tools"
+        title="Settings"
         subtitle="Links, settings, and features for managing the platform."
         actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
