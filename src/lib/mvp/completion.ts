@@ -1,5 +1,5 @@
 import type { MvpScheduleInput } from "./schedule";
-import { buildMvpSchedule } from "./schedule";
+import { resolveMvpHeldSessions } from "./held-sessions";
 import type { MvpAttendanceRecord } from "./milestones";
 import type { MvpSessionDelivery } from "./course-performance";
 import { calculateMvpPercentage } from "./metrics";
@@ -26,35 +26,16 @@ export function calculateMvpCompletion(
     completed: null, completionRate: null, completedLearnerIds: null,
     unavailableReason: reason,
   });
-  const validation = buildMvpSchedule({
-    track, asOf, verifiedStartSessions: null, confirmedHeldSessions: null,
-  });
-  if (!track || validation.scheduledRequiredSessions === null) {
-    return unavailable(validation.unavailableReason ?? "Schedule unavailable.");
+  const held = resolveMvpHeldSessions(track, delivery, asOf);
+  if (!track || held.heldRequiredSessions === null) {
+    return unavailable(held.unavailableReason ?? "Schedule unavailable.");
   }
-  const units = track.weekSummaries ?? [];
-  const teaching = units.filter((unit) => !unit.label);
-  if (!units.length || units.some((unit) => !unit.date) ||
-      teaching.length !== track.totalWeeks ||
-      new Set(units.map((unit) => unit.week)).size !== units.length) {
-    return unavailable("The full required course schedule has not been verified.");
-  }
-  const perUnit = track.unitLabel === "Session" ? 1 : track.sessionsPerWeek;
-  if (perUnit > 3) return unavailable("Delivery records support at most three sessions per unit.");
-  const required = new Set(teaching.flatMap((unit) =>
-    Array.from({ length: perUnit }, (_, index) => `${unit.week}:${index + 1}`),
-  ));
-  const arrived = new Set(validation.scheduledRequiredSessions.map((slot) =>
-    `${slot.weekNumber}:${slot.sessionNumber}`,
-  ));
-  const delivered = new Set(delivery.flatMap((unit) =>
-    [unit.status, unit.status_2, unit.status_3].flatMap((status, index) =>
-      status === "completed" ? [`${unit.week_number}:${index + 1}`] : [],
-    ),
-  ));
-  if ([...required].some((slot) => !arrived.has(slot) || !delivered.has(slot))) {
+  if (held.remaining !== 0) {
     return unavailable("Not all required sessions have occurred and been marked completed.");
   }
+  const required = new Set(held.heldRequiredSessions.map(slot =>
+    `${slot.weekNumber}:${slot.sessionNumber}`,
+  ));
 
   // Compare integer counts against 80% without rounding a learner up to
   // eligibility. Optional sessions and duplicate check-ins cannot add credit.

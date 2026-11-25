@@ -721,17 +721,17 @@ describe("Learners loader access boundary", () => {
   it("fails closed on duplicate schedule overrides and delivery read errors", async () => {
     seedSummary();
     tables.track_overrides.push({ ...tables.track_overrides[0], id: "zoverride" });
-    await expect(getMvpLearnersData()).rejects.toThrow("Ambiguous learner session schedule");
+    await expect(getMvpLearnersData()).rejects.toThrow("Ambiguous course session schedule");
     tables.track_overrides.pop();
     requests = []; failure = "session_content";
-    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered learner sessions");
+    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered course sessions");
   });
   it("fails closed on later delivery pages and non-advancing delivery cursors", async () => {
     seedSummary();
     failDeliveryAfter = 1;
-    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered learner sessions");
+    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered course sessions");
     requests = []; failDeliveryAfter = Infinity; ignoreDeliveryCursor = true;
-    await expect(getMvpLearnersData()).rejects.toThrow("Learner session pagination did not advance");
+    await expect(getMvpLearnersData()).rejects.toThrow("Course session pagination did not advance");
   });
   const seedActivityLearner = () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);

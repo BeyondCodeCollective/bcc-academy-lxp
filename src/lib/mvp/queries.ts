@@ -28,12 +28,12 @@ import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { allowedProgramIds, allowedTrackSlugs, effectiveRoleInProgram, type ProgramGrant } from "@/lib/auth/program-access";
 import { canViewMvp, canManageStudents } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getEveryProgramConfig, getHomeProgramForTrack } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import { resolveScopeTrackSlugs } from "@/lib/programs/scope";
 import { parseMvpLearnerFilter, selectMvpLearners } from "./learner-filter";
 import type { MvpDashboardData, MvpProgramRow } from "./types";
 import type { MvpAttendanceRecord } from "./milestones";
-import type { MvpScheduleInput } from "./schedule";
+import { createMvpScheduleLoader } from "./schedule-loader";
 import { calculateMvpCoursePerformance, type MvpSessionDelivery } from "./course-performance";
 import { calculateMvpStartSummary, type MvpOfferingStarts } from "./start-summary";
 import { calculateMvpCompletion } from "./completion";
@@ -326,65 +326,14 @@ const activityScopes = new Map<string, string[]>();
 // Schedule resolution and delivered sessions depend only on the row, so they
 // load concurrently up front. The fold below stays sequential because rows can
 // share membership-filtered course records.
+const loadSchedule = createMvpScheduleLoader(db);
 const prefetched = await mapLimit(candidateRows, MVP_DB_CONCURRENCY, async (row) => {
   if (!row.courseSlug) return null;
-    // Resolve the canonical course owner's overrides, including shared courses.
-    // Missing required builder settings remain unknown instead of using defaults.
-    const home = getHomeProgramForTrack(row.courseSlug);
-    const base = home?.tracks.find((track) => track.slug === row.courseSlug);
-    let ownerId = row.programId;
-    if (home) {
-      const owner = await db.from("programs").select("id").eq("slug", home.slug).single();
-      if (owner.error || !owner.data) throw new Error("Unable to resolve course schedule ownership.");
-      ownerId = owner.data.id;
-    }
-    const override = await db.from("track_overrides")
-      .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
-      .eq("program_id", ownerId).eq("track_slug", row.courseSlug).maybeSingle();
-    if (override.error) throw new Error("Unable to resolve course schedule overrides.");
-    let o = override.data;
-    if (!o && ownerId !== row.programId) {
-      const fallback = await db.from("track_overrides")
-        .select("start_date, total_weeks, sessions_per_week, unit_label, last_session_day_offset, week_summaries, self_paced")
-        .eq("program_id", row.programId).eq("track_slug", row.courseSlug).maybeSingle();
-      if (fallback.error) throw new Error("Unable to resolve shared course overrides.");
-      o = fallback.data;
-    }
-    const startDate = o?.start_date ?? base?.startDate;
-    const totalWeeks = o?.total_weeks ?? base?.totalWeeks;
-    const sessionsPerWeek = o?.sessions_per_week ?? base?.sessionsPerWeek;
-    // Builder courses leave the offset unset; the platform reads that as 0 (programs/server.ts).
-  const dayOffset = o?.last_session_day_offset ?? base?.lastSessionDayOffset ?? 0;
-    const track: MvpScheduleInput["track"] = startDate && totalWeeks != null && sessionsPerWeek != null && dayOffset != null ? {
-      slug: row.courseSlug, name: row.courseName ?? row.courseSlug, shortName: row.courseName ?? row.courseSlug,
-      startDate, totalWeeks, sessionsPerWeek, lastSessionDayOffset: dayOffset,
-      startDateTbd: o?.start_date ? false : base?.startDateTbd,
-      unitLabel: o?.unit_label ?? base?.unitLabel,
-      weekSummaries: o?.week_summaries ?? base?.weekSummaries ?? [],
-      selfPaced: o?.self_paced ?? base?.selfPaced,
-    } : null;
-
+  const schedule = await loadSchedule(row.programId, row.courseSlug);
+  const track = schedule.track;
   const overlap = matchesMvpDateWindow(resolveMvpLifecycle(track, asOf, false), dateWindow);
   if (overlap !== true) return { track, overlap, delivery: [] as MvpSessionDelivery[] };
-    // Session content is paginated as well as attendance. No delivery metadata
-    // means no verified attendance denominator, rather than zero attendance.
-    const delivery: MvpSessionDelivery[] = [];
-    let deliveryCursor: string | null = null;
-    while (true) {
-      let request = db.from("session_content")
-        .select("id, week_number, status, status_2, status_3")
-        .eq("track", row.courseSlug).order("id").limit(500);
-      if (deliveryCursor) request = request.gt("id", deliveryCursor);
-      const result = await request;
-      if (result.error || !Array.isArray(result.data)) throw new Error("Unable to verify delivered course sessions.");
-      if (!result.data.length) break;
-      const nextCursor: string = result.data[result.data.length - 1].id;
-      if (!nextCursor || (deliveryCursor !== null && nextCursor <= deliveryCursor)) {
-        throw new Error("Delivered-session pagination did not advance.");
-      }
-      delivery.push(...result.data);
-      deliveryCursor = nextCursor;
-    }
+  const delivery = await schedule.delivery();
   return { track, overlap, delivery };
 });
 

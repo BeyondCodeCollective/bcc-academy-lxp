@@ -1,3 +1,4 @@
+import { loadLearnerSessionContext } from "./learner-summary";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMvpDashboardData } from "./queries";
 import { getMvpProgramDetail, getMvpCheckInEvidence, getMvpProgramParticipants } from "./detail-queries";
@@ -401,7 +402,7 @@ describe("finalized attendance integration", () => {
       weekSummaries: [{ week: 1, date: "2026-09-01" }, { week: 2, date: "2026-09-08" }] };
     db.tables.student_tracks = [enrollment("e1", "u1")];
     db.tables.attendance = [];
-    db.tables.session_content.push({ id: "d2", track: "alpha", week_number: 2, status: "completed", status_2: "upcoming", status_3: "upcoming" });
+    db.tables.session_content.push({ id: "d2", track: "alpha", program_id: "p1", week_number: 2, status: "completed", status_2: "upcoming", status_3: "upcoming" });
     db.tables.mvp_attendance_reviews = [1, 2].map(week => ({ id: `r${week}`, revision: 1, program_id: "p1", track_slug: "alpha", student_id: "u1",
       week_number: week, session_number: 1, session_held_at: "2026-09-08T12:00:00Z", eligibility: "eligible",
       eligibility_basis: "Reviewed roster", outcome: "absent", recorded_by: "staff", recorded_at: "2026-09-09T12:00:00Z" }));
@@ -621,7 +622,6 @@ describe("learner status query integration", () => {
   });
   it("retains stale-stamped activity but excludes other courses and outside learners", async () => {
     db.tables.attendance[0].program_id = "stale";
-    db.tables.session_content[0].program_id = "stale";
     db.tables.attendance.push(attendance("outside", "u2", "beta"), attendance("foreign", "outsider"));
     const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "started" });
     expect(result.programs[0]).toMatchObject({ totalParticipants: 1, started: 1, attendanceRate: 100 });
@@ -919,7 +919,12 @@ describe("MVP query totals and filters", () => {
     const scoped = (table: string) => db.requests.filter((r) => r.table === table);
     for (const table of ["attendance", "session_content"]) {
       expect(scoped(table).length).toBeGreaterThan(0);
-      expect(scoped(table).every((r) => !r.filters.some(([, key]) => key === "program_id"))).toBe(true);
+      if (table === "attendance") {
+        expect(scoped(table).every(r => !r.filters.some(([, key]) => key === "program_id"))).toBe(true);
+      } else {
+        expect(scoped(table).every(r => r.filters.some(([op, key, value]) =>
+          op === "eq" && key === "program_id" && value === "p1"))).toBe(true);
+      }
       expect(scoped(table).every((r) => r.filters.some(([op, key, value]) => op === "eq" && key === "track" && value === "twin"))).toBe(true);
     }
     // Shared slugs identify the same course activity, not a separate cohort.
@@ -1086,5 +1091,79 @@ describe("MVP query pagination and failures", () => {
     db.serverCap = 1;
     db.fail = (r) => r.table === "student_tracks" && r.filters.some(([op]) => op === "gt");
     await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow("complete learner roster");
+  });
+});
+
+// Both dashboard views use getMvpDashboardData; Learners uses this same loader
+// through loadLearnerSessionContext. Compare real callers with the same scope.
+describe("shared schedule loading across pages", () => {
+  const scope = { programId: "p1", courseSlug: "alpha" };
+  const learnerContext = () => loadLearnerSessionContext(mocks.client(), [{ id: "u1", enrollments: [scope] }]);
+
+  it("does not borrow delivery from a different program when the owner has no records", async () => {
+    db.tables.session_content[0].program_id = "stale";
+    const dashboard = await getMvpDashboardData(scope);
+    const learners = await learnerContext();
+    expect(dashboard.programs[0].sessionsRemaining).toBeNull();
+    expect(learners.summary.sessionsHeld).toBeNull();
+    expect(dashboard.programs[0].sessionsRemainingReason).toBe(learners.summary.sessionsHeldUnavailableReason);
+  });
+
+  it.each([true, false])("uses the same owner and selected-program fallback: %s", async localFallback => {
+    mocks.owner.mockImplementation(() => ({ slug: "two", tracks: [track("alpha")] }));
+    db.tables.track_overrides = [{ id: "override", program_id: localFallback ? "p1" : "p2", track_slug: "alpha",
+      start_date: "2026-09-01", total_weeks: 1, sessions_per_week: 1, unit_label: "Session",
+      week_summaries: [{ week: 1, date: "2026-09-01" }] }];
+    db.tables.session_content.push({ ...db.tables.session_content[0], id: "foreign", program_id: "p2", status: "upcoming" });
+    const dashboard = await getMvpDashboardData(scope);
+    const learners = await learnerContext();
+    expect(dashboard.programs[0].sessionsRemaining).toBe(localFallback ? 0 : 1);
+    expect(learners.summary.sessionsHeld).toBe(localFallback ? 1 : 0);
+    expect(db.requests.filter(r => r.table === "session_content").every(r =>
+      r.filters.some(([op, key, value]) => op === "eq" && key === "program_id" && value === (localFallback ? "p1" : "p2")))).toBe(true);
+  });
+
+  it("rejects ambiguous overrides on both pages even with one-row server caps", async () => {
+    db.serverCap = 1;
+    db.tables.track_overrides = ["a", "b"].map(id => ({ id, program_id: "p1", track_slug: "alpha" }));
+    await expect(getMvpDashboardData(scope)).rejects.toThrow("Ambiguous course session schedule");
+    await expect(learnerContext()).rejects.toThrow("Ambiguous course session schedule");
+  });
+
+  it("keeps conflicting elapsed delivery unavailable on both pages", async () => {
+    db.tables.session_content.push({ ...db.tables.session_content[0], id: "conflict", status: "upcoming" });
+    const dashboard = await getMvpDashboardData(scope);
+    const learners = await learnerContext();
+    expect(dashboard.programs[0].sessionsRemaining).toBeNull();
+    expect(learners.summary.sessionsHeld).toBeNull();
+    expect(dashboard.programs[0].sessionsRemainingReason).toBe(learners.summary.sessionsHeldUnavailableReason);
+  });
+
+  it("does not load delivery for courses excluded by the dashboard date window", async () => {
+    await getMvpDashboardData({ ...scope, startDate: "2027-01-01", endDate: "2027-02-01" });
+    expect(db.requests.filter(r => r.table === "session_content")).toHaveLength(0);
+  });
+});
+
+
+describe("held-session parity between dashboard and Learners", () => {
+  it.each(["missing", "conflict", "duplicate", "upcoming", "incomplete", "future"])("uses identical held slots for %s evidence", async scenario => {
+    const scope = { programId: "p1", courseSlug: "alpha" };
+    if (scenario === "missing") db.tables.session_content = [];
+    if (scenario === "conflict" || scenario === "duplicate") db.tables.session_content.push({
+      ...db.tables.session_content[0], id: "duplicate", status: scenario === "conflict" ? "upcoming" : "completed",
+    });
+    if (scenario === "upcoming") db.tables.session_content[0].status = "upcoming";
+    if (scenario === "incomplete") configs[0].tracks[0].totalWeeks = 2;
+    if (scenario === "future") configs[0].tracks[0] = { ...track("alpha"), startDate: "2026-11-01",
+      weekSummaries: [{ week: 1, date: "2026-11-01" }] };
+    const dashboard = await getMvpDashboardData(scope);
+    const learners = await loadLearnerSessionContext(mocks.client(), [{ id: "u1", enrollments: [scope] }]);
+    const unknown = ["missing", "conflict", "incomplete"].includes(scenario);
+    const count = unknown ? null : scenario === "duplicate" ? 1 : 0;
+    expect(learners.summary.sessionsHeld).toBe(count);
+    expect(dashboard.programs[0].sessionsRemaining).toBe(unknown ? null : 1 - count!);
+    expect(dashboard.programs[0].attendanceRate).toBe(scenario === "duplicate" ? 50 : null);
+    expect(dashboard.programs[0].sessionsRemainingReason).toBe(learners.summary.sessionsHeldUnavailableReason);
   });
 });

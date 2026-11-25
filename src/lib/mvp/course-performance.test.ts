@@ -61,7 +61,7 @@ describe("course performance integration", () => {
     const records = [{ id: "check-in", student_id: "a", track: "course", week_number: 1, session_number: 1, checked_in_at: null }];
     expect(calculateMvpCoursePerformance(track, ["a"], records, delivered, asOf, "p:course", cohortRule,
       new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
-    expect(calculateMvpCoursePerformance(track, ["a"], [], [...delivered, ...delivered], asOf, "p:course", cohortRule,
+    expect(calculateMvpCoursePerformance(track, ["a"], [], [...delivered, { ...delivered[0], status: "upcoming" }], asOf, "p:course", cohortRule,
       new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
   });
   it("requires complete review coverage and does not publish a partial roster count", () => {

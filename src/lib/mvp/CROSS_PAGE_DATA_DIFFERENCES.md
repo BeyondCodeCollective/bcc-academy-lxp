@@ -5,6 +5,62 @@ This does not establish which historical production records are affected.
 No query, permission, policy, calculation or UI behavior is changed here.
 See ATTENDANCE_FIELD_DEFINITIONS.md for attendance definitions.
 
+## Implementation update: shared schedule loading
+
+The schedule-loading task is implemented locally in schedule-loader.ts.
+Overview and Programs (via queries.ts) and Learners (via learner-summary.ts)
+now use createMvpScheduleLoader. The comparison below records the earlier audit;
+its schedule-loader and delivery-selection discrepancies are superseded by this update.
+
+- Schedule precedence is shared: known canonical owner override, selected-program
+  fallback when the owner has no override, then existing legacy defaults.
+- DB-only courses remain scoped to their selected program. No global ownership
+  search or historical program reassignment is performed.
+- Delivery reads use the resolved owner program AND course, with complete cursor
+  pagination. A local override fallback also changes the delivery owner.
+- Duplicate overrides fail closed, including when the server caps pages at one row.
+- Delivery promises are cached per owner/course within one request only. Dashboard
+  date filtering occurs before delivery is fetched.
+- Existing caller authorization remains required; the shared helper is server-only
+  and reads schedule metadata, never learner identities or activity.
+
+This can make an Overview/Programs result unavailable when its only delivery rows
+belong to a different program. That is intentional: those rows cannot establish
+this owner's delivery without production ownership verification. No records are moved.
+
+Loading and held-session validation are now shared. Recorded/verified attendance
+definitions remain distinct. Historical check-in/activity matching,
+production migration checks, missing policies, and UI labels are separate tasks.
+Regression coverage compares both callers for owner fallback, foreign delivery,
+conflicting delivery, and duplicate overrides, plus date-window read avoidance.
+
+## Implementation update: shared held-session validation
+
+held-sessions.ts now supplies resolveMvpHeldSessions to course-performance.ts,
+learner-summary.ts, sessions-remaining.ts, and completion.ts. This supersedes the
+held-session-validation discrepancy in the original calculation audit below.
+
+- A complete dated required schedule is required. Existing Eastern calendar-date
+  rules determine elapsed units; this does not infer an exact session end time.
+- Only elapsed required slots consistently marked completed count as held.
+- Upcoming and in_progress are known undelivered states, including on past dates.
+- Missing, unsupported, or conflicting statuses for elapsed required slots make
+  the entire held-session result unavailable. Recorded attendance must not retain
+  a partial percentage while the same held-session context is unknown.
+- Matching duplicate statuses count once. Future and labeled optional slots do
+  not add held-session credit or invalidate elapsed-session evidence.
+- A known empty held list is distinct from unavailable. With no held sessions,
+  the held count can be zero while an attendance percentage has no denominator.
+- Completion also uses this validation and still requires every required session
+  to be held before applying the existing attendance-based completion threshold.
+
+Staff review eligibility/exclusions and raw attendance remain separate measures.
+No production data was changed. Production review-table availability, historical
+program assignments, and missing offering policies still require verification.
+Validation: 754 MVP tests and TypeScript passed, including cross-page scenarios
+for missing/conflicting/duplicate delivery, incomplete schedules, future sessions,
+known undelivered states, and Eastern date boundaries.
+
 ## Matching and data loading
 
 | Area | Overview / Programs | Learners | Assessment |
