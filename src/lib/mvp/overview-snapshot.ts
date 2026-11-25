@@ -10,6 +10,7 @@ export function buildMvpOverviewSnapshot(data: MvpDashboardData) {
     active: data.programs.filter(row => row.status === "active").length,
     upcoming: data.programs.filter(row => row.status === "starting_soon").length,
     unknown: data.programs.filter(row => row.status === "unknown").length,
+    incompleteReviewCourses: data.staffReview?.incompleteCourseCount ?? null,
     flaggedCourses: data.staffReview?.coursesWithVerifiedFlags ?? null,
   };
 }
