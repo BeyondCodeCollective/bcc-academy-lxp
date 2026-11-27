@@ -48,6 +48,7 @@ export type MvpFilterOptions = {
 // Organization totals distinguish unique learners from participation
 // across programs. Started and completed counts may overlap.
 export type MvpSummary = {
+  coverage?: ReturnType<typeof import("./kpi-coverage").buildKpiCoverage>;
   uniqueLearnersStarted: MvpCount;
   uniqueLearnersCompleted: MvpCount;
   programParticipationsStarted: MvpCount;

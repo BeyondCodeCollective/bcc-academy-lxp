@@ -1,4 +1,5 @@
 import "server-only";
+import { buildKpiCoverage } from "./kpi-coverage";
 import { protectMvpGeography, isSmallMvpCount, MVP_SUPPRESSION_REASON } from "./privacy";
 import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { loadMvpParticipants } from "./participant-queries";
@@ -559,6 +560,7 @@ for (const [rowIndex, row] of candidateRows.entries()) {
     },
     summary: {
       ...startSummary, ...completionSummary, upcomingEnrollments,
+      coverage: buildKpiCoverage(offeringStarts, offeringCompletions, selectedRows),
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
     ...(includeParticipants && { participants }),

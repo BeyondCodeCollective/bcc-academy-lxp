@@ -942,7 +942,14 @@ describe("MVP query totals and filters", () => {
     const result = await getMvpDashboardData({});
     expect(result.programs[0]).toMatchObject({ totalParticipants: 2, started: 1, completed: 1, attendanceRate: 50, completionRate: 50 });
     expect(result.summary).toEqual({ uniqueLearnersStarted: 1, uniqueLearnersCompleted: 1,
-      programParticipationsStarted: 2, programParticipationsCompleted: 2, upcomingEnrollments: 0 });
+      programParticipationsStarted: 2, programParticipationsCompleted: 2, upcomingEnrollments: 0,
+      coverage: {
+        uniqueLearnersStarted: { value: 1, evaluated: 2, total: 2 },
+        programParticipationsStarted: { value: 2, evaluated: 2, total: 2 },
+        uniqueLearnersCompleted: { value: 1, evaluated: 2, total: 2 },
+        programParticipationsCompleted: { value: 2, evaluated: 2, total: 2 },
+        upcomingEnrollments: { value: 0, evaluated: 2, total: 2 },
+      } });
   });
   it("applies program/course selection to rows, summaries and evidence", async () => {
     const result = await getMvpDashboardData({ programId: "p2", courseSlug: "beta" });
