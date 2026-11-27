@@ -22,3 +22,13 @@ it("returns only supplied scope and projects out sensitive fields", () => {
   expect(JSON.stringify(result)).not.toContain("private-learner");
   expect(buildKpiDataReview([]).courseCount).toBe(0);
 });
+
+it("clears resolved reasons individually and keeps shared courses distinct by program", () => {
+  const other = { ...row, id: "other:c", programId: "other", started: null };
+  const first = buildKpiDataReview([{ ...row, started: null, completed: null }, other]);
+  expect(first.courseCount).toBe(2);
+  const partial = buildKpiDataReview([{ ...row, completed: null }, other]);
+  expect(partial.courses.find(course => course.id === row.id)?.reasons.map(reason => reason.metric)).toEqual(["completed"]);
+  expect(buildKpiDataReview([row, other]).courses.map(course => course.id)).toEqual(["other:c"]);
+  expect(buildKpiDataReview([row, { ...other, started: 0 }]).courseCount).toBe(0);
+});

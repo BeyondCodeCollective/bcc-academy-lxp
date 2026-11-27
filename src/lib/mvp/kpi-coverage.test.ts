@@ -21,3 +21,17 @@ it("counts only supported upcoming enrollments and discloses unknown lifecycle",
     { status: "starting_soon", enrolledBeforeStart: null }]);
   expect(result.upcomingEnrollments).toEqual({ value: 41, evaluated: 2, total: 4 });
 });
+
+it("does not double-count existing learners when an unavailable course becomes evaluable", () => {
+  const first = { programId: "a", startedLearnerIds: ["x", "y", "x"] };
+  const before = [first, { programId: "a", startedLearnerIds: null }, { programId: "b", startedLearnerIds: ["x"] }];
+  const after = [first, { programId: "a", startedLearnerIds: ["x", "y", "y"] }, { programId: "b", startedLearnerIds: ["x"] }];
+  const build = (starts: typeof before) => buildKpiCoverage(starts,
+    starts.map(row => ({ programId: row.programId, completedLearnerIds: row.startedLearnerIds })), []);
+  expect(build(before).uniqueLearnersStarted).toEqual({ value: 2, evaluated: 2, total: 3 });
+  const result = build(after);
+  expect(result.uniqueLearnersStarted).toEqual({ value: 2, evaluated: 3, total: 3 });
+  expect(result.uniqueLearnersCompleted.value).toBe(2);
+  expect(result.programParticipationsStarted.value).toBe(3);
+  expect(result.programParticipationsCompleted.value).toBe(3);
+});

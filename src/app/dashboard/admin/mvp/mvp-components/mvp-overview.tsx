@@ -22,6 +22,11 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
   const [previousAppliedKey, setPreviousAppliedKey] = useState(appliedKey);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [refreshing, refreshTransition] = useTransition();
+  const [refreshedReview, setRefreshedReview] = useState<{
+    source: MvpDashboardData; review: Awaited<ReturnType<typeof refreshMvpOverview>>["review"];
+  } | null>(null);
+  // A new server response or navigation supersedes the previous review scope.
+  const review = refreshedReview?.source === data ? refreshedReview.review : data;
   // Navigation resets draft controls but leaves the top-card snapshot intact.
   if (previousAppliedKey !== appliedKey) {
     setPreviousAppliedKey(appliedKey);
@@ -35,10 +40,12 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
     setError(null);
     refreshTransition(async () => {
       try {
-        setSnapshot(await refreshMvpOverview());
+        const result = await refreshMvpOverview(data.appliedFilters);
+        setSnapshot(result);
+        setRefreshedReview({ source: data, review: result.review });
         router.refresh();
       } catch {
-        setError("Could not refresh the overview. The previous totals are still displayed.");
+        setError("Could not refresh the overview. The previous totals and review flags are still displayed.");
       }
     });
   }
@@ -60,7 +67,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
     finally { setExporting(null); }
   }
 
-  return <div className="min-w-0 space-y-6 break-words [&_button]:font-bold" aria-busy={pending}>
+  return <div className="min-w-0 space-y-6 break-words [&_button]:font-bold" aria-busy={pending || refreshing}>
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="text-xs font-medium uppercase tracking-widest text-ink-soft">{snapshot.scopeLabel}</p>
         <h1 className="mt-2 text-2xl font-semibold text-ink">Impact overview</h1>
@@ -87,7 +94,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
       <Stat label="Courses with verified check-in flags" value={snapshot.flaggedCourses} />
     </dl>
     <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <OverviewStaffReview data={data.staffReview} kpiDataReview={data.kpiDataReview} />
+      <OverviewStaffReview data={review.staffReview} kpiDataReview={review.kpiDataReview} />
       <OverviewParticipation data={data.overviewParticipation} />
     </div>
     {/* Keep filters and performance together within the main content column. */}
