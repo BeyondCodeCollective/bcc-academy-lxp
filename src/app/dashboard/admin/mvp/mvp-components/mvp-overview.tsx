@@ -87,7 +87,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
       <Stat label="Courses with verified check-in flags" value={snapshot.flaggedCourses} />
     </dl>
     <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <OverviewStaffReview data={data.staffReview} />
+      <OverviewStaffReview data={data.staffReview} kpiDataReview={data.kpiDataReview} />
       <OverviewParticipation data={data.overviewParticipation} />
     </div>
     {/* Keep filters and performance together within the main content column. */}

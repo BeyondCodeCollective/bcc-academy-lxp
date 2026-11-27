@@ -1,4 +1,5 @@
 import "server-only";
+import { buildKpiDataReview } from "./kpi-data-review";
 import { buildKpiCoverage } from "./kpi-coverage";
 import { protectMvpGeography, isSmallMvpCount, MVP_SUPPRESSION_REASON } from "./privacy";
 import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
@@ -319,6 +320,7 @@ const activeReasons = new Set<string>();
 const checkInEvaluations: import("./check-ins").MvpCheckInEvaluation[] = [];
 const surveyOutcomes: MvpSurveyOutcomeGroup[] = [];
 const selectedRows: MvpProgramRow[] = [];
+const kpiCompletionReasons = new Map<string, string>();
 let undatedExcluded = 0;
 let statusUnknownExcluded = 0;
 const activityScopes = new Map<string, string[]>();
@@ -500,7 +502,10 @@ for (const [rowIndex, row] of candidateRows.entries()) {
   row.startDate = lifecycle.startDate;
   row.endDate = lifecycle.endDate;
   row.enrolledBeforeStart = lifecycle.status === "starting_soon" ? records.learnerIds.length : null;
-  if (completion.unavailableReason) completionReasons.add(completion.unavailableReason);
+  if (completion.unavailableReason) {
+    completionReasons.add(completion.unavailableReason);
+    kpiCompletionReasons.set(row.id, completion.unavailableReason);
+  }
   offeringStarts.push({ programId: row.programId, startedLearnerIds: performance.startedLearnerIds });
   programSummaryInputs.push({ programId: row.programId, programName: row.programName, offeringId: row.id,
     enrolledLearnerIds: records.learnerIds, startedLearnerIds: performance.startedLearnerIds,
@@ -566,6 +571,7 @@ for (const [rowIndex, row] of candidateRows.entries()) {
     ...(includeParticipants && { participants }),
     overviewParticipation: buildMvpOverviewParticipation(selectedRows, surveyOutcomes),
     staffReview: buildMvpStaffReview(selectedRows, checkInEvaluations),
+    kpiDataReview: buildKpiDataReview(selectedRows, kpiCompletionReasons),
     ...(events && { events }),
     ...((includeDemographics || includeLocations) && { geography: calculateMvpGeography(geographyProfiles.filter(profile => selectedLearnerIds.has(profile.id))) }),
     programSummaries: calculateMvpProgramSummaries(programSummaryInputs),

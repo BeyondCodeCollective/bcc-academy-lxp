@@ -52,3 +52,15 @@ describe("Overview staff review", () => {
     expect(unavailable).not.toContain("No verified flags");
   });
 });
+
+ it("shows course data gaps separately from verified learner flags", () => {
+  const html = renderToStaticMarkup(createElement(OverviewStaffReview, { data: undefined, kpiDataReview: {
+    courseCount: 1, courses: [{ id: "p:c", programId: "p", programName: "Example program", courseSlug: "c", courseName: "Example course", cohortName: null,
+      reasons: [{ metric: "started", message: "Started count unavailable: first-session mapping needed." }] }],
+  } }));
+  expect(html).toContain("KPI data review");
+  expect(html).toContain("1 course needs");
+  expect(html).toContain("first-session mapping needed");
+  expect(html).toContain("separate from learner check-in flags");
+  expect(html).not.toContain("1 learner flagged");
+});

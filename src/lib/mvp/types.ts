@@ -219,6 +219,7 @@ export type MvpMetricDefinition = {
 // The overview receives scoped data and the applied filters together.
 // Program details can be loaded separately when a user opens a row.
 export type MvpDashboardData = {
+  kpiDataReview?: ReturnType<typeof import("./kpi-data-review").buildKpiDataReview>;
   participants?: Awaited<ReturnType<typeof import("./participant-queries").loadMvpParticipants>>;
   staffReview?: ReturnType<typeof import("./staff-review").buildMvpStaffReview>;
   overviewParticipation?: ReturnType<typeof import("./overview-participation").buildMvpOverviewParticipation>;

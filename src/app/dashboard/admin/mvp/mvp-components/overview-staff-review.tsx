@@ -9,7 +9,7 @@ const reasonLabels: Record<MvpAttentionReason, string> = {
   behind_expected_progress: "below the configured progress threshold after its deadline",
 };
 
-export function OverviewStaffReview({ data }: { data: MvpDashboardData["staffReview"] }) {
+export function OverviewStaffReview({ data, kpiDataReview }: { data: MvpDashboardData["staffReview"]; kpiDataReview?: MvpDashboardData["kpiDataReview"] }) {
   const courses = data?.flaggedCourses ?? [];
   const programCount = new Set(courses.map(course => course.programId)).size;
 
@@ -39,5 +39,17 @@ export function OverviewStaffReview({ data }: { data: MvpDashboardData["staffRev
     {data && data.incompleteCourseCount > 0 && <p className="mt-4 border-t border-rule pt-4 text-xs text-ink-soft">
       Evaluation incomplete for {data.incompleteCourseCount} {data.incompleteCourseCount === 1 ? "course" : "courses"}.
     </p>}
+    {kpiDataReview && <section className="mt-5 border-t border-rule pt-4" aria-label="KPI data review">
+      <h3 className="text-base font-semibold text-ink">KPI data review</h3>
+      <p className="mt-2 text-sm text-ink-soft">{kpiDataReview.courseCount} {kpiDataReview.courseCount === 1 ? "course needs" : "courses need"} data review.</p>
+      <p className="mt-2 text-xs text-ink-soft">These are calculation or evidence gaps, separate from learner check-in flags. Ongoing courses may be awaiting completion rather than requiring a data correction. Results from evaluable courses still contribute to the KPIs.</p>
+      {kpiDataReview.courses.length ? <ul className="mt-3 space-y-3">
+        {kpiDataReview.courses.map(course => <li key={course.id} className="break-words rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <h4 className="text-sm font-semibold text-ink">{course.programName} · {course.courseName ?? course.courseSlug ?? "Course not specified"}</h4>
+          {course.cohortName && <p className="mt-1 text-xs text-ink-soft">{course.cohortName}</p>}
+          <ul className="mt-2 list-disc space-y-2 pl-4 text-sm text-ink">{course.reasons.map((reason, index) => <li key={`${reason.metric}:${index}`}>{reason.message}</li>)}</ul>
+        </li>)}
+      </ul> : <p className="mt-3 text-sm text-ink-soft">No KPI data gaps in this selection.</p>}
+    </section>}
   </section>;
 }
