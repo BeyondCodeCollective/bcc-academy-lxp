@@ -110,8 +110,8 @@ describe("course performance integration", () => {
   it("maps kickoff and first teaching session but never the exam", () => {
     expect(getMvpStartSlots(track)?.map((slot) => slot.weekNumber)).toEqual([0, 1]);
   });
-  it("requires a precise start mapping for multi-session weekly courses", () => {
-    expect(getMvpStartSlots({ ...track, unitLabel: "Week" })).toBeNull();
+  it("maps session one for multi-session weekly courses", () => {
+    expect(getMvpStartSlots({ ...track, unitLabel: "Week" })?.map(slot => [slot.weekNumber, slot.sessionNumber])).toEqual([[0, 1], [1, 1]]);
   });
   it("aggregates attendance over explicitly completed sessions and deduplicated learners", () => {
     const result = calculateMvpCoursePerformance(track, ["a", "b", "a"], [{

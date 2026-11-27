@@ -656,12 +656,12 @@ describe("Learners loader access boundary", () => {
     const page = await getMvpLearnersData({ page: "3", pageSize: "10" });
     expect(page.directory.every(learner => learner.enrollments.every(row => row.attendance === null))).toBe(true);
   });
-  it("returns known zero without claiming an attendance percentage and skips evidence reads", async () => {
+  it("returns known zero held sessions while still checking recorded start evidence", async () => {
     seedAttendance();
     tables.session_content.forEach(row => { row.status = "upcoming"; });
     const result = await getMvpLearnersData({ search: "Learner00" });
     expect(result.directory[0].enrollments[0].attendance).toEqual({ present: 0, eligibleHeld: 0 });
-    expect(requests).not.toContain("attendance");
+    expect(requests).toContain("attendance");
     expect(requests).not.toContain("mvp_attendance_reviews");
   });
   it.each(["attendance", "mvp_attendance_reviews"])("fails closed on %s read errors", async source => {

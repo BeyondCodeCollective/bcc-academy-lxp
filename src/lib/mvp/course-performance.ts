@@ -1,3 +1,4 @@
+import { getMvpStartSlots } from "./start-sessions";
 import { buildMvpSchedule, type MvpScheduleInput } from "./schedule";
 import { calculateAttendanceMilestone, type MvpAttendanceRecord, type MvpSessionSlot } from "./milestones";
 import { calculateMvpPercentage } from "./metrics";
@@ -15,20 +16,7 @@ export type MvpSessionDelivery = {
   status_3: string;
 };
 
-// Start mapping requires an explicit dated syllabus. A labeled exam is not
-// a kickoff. Multi-session weekly units need a more precise start mapping.
-export function getMvpStartSlots(track: MvpScheduleInput["track"]): MvpSessionSlot[] | null {
-  if (!track || (track.unitLabel !== "Session" && track.sessionsPerWeek !== 1)) return null;
-  const units = track.weekSummaries ?? [];
-  if (!units.length || units.some((unit) => !unit.date)) return null;
-  const teaching = units.filter((unit) => !unit.label).sort((a, b) => a.date!.localeCompare(b.date!));
-  if (!teaching.length) return null;
-  if (teaching.length > 1 && teaching[0].date === teaching[1].date) return null;
-  const kickoff = units.filter((unit) => /^kick[ -]?off$/i.test(unit.label?.trim() ?? ""));
-  return [...kickoff, teaching[0]].map((unit) => ({
-    weekNumber: unit.week, sessionNumber: 1, label: unit.label || "First session",
-  }));
-}
+export { getMvpStartSlots } from "./start-sessions";
 
 // Computes each learner independently and combines raw counts, rather than
 // averaging rounded percentages. The caller supplies a complete scoped roster.
