@@ -1,6 +1,6 @@
 import type { MvpProgramRow } from "./types";
 
-type Reason = { metric: "started" | "completed" | "upcoming"; message: string };
+type Reason = { metric: "started" | "active" | "completed" | "upcoming"; message: string };
 type Course = Pick<MvpProgramRow, "id" | "programId" | "programName" | "courseSlug" | "courseName" | "cohortName"> & { reasons: Reason[] };
 
 // Only authorized, filtered rows are accepted. Return explicit aggregate fields,
@@ -11,6 +11,8 @@ export function buildKpiDataReview(rows: readonly MvpProgramRow[], completionRea
     const reasons: Reason[] = [];
     if (row.started === null) reasons.push({ metric: "started", message:
       "Started count unavailable: a dated kickoff or first-session mapping is needed. Check the schedule and multi-session start mapping." });
+    if (row.active === null) reasons.push({ metric: "active", message:
+      `Active count unavailable: ${row.activeUnavailableReason ?? "Check active-learner policy configuration and attendance evidence."}` });
     if (row.completed === null) reasons.push({ metric: "completed", message:
       `Completion count unavailable: ${completionReasons.get(row.id) ?? "Check the full required schedule and session-delivery evidence."}` });
     if (row.status === "unknown") reasons.push({ metric: "upcoming", message:
