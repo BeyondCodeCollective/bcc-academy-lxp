@@ -117,7 +117,7 @@ export async function getMvpLearnerEvidence(learnerId: string, params: LearnerQu
   // this boundary. No raw records, review notes, content, or storage URLs.
   return { id: learner.id, asOf: asOf.toISOString(), enrollments: enrollments.map(e => ({
     programId: e.programId, programName: e.programName, courseSlug: e.courseSlug, courseName: e.courseName,
-    status: e.status, attendanceUnavailableReason: e.attendanceUnavailableReason,
+    status: e.status, hasStartEvidence: e.hasStartEvidence, attendanceUnavailableReason: e.attendanceUnavailableReason,
     attendanceSessions: e.attendanceSessions?.map(s => ({ weekNumber: s.weekNumber, sessionNumber: s.sessionNumber, state: s.state })) ?? null,
     weeklyMilestones: e.weeklyMilestones.map(w => ({ weekNumber: w.weekNumber,
       submission: { at: w.submission.at, state: w.submission.state },

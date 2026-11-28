@@ -1,4 +1,6 @@
 import "server-only";
+import { buildKpiDataReview } from "./kpi-data-review";
+import { buildKpiCoverage } from "./kpi-coverage";
 import { protectMvpGeography, isSmallMvpCount, MVP_SUPPRESSION_REASON } from "./privacy";
 import { getStaffCohortSlugs } from "@/lib/programs/staff-cohort";
 import { loadMvpParticipants } from "./participant-queries";
@@ -152,12 +154,13 @@ async function loadMvpLearnerIds(
   return [...learnerIds];
 }
 
-// Activity program stamps can be stale. The selected course is checked
-// against resolveScopeTrackSlugs, then attendance is limited to its program-
-// scoped roster. Small ID batches avoid oversized request URLs.
+// Match the authorized program/course/learner population on every page.
+// Historical program mismatches require reconciliation, not silent attribution.
+// Small ID batches avoid oversized request URLs.
 // Database failures throw instead of being presented as zero attendance.
 async function loadMvpAttendance(
   db: MvpDatabase,
+  programId: string,
   courseSlug: string,
   learnerIds: string[],
 ): Promise<MvpAttendanceRecord[]> {
@@ -173,6 +176,7 @@ async function loadMvpAttendance(
         .select(
           "id, student_id, track, week_number, session_number, checked_in_at",
         )
+        .eq("program_id", programId)
         .eq("track", courseSlug)
         .in("student_id", batch)
         .order("id", { ascending: true })
@@ -214,7 +218,7 @@ async function loadMvpCourseRecords(
   courseProgramId: string,
 ): Promise<MvpCourseRecords> {
   const learnerIds = await loadMvpLearnerIds(db, courseSlug, courseProgramId);
-  const attendance = await loadMvpAttendance(db, courseSlug, learnerIds);
+  const attendance = await loadMvpAttendance(db, courseProgramId, courseSlug, learnerIds);
 
   return { learnerIds, attendance };
 }
@@ -318,6 +322,7 @@ const activeReasons = new Set<string>();
 const checkInEvaluations: import("./check-ins").MvpCheckInEvaluation[] = [];
 const surveyOutcomes: MvpSurveyOutcomeGroup[] = [];
 const selectedRows: MvpProgramRow[] = [];
+const kpiCompletionReasons = new Map<string, string>();
 let undatedExcluded = 0;
 let statusUnknownExcluded = 0;
 const activityScopes = new Map<string, string[]>();
@@ -499,7 +504,10 @@ for (const [rowIndex, row] of candidateRows.entries()) {
   row.startDate = lifecycle.startDate;
   row.endDate = lifecycle.endDate;
   row.enrolledBeforeStart = lifecycle.status === "starting_soon" ? records.learnerIds.length : null;
-  if (completion.unavailableReason) completionReasons.add(completion.unavailableReason);
+  if (completion.unavailableReason) {
+    completionReasons.add(completion.unavailableReason);
+    kpiCompletionReasons.set(row.id, completion.unavailableReason);
+  }
   offeringStarts.push({ programId: row.programId, startedLearnerIds: performance.startedLearnerIds });
   programSummaryInputs.push({ programId: row.programId, programName: row.programName, offeringId: row.id,
     enrolledLearnerIds: records.learnerIds, startedLearnerIds: performance.startedLearnerIds,
@@ -559,11 +567,13 @@ for (const [rowIndex, row] of candidateRows.entries()) {
     },
     summary: {
       ...startSummary, ...completionSummary, upcomingEnrollments,
+      coverage: buildKpiCoverage(offeringStarts, offeringCompletions, selectedRows),
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
     ...(includeParticipants && { participants }),
     overviewParticipation: buildMvpOverviewParticipation(selectedRows, surveyOutcomes),
     staffReview: buildMvpStaffReview(selectedRows, checkInEvaluations),
+    kpiDataReview: buildKpiDataReview(selectedRows, kpiCompletionReasons),
     ...(events && { events }),
     ...((includeDemographics || includeLocations) && { geography: calculateMvpGeography(geographyProfiles.filter(profile => selectedLearnerIds.has(profile.id))) }),
     programSummaries: calculateMvpProgramSummaries(programSummaryInputs),
@@ -633,7 +643,7 @@ for (const [rowIndex, row] of candidateRows.entries()) {
       { key: "totalParticipants", label: "Participants", denominator: null,
       definition: "Current course enrollment records for students, excluding staff and test accounts. This is not a people-served count. Courses include historical definitions; lifecycle filtering is not connected yet.", unavailableReason: null },
       { key: "started", label: "Started", denominator: null,
-        definition: "Current learners with recorded attendance at an explicitly dated kickoff or first teaching session. Weekly multi-session start mappings remain unavailable.",
+        definition: "Current learners with recorded attendance at an explicitly dated kickoff or first teaching session. For multi-session teaching units, only session 1 of the earliest dated unit qualifies. Check-ins must match the selected program, course, and learner.",
         unavailableReason: selectedRows.some((row) => row.started === null) ? "Some course start mappings are unavailable." : null },
       { key: "attendanceRate", label: "Recorded session attendance", denominator: "Current learners multiplied by eligible sessions explicitly marked completed",
         definition: "Attendance across required sessions explicitly marked completed in the course editor. This may cover only part of the delivered program and uses the current roster, not historical eligibility.",

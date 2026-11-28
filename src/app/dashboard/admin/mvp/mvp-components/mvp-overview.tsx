@@ -1,5 +1,7 @@
 "use client";
 
+import { OverviewStat as Stat } from "./overview-stat";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { MvpDashboardData } from "@/lib/mvp/types";
@@ -20,6 +22,11 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
   const [previousAppliedKey, setPreviousAppliedKey] = useState(appliedKey);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [refreshing, refreshTransition] = useTransition();
+  const [refreshedReview, setRefreshedReview] = useState<{
+    source: MvpDashboardData; review: Awaited<ReturnType<typeof refreshMvpOverview>>["review"];
+  } | null>(null);
+  // A new server response or navigation supersedes the previous review scope.
+  const review = refreshedReview?.source === data ? refreshedReview.review : data;
   // Navigation resets draft controls but leaves the top-card snapshot intact.
   if (previousAppliedKey !== appliedKey) {
     setPreviousAppliedKey(appliedKey);
@@ -33,10 +40,12 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
     setError(null);
     refreshTransition(async () => {
       try {
-        setSnapshot(await refreshMvpOverview());
+        const result = await refreshMvpOverview(data.appliedFilters);
+        setSnapshot(result);
+        setRefreshedReview({ source: data, review: result.review });
         router.refresh();
       } catch {
-        setError("Could not refresh the overview. The previous totals are still displayed.");
+        setError("Could not refresh the overview. The previous totals and review flags are still displayed.");
       }
     });
   }
@@ -58,7 +67,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
     finally { setExporting(null); }
   }
 
-  return <div className="min-w-0 space-y-6 break-words [&_button]:font-bold" aria-busy={pending}>
+  return <div className="min-w-0 space-y-6 break-words [&_button]:font-bold" aria-busy={pending || refreshing}>
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="text-xs font-medium uppercase tracking-widest text-ink-soft">{snapshot.scopeLabel}</p>
         <h1 className="mt-2 text-2xl font-semibold text-ink">Impact overview</h1>
@@ -73,19 +82,19 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
     {exporting && <p role="status" className="text-sm text-ink-soft">Preparing {exporting.toUpperCase()} report…</p>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <dl className="grid gap-4 md:grid-cols-3">
-      <Stat label="Unique learners started" value={snapshot.summary.uniqueLearnersStarted} prominent />
-      <Stat label="Program participations started" value={snapshot.summary.programParticipationsStarted} prominent />
+      <Stat label="Unique learners started" value={snapshot.summary.uniqueLearnersStarted} coverage={snapshot.summary.coverage?.uniqueLearnersStarted} prominent />
+      <Stat label="Program participations started" value={snapshot.summary.programParticipationsStarted} coverage={snapshot.summary.coverage?.programParticipationsStarted} prominent />
       <div className="rounded-lg border border-rule bg-white p-5 text-black"><dt className="text-sm text-primary-hover">Course portfolio</dt><dd className="mt-3 text-center text-4xl font-semibold tabular-nums text-black">{snapshot.portfolio}</dd>
         <p className="mt-3 text-center text-xs">{snapshot.active} active · {snapshot.upcoming} starting soon · {snapshot.unknown} status unavailable</p></div>
     </dl>
     <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Stat label="Upcoming enrollments" value={snapshot.summary.upcomingEnrollments} />
-      <Stat label="Learners with a course completion" value={snapshot.summary.uniqueLearnersCompleted} />
-      <Stat label="Learner/program pairs with a completion" value={snapshot.summary.programParticipationsCompleted} />
+      <Stat label="Upcoming enrollments" value={snapshot.summary.upcomingEnrollments} coverage={snapshot.summary.coverage?.upcomingEnrollments} />
+      <Stat label="Learners with a course completion" value={snapshot.summary.uniqueLearnersCompleted} coverage={snapshot.summary.coverage?.uniqueLearnersCompleted} />
+      <Stat label="Learner/program pairs with a completion" value={snapshot.summary.programParticipationsCompleted} coverage={snapshot.summary.coverage?.programParticipationsCompleted} />
       <Stat label="Courses with verified check-in flags" value={snapshot.flaggedCourses} />
     </dl>
     <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <OverviewStaffReview data={data.staffReview} />
+      <OverviewStaffReview data={review.staffReview} kpiDataReview={review.kpiDataReview} />
       <OverviewParticipation data={data.overviewParticipation} />
     </div>
     {/* Keep filters and performance together within the main content column. */}
@@ -112,10 +121,6 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
 
 // Shared display helpers preserve zero and make chart denominators explicit.
 function display(value: number | null | undefined) { return value == null || !Number.isFinite(value) ? "Unavailable" : value.toLocaleString("en-US"); }
-function Stat({ label, value, prominent = false }: { label: string; value: number | null; prominent?: boolean }) {
-  return <div className="rounded-lg border border-rule bg-white p-5 text-black"><dt className="text-sm text-primary-hover">{label}</dt>
-    <dd className={`mt-3 text-center font-semibold tabular-nums text-black ${value === null ? "text-xl" : prominent ? "text-4xl" : "text-3xl"}`}>{display(value)}</dd></div>;
-}
 function Distribution({ label, groups }: { label: string; groups: { label: string; count: number | null }[] }) {
   const total = groups.some(group => group.count === null) ? null : groups.reduce((sum, group) => sum + (group.count ?? 0), 0);
   return <div><h3 className="text-sm font-medium">{label}</h3><p className="mt-1 text-xs text-ink-soft">{total === null ? "Total unavailable" : `${total} learners, including unknowns`}</p>

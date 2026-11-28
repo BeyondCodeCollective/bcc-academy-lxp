@@ -48,6 +48,7 @@ export type MvpFilterOptions = {
 // Organization totals distinguish unique learners from participation
 // across programs. Started and completed counts may overlap.
 export type MvpSummary = {
+  coverage?: ReturnType<typeof import("./kpi-coverage").buildKpiCoverage>;
   uniqueLearnersStarted: MvpCount;
   uniqueLearnersCompleted: MvpCount;
   programParticipationsStarted: MvpCount;
@@ -218,6 +219,7 @@ export type MvpMetricDefinition = {
 // The overview receives scoped data and the applied filters together.
 // Program details can be loaded separately when a user opens a row.
 export type MvpDashboardData = {
+  kpiDataReview?: ReturnType<typeof import("./kpi-data-review").buildKpiDataReview>;
   participants?: Awaited<ReturnType<typeof import("./participant-queries").loadMvpParticipants>>;
   staffReview?: ReturnType<typeof import("./staff-review").buildMvpStaffReview>;
   overviewParticipation?: ReturnType<typeof import("./overview-participation").buildMvpOverviewParticipation>;

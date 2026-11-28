@@ -6,7 +6,7 @@ import { startLearnerRequest } from "./learner-request";
 function ready(id: string): Extract<EvidenceResult, { state: "ready" }> {
   return { state: "ready", evidence: { id, asOf: "2026-11-06T12:00:00Z", enrollments: [{
     programId: "p1", programName: "One", courseSlug: "a", courseName: "A", status: "needs_check_in",
-    attendanceUnavailableReason: null, attendanceSessions: [], weeklyMilestones: [],
+    hasStartEvidence: null, attendanceUnavailableReason: null, attendanceSessions: [], weeklyMilestones: [],
     checkIn: { evaluatedAt: "2026-11-06T12:00:00Z", unavailableReason: null, unevaluatedRuleIds: [], attentionFlags: [{
       id: "flag", learnerId: id, programId: "p1", courseSlug: "a", reason: "missed_sessions", ruleId: "rule",
       explanation: "Two absences", detectedAt: "2026-11-06T12:00:00Z", evidence: [],

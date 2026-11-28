@@ -619,12 +619,12 @@ describe("learner status query integration", () => {
     expect(result.programs[0]).toMatchObject({ totalParticipants: 0, active: null });
     expect(result.metricDefinitions.find((metric) => metric.key === "learnerStatus")?.unavailableReason).toContain("2 learner/offering");
   });
-  it("retains stale-stamped activity but excludes other courses and outside learners", async () => {
+  it("excludes mismatched program stamps, other courses and outside learners", async () => {
     db.tables.attendance[0].program_id = "stale";
     db.tables.session_content[0].program_id = "stale";
     db.tables.attendance.push(attendance("outside", "u2", "beta"), attendance("foreign", "outsider"));
     const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "started" });
-    expect(result.programs[0]).toMatchObject({ totalParticipants: 1, started: 1, attendanceRate: 100 });
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 0, started: 0, attendanceRate: null });
     expect(db.requests.filter((request) => request.table === "student_tracks").every((request) =>
       request.filters.some(([op, key, value]) => op === "eq" && key === "program_id" && value === "p1"))).toBe(true);
   });
@@ -919,7 +919,7 @@ describe("MVP query totals and filters", () => {
     const scoped = (table: string) => db.requests.filter((r) => r.table === table);
     for (const table of ["attendance", "session_content"]) {
       expect(scoped(table).length).toBeGreaterThan(0);
-      expect(scoped(table).every((r) => !r.filters.some(([, key]) => key === "program_id"))).toBe(true);
+      expect(scoped(table).every((r) => r.filters.some(([, key]) => key === "program_id") === (table === "attendance"))).toBe(true);
       expect(scoped(table).every((r) => r.filters.some(([op, key, value]) => op === "eq" && key === "track" && value === "twin"))).toBe(true);
     }
     // Shared slugs identify the same course activity, not a separate cohort.
@@ -942,7 +942,14 @@ describe("MVP query totals and filters", () => {
     const result = await getMvpDashboardData({});
     expect(result.programs[0]).toMatchObject({ totalParticipants: 2, started: 1, completed: 1, attendanceRate: 50, completionRate: 50 });
     expect(result.summary).toEqual({ uniqueLearnersStarted: 1, uniqueLearnersCompleted: 1,
-      programParticipationsStarted: 2, programParticipationsCompleted: 2, upcomingEnrollments: 0 });
+      programParticipationsStarted: 2, programParticipationsCompleted: 2, upcomingEnrollments: 0,
+      coverage: {
+        uniqueLearnersStarted: { value: 1, evaluated: 2, total: 2 },
+        programParticipationsStarted: { value: 2, evaluated: 2, total: 2 },
+        uniqueLearnersCompleted: { value: 1, evaluated: 2, total: 2 },
+        programParticipationsCompleted: { value: 2, evaluated: 2, total: 2 },
+        upcomingEnrollments: { value: 0, evaluated: 2, total: 2 },
+      } });
   });
   it("applies program/course selection to rows, summaries and evidence", async () => {
     const result = await getMvpDashboardData({ programId: "p2", courseSlug: "beta" });

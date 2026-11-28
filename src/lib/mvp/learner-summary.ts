@@ -1,4 +1,5 @@
 import "server-only";
+import { getMvpStartSlots } from "./start-sessions";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { calculateMvpSessionsRemaining } from "./sessions-remaining";
@@ -48,7 +49,7 @@ async function loadDelivery(db: Db, ownerId: string, courseSlug: string) {
 // before sorting/pagination. Count session opportunities once per program/course,
 // never once per learner. Current cohort links do not establish a cohort schedule.
 export async function loadLearnerSessionContext(db: Db, matching: readonly Learner[], asOf = new Date()) {
-  const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; reason: string | null; sessionsHeld: number | null }>();
+  const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; startSlots: MvpSessionSlot[] | null; reason: string | null; sessionsHeld: number | null }>();
   const offerings = new Map(matching.flatMap(learner => learner.enrollments.map(enrollment =>
     [JSON.stringify([enrollment.programId, enrollment.courseSlug]), enrollment] as const)));
   // Offerings resolve in parallel; a shared course's delivery is read once and awaited by each.
@@ -91,8 +92,9 @@ export async function loadLearnerSessionContext(db: Db, matching: readonly Learn
     const result = calculateMvpSessionsRemaining(track, delivery, asOf);
     const confirmed = delivery.flatMap(row => [row.status, row.status_2, row.status_3].flatMap((status, index) =>
       status === "completed" ? [{ weekNumber: row.week_number, sessionNumber: index + 1, label: `Session ${row.week_number}.${index + 1}` }] : []));
-    const slots = result.delivered === null ? null : buildMvpSchedule({ track, asOf, verifiedStartSessions: null, confirmedHeldSessions: confirmed }).heldRequiredSessions;
-    heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, reason: result.unavailableReason, sessionsHeld: result.delivered });
+    const schedule = buildMvpSchedule({ track, asOf, verifiedStartSessions: getMvpStartSlots(track), confirmedHeldSessions: confirmed });
+    const slots = result.delivered === null ? null : schedule.heldRequiredSessions;
+    heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, startSlots: schedule.startSessions, reason: result.unavailableReason, sessionsHeld: result.delivered });
   });
   return { heldByOffering, summary: summarizeLearnerSessionContext(matching, heldByOffering, asOf) };
 }
